@@ -87,7 +87,6 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   // Symbols
   const [symQ, setSymQ] = useState('')
   const [symSource, setSymSource] = useState<'arasaac' | 'openmoji'>('arasaac')
-  const [symLocale, setSymLocale] = useState('et')
   const [symLoading, setSymLoading] = useState(false)
   const [symbols, setSymbols] = useState<SymbolItem[]>([])
   const [symError, setSymError] = useState<string | null>(null)
@@ -165,7 +164,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
       const res = await fetch(
         `${base}/next/symbols?q=${encodeURIComponent(
           symQ,
-        )}&source=${symSource}&locale=${symLocale}&limit=40`,
+        )}&source=${symSource}&limit=40`,
         { credentials: 'include' },
       )
       if (!res.ok) throw new Error('Symbols load failed')
@@ -347,8 +346,13 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                   <Input
                     id="cell-symbol-search"
                     value={symQ}
-                    placeholder="Otsi sümboleid… (nt dog, eat, play)"
+                    placeholder="Otsi sümboleid eesti või inglise keeles… (nt kass, koer, dog, eat, play)"
                     onChange={(e) => setSymQ(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+                      e.preventDefault()
+                      void runSymbolsSearch()
+                    }}
                   />
                   <Select
                     value={symSource}
@@ -360,27 +364,10 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="arasaac">ARASAAC</SelectItem>
+                      <SelectItem value="arasaac">ARASAAC (et + en)</SelectItem>
                       <SelectItem value="openmoji">OpenMoji</SelectItem>
                     </SelectContent>
                   </Select>
-                  {symSource === 'arasaac' && (
-                    <Select
-                      value={symLocale}
-                      onValueChange={(value) => setSymLocale(value)}
-                    >
-                      <SelectTrigger
-                        className="w-[90px] rounded-xl text-sm"
-                        title="ARASAAC locale"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="et">et</SelectItem>
-                        <SelectItem value="en">en</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
                   <Button
                     type="button"
                     size="sm"

@@ -14,7 +14,6 @@ type SymbolItem = {
 }
 
 async function fetchArasaac(locale: string, q: string, limit: number) {
-  console.log('locale', locale)
   const r = await fetch(
     `https://api.arasaac.org/api/pictograms/${encodeURIComponent(locale)}/search/${encodeURIComponent(q)}`,
     { headers: { Accept: 'application/json' } },
@@ -30,6 +29,32 @@ async function fetchArasaac(locale: string, q: string, limit: number) {
     attribution: '© ARASAAC (Gobierno de Aragón); author listed on symbol page',
     raw: p,
   })) as SymbolItem[]
+}
+
+async function fetchArasaacCombined(locales: string[], q: string, limit: number) {
+  const byLocale = await Promise.all(
+    locales.map(async (locale) => {
+      try {
+        return await fetchArasaac(locale, q, limit)
+      } catch {
+        return []
+      }
+    }),
+  )
+
+  const merged = byLocale.flat()
+  const deduped: SymbolItem[] = []
+  const seen = new Set<string>()
+
+  for (const item of merged) {
+    const pictogramId = item.id.replace('arasaac-', '')
+    if (seen.has(pictogramId)) continue
+    seen.add(pictogramId)
+    deduped.push(item)
+    if (deduped.length >= limit) break
+  }
+
+  return deduped
 }
 
 export async function GET(req: Request) {
@@ -62,13 +87,22 @@ export async function GET(req: Request) {
       return NextResponse.json({ items })
     }
 
-    // ARASAAC with locale + fallback to 'en' if empty
-    const requested = (searchParams.get('locale') || 'en').toLowerCase()
-    let items = await fetchArasaac(requested, q, limit)
-    if (!items.length && requested !== 'en') {
-      const fallback = await fetchArasaac('en', q, limit)
-      if (fallback.length) items = fallback
+    // ARASAAC defaults to combined `et + en` results when locale is not provided.
+    // `locale` is still accepted for backwards compatibility.
+    const requestedLocale = (searchParams.get('locale') || '').toLowerCase().trim()
+
+    let items: SymbolItem[] = []
+
+    if (requestedLocale) {
+      items = await fetchArasaac(requestedLocale, q, limit)
+      if (!items.length && requestedLocale !== 'en') {
+        const fallback = await fetchArasaac('en', q, limit)
+        if (fallback.length) items = fallback
+      }
+    } else {
+      items = await fetchArasaacCombined(['et', 'en'], q, limit)
     }
+
     return NextResponse.json({ items })
   } catch {
     return NextResponse.json({ items: [] })

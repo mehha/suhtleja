@@ -63,10 +63,7 @@ export default buildConfig({
   collections: [Pages, Posts, Media, Categories, Users, Boards],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer, QuickChat],
-  plugins: [
-    ...plugins,
-    // storage-adapter-placeholder
-  ],
+  plugins,
   secret: process.env.PAYLOAD_SECRET,
   sharp,
   typescript: {

@@ -1,50 +1,58 @@
 # Repository Guidelines
 
-Use this guide when contributing to keep the Next.js + Payload stack consistent and reliable.
+Use this file as the quick-start for contributors. Keep deeper guidance in `docs/rules`.
 
-## Project Structure & Module Organization
-- `src/app/(frontend)` contains App Router routes (`home`, `[slug]`, `posts`, `search`, etc.) and shared layout files. `src/app/(payload)` wraps the Payload admin and API surface.
-- Domain config lives in `src/collections`, `src/blocks`, `src/fields`, and `payload.config.ts`; reusable UI and logic sit in `src/components`, `src/hooks`, `src/providers`, and `src/utilities`.
-- Styling is centralized in `src/app/(frontend)/globals.css`, `tailwind.config.mjs`, and `postcss.config.js`; design tokens live in `src/cssVariables.js`.
-- Tests reside in `tests/int/*.int.spec.ts` (Vitest) and `tests/e2e/*.e2e.spec.ts` (Playwright). Assets live in `public/`.
+## Documentation Strategy
+- Yes, putting rules under `docs/rules` is the right approach for this repo.
+- `AGENTS.md` should stay concise and point to rule files, not duplicate all details.
+- Rule sets:
+  - `docs/rules/payload-official/*`: external Payload patterns and security notes.
+  - `docs/rules/project/*`: Verba-specific implementation rules (source of truth for app behavior).
+- When changing behavior in `src/app/(frontend)`, update the matching file in `docs/rules/project/`.
 
-## Blocks Setup & Extension
-- Blocks live in `src/blocks/<BlockName>` with `config.ts` (Payload block config defining `slug`/`interfaceName`/fields) and `Component.tsx` (frontend render).
-- `src/collections/Pages/index.ts` registers allowed layout blocks; import your new `config` there and add it to the `layout.blocks` array.
-- `src/blocks/RenderBlocks.tsx` maps `blockType` → component; add your block keyed by the `slug` used in `config.ts`. Keep slugs stable—renames require content migration.
-- Example flow: copy an existing block (e.g., `Content`), adjust fields, create the matching component, wire it into `Pages` and `RenderBlocks`, then run `pnpm generate:types` to refresh `payload-types.ts`. Prefer shared fields from `src/fields` to stay consistent.
+## Project Structure
+- Frontend app routes: `src/app/(frontend)`.
+- Payload admin/API routes: `src/app/(payload)`.
+- Domain config: `src/collections`, `src/blocks`, `src/fields`, `src/QuickChat`, `src/payload.config.ts`.
+- Shared UI/logic: `src/components`, `src/hooks`, `src/providers`, `src/utilities`.
+- Tests: `tests/int/*.int.spec.ts` (Vitest), `tests/e2e/*.e2e.spec.ts` (Playwright).
 
-## Collections Setup & Extension
-- Collections live in `src/collections/<Name>/index.ts` (hooks in `hooks/` where needed). Each export is a Payload `CollectionConfig` with a unique `slug`, access rules, and admin settings.
-- Register collections in `src/payload.config.ts` under the `collections` array; missing registration means the admin UI and API will not expose them.
-- Use shared access helpers (`src/access/*.ts`), common SEO fields, and `slugField()` for URL-safe IDs. Keep `defaultPopulate` and `admin.preview` in sync with front-end needs (see `Pages` and `Posts` for patterns).
-- When adding relationships, reference existing slugs (`users`, `media`, `categories`, etc.) and consider `filterOptions`/`defaultPopulate` to avoid over-fetching. Run `pnpm generate:types` after schema changes.
+## Frontend Feature Map
+- `boards`: `src/app/(frontend)/boards`, collection `src/collections/Boards/index.ts`, rule `docs/rules/project/boards.md`.
+- `connect-dots`: `src/app/(frontend)/connect-dots`, rule `docs/rules/project/connect-dots.md`.
+- `feelings`: `src/app/(frontend)/feelings`, user fields in `src/collections/Users/index.ts`, rule `docs/rules/project/feelings.md`.
+- `quick-chat`: `src/app/(frontend)/quick-chat`, global `src/QuickChat/config.ts`, rule `docs/rules/project/quick-chat.md`.
+- Parent/child mode shared flow: `src/app/(frontend)/home/ParentUnlockDialog.tsx`, `src/app/(frontend)/home/modeActions.ts`, `src/utilities/uiMode.ts`, rule `docs/rules/project/parent-child-mode.md`.
+- Shared speech pattern (`/next/tts-ms`): `src/app/(frontend)/next/tts-ms/route.ts`, rule `docs/rules/project/audio-tts.md`.
 
-## Project-Specific Flows
-- Boards feature: UI lives under `src/app/(frontend)/boards`; collection config at `src/collections/Boards`. Access rules restrict reads/updates to admins or board owners. Server actions on `/boards/page.tsx` handle create/pin/delete—keep them in sync with `BoardsList`.
-- Parent/Child mode: PIN-based toggle (`ParentUnlockDialog` in `src/app/(frontend)/home/ParentUnlockDialog.tsx`, actions in `modeActions.ts`, helpers in `src/utilities/uiMode.ts`). PIN hashes live on users (`parentPinHash`, default from `DEFAULT_PARENT_PIN` env or `0000`). `requireParentMode()` guards routes like `/boards`; set the `uiMode` cookie to switch modes. When adjusting PIN flows, preserve the auto-submit/validation UX and cookie attributes.
-- Quick Chat: admin-configurable buttons live in the `quick-chat` global (`src/QuickChat/config.ts`, registered in `payload.config.ts`). Frontend lives at `/quick-chat` with TTS playback per button (`src/app/(frontend)/quick-chat`). Use the global to toggle which buttons are visible and adjust phrases/colors; defaults cover “Jah/ Ei/ Veel/ Aita/ Lõpeta/ Kus on WC?/ Valus.”
+## Common Extension Flows
+- New block:
+  - Add block config/component in `src/blocks/<BlockName>`.
+  - Register in `src/collections/Pages/index.ts` and `src/blocks/RenderBlocks.tsx`.
+  - Run `pnpm generate:types`.
+- New collection:
+  - Add `src/collections/<Name>/index.ts`.
+  - Register in `src/payload.config.ts`.
+  - Run `pnpm generate:types`.
+- New frontend feature route:
+  - Add route under `src/app/(frontend)/<feature>`.
+  - Add/update project rule doc under `docs/rules/project/`.
+  - Document data source (collection/global/static), auth gate, and side effects.
 
-## Build, Test, and Development Commands
-- `pnpm install` with Node 18.20+ or 20+ (pnpm 9+) to set up dependencies.
-- `pnpm dev` runs Next.js and Payload locally at `http://localhost:3000`.
-- `pnpm build` creates the production bundle; `pnpm start` serves it. `pnpm postbuild` generates sitemaps.
-- `pnpm lint` / `pnpm lint:fix` runs ESLint (Next/TypeScript config).
-- `pnpm test:int` for Vitest integration/unit coverage; `pnpm test:e2e` for Playwright UI flows; `pnpm test` runs both.
-- Payload helpers: `pnpm generate:types`, `pnpm generate:importmap`, and `pnpm payload <command>`.
+## Security and Data Integrity Baseline
+- For Local API operations acting on behalf of a user, enforce access control explicitly (see `docs/rules/payload-official/security-critical.mdc`).
+- In hooks, pass `req` to nested Payload operations to preserve transaction context.
+- Keep `dynamic = 'force-dynamic'` on auth/cookie-dependent routes unless you intentionally redesign caching.
 
-## Coding Style & Naming Conventions
-- TypeScript-first, App Router friendly. Prefer ES modules and `PascalCase` component files, `camelCase` utilities/hooks, and `SCREAMING_SNAKE_CASE` env keys.
-- 2-space indentation; keep Tailwind classes ordered logically (layout → spacing → color → state). Avoid unused exports and `any`; ESLint warns on these.
-- Use Prettier for formatting before committing; keep generated `payload-types.ts` in sync via `pnpm generate:types` when schema changes.
+## Build and Test Commands
+- `pnpm install` (Node 18.20+ or 20+, pnpm 9+).
+- `pnpm dev` for local development.
+- `pnpm lint` / `pnpm lint:fix`.
+- `pnpm test:int`, `pnpm test:e2e`, `pnpm test`.
+- `pnpm generate:types`, `pnpm generate:importmap`.
 
-## Testing Guidelines
-- Integration specs live in `tests/int` (`*.int.spec.ts`) using Vitest + jsdom; collocate new cases near relevant modules.
-- E2E specs live in `tests/e2e` (`*.e2e.spec.ts`) using Playwright; ensure `pnpm dev` (or a running build) is active before running them.
-- Aim to cover data-access and UI regressions with focused tests before broad flows; prefer deterministic fixtures seeded from the repo defaults.
-
-## Commit & Pull Request Guidelines
-- Follow Conventional Commits as in history (`feat:`, `fix:`, `refactor:`, etc.), using concise, imperative scopes.
-- PRs should explain intent, list key changes, and call out schema/env updates or manual steps (migrations, revalidation, seeds).
-- Include test evidence (`pnpm test`, `pnpm test:int`, or `pnpm test:e2e` as appropriate) and UI screenshots/GIFs for visible changes.
-- Keep diffs scoped; note any breaking changes or ops impacts (cache invalidation, search index rebuilds, Payload admin tweaks).
+## Coding and PR Conventions
+- TypeScript-first. Use `PascalCase` for components, `camelCase` for utilities/hooks.
+- Keep diffs scoped and avoid unrelated refactors.
+- Follow Conventional Commits.
+- PRs should include: what changed, why, test evidence, and any schema/env impact.

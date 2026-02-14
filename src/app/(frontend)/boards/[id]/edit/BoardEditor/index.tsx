@@ -225,7 +225,7 @@ export default function BoardEditor({ board, renameBoard }: Props) {
                   }}
                 />
                 <Label htmlFor="action-bar-toggle">
-                  {actionBar.enabled ? 'Peida tegevusriba' : 'Kuva tegevusriba'}
+                  {actionBar.enabled ? 'Tegevusriba sees' : 'Tegevusriba väljas'}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -237,7 +237,7 @@ export default function BoardEditor({ board, renameBoard }: Props) {
                   }}
                 />
                 <Label htmlFor="action-ai-toggle">
-                  {aiEnabled ? 'Deaktiveeri AI' : 'Aktiveeri AI'}
+                  {aiEnabled ? 'AI sees' : 'AI väljas'}
                 </Label>
               </div>
             </div>
