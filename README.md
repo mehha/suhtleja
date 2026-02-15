@@ -194,6 +194,41 @@ Although Next.js includes a robust set of caching strategies out of the box, Pay
 
 To spin up this example locally, follow the [Quick Start](#quick-start). Then [Seed](#seed) the database with a few pages, posts, and projects.
 
+### MongoDB Sync from Coolify
+
+If your deployment runs on Coolify and you want a local copy of production/staging data:
+
+1. Configure env vars in `.env` (see `.env.example`):
+   - `COOLIFY_MONGO_URI`
+   - `REMOTE_MONGO_DB` (recommended, e.g. `verba`)
+   - `LOCAL_MONGO_URI` (or use `DATABASE_URI`)
+   - `LOCAL_MONGO_DB` (recommended, e.g. `verba`)
+   - `DB_BACKUP_DIR`
+2. Pull remote DB dump:
+   - `pnpm run db:pull`
+3. Restore latest dump into local DB:
+   - `pnpm run db:restore`
+4. One-command refresh (pull + restore):
+   - `pnpm run db:refresh`
+
+Media uploads are stored on disk (`public/media`), so sync those separately:
+
+- Configure:
+  - `COOLIFY_SSH_HOST`
+  - `COOLIFY_MEDIA_PATH`
+  - `LOCAL_MEDIA_PATH`
+- Run:
+  - `pnpm run media:pull`
+
+Full sync helper:
+
+- `pnpm run sync:coolify`
+
+Recommended workflow is one-way sync (Coolify -> local), not local -> production.
+
+If you see `0 document(s) restored`, it usually means source and target namespaces did not match.
+Set `REMOTE_MONGO_DB` and `LOCAL_MONGO_DB` explicitly (both `verba` in most setups).
+
 ### Working with Postgres
 
 Postgres and other SQL-based databases follow a strict schema for managing your data. In comparison to our MongoDB adapter, this means that there's a few extra steps to working with Postgres.

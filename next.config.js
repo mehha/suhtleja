@@ -33,6 +33,11 @@ const nextConfig = {
         hostname: 'verba.mehh.ee',
         pathname: '/api/media/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'verba.test',
+        pathname: '/api/media/**',
+      },
     ],
   },
   webpack: (webpackConfig) => {
@@ -46,7 +51,7 @@ const nextConfig = {
   },
   reactStrictMode: true,
   redirects,
-  devIndicators: false
+  devIndicators: false,
 }
 
 export default withPayload(nextConfig, { devBundleServerPackages: false })
