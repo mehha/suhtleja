@@ -3,10 +3,11 @@
 import type { PayloadAdminBarProps, PayloadMeUser } from '@payloadcms/admin-bar'
 
 import { cn } from '@/utilities/ui'
-import { useSelectedLayoutSegments } from 'next/navigation'
+import { usePathname, useSelectedLayoutSegments } from 'next/navigation'
 import { PayloadAdminBar } from '@payloadcms/admin-bar'
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useFetchPageOrPost } from '@/utilities/useFetchPageOrPost'
 
 import './index.scss'
 
@@ -31,16 +32,64 @@ const collectionLabels = {
 
 const Title: React.FC = () => <span>Dashboard</span>
 
+const RESERVED_PAGE_SLUGS = new Set([
+  'posts',
+  'search',
+  'login',
+  'register',
+  'profile',
+  'tools',
+  'quick-chat',
+  'feelings',
+  'connect-dots',
+  'boards',
+  'next',
+  'admin',
+  'api',
+])
+
+const normalizePath = (pathname: string): string => {
+  if (pathname === '/') return '/'
+  return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
+}
+
 export const AdminBar: React.FC<{
   adminBarProps?: PayloadAdminBarProps
 }> = (props) => {
   const { adminBarProps } = props || {}
   const segments = useSelectedLayoutSegments()
+  const pathname = usePathname()
   const [show, setShow] = useState(false)
   const collection = (
     collectionLabels[segments?.[1] as keyof typeof collectionLabels] ? segments[1] : 'pages'
   ) as keyof typeof collectionLabels
   const router = useRouter()
+
+  const normalizedPath = normalizePath(pathname)
+  let targetCollection: 'pages' | 'posts' | undefined
+  let targetSlug: string | undefined
+
+  if (normalizedPath === '/') {
+    targetCollection = 'pages'
+    targetSlug = 'home'
+  } else if (normalizedPath.startsWith('/posts/')) {
+    const slug = normalizedPath.split('/')[2]
+    if (slug) {
+      targetCollection = 'posts'
+      targetSlug = decodeURIComponent(slug)
+    }
+  } else if (/^\/[^/]+$/.test(normalizedPath)) {
+    const slug = decodeURIComponent(normalizedPath.slice(1))
+    if (slug && !RESERVED_PAGE_SLUGS.has(slug)) {
+      targetCollection = 'pages'
+      targetSlug = slug
+    }
+  }
+
+  const docID = useFetchPageOrPost({
+    collection: targetCollection,
+    slug: targetSlug,
+  })
 
   const onAuthChange = React.useCallback((user: PayloadMeUser) => {
     setShow(Boolean(user?.id))
@@ -68,6 +117,7 @@ export const AdminBar: React.FC<{
             plural: collectionLabels[collection]?.plural || 'Pages',
             singular: collectionLabels[collection]?.singular || 'Page',
           }}
+          id={docID}
           logo={<Title />}
           onAuthChange={onAuthChange}
           onPreviewExit={() => {

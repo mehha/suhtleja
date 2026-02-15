@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
 import { Heart, MessageCircle, ArrowRight, Sparkles, PencilRuler } from 'lucide-react'
 
@@ -36,6 +38,33 @@ export default async function ToolsPage() {
   const { user } = await getCurrentUser()
   if (!user) redirect('/login')
 
+  const payload = await getPayload({ config: configPromise })
+
+  const enabledByDefault = new Map(tools.map((tool) => [tool.slug, true]))
+  let enabledBySlug = new Map(enabledByDefault)
+
+  try {
+    const toolsGlobal = await payload.findGlobal({
+      slug: 'tools',
+      depth: 0,
+    }) as {
+      items?: Array<{ slug?: string | null; enabled?: boolean | null }>
+    }
+
+    if (Array.isArray(toolsGlobal?.items) && toolsGlobal.items.length > 0) {
+      enabledBySlug = new Map(enabledByDefault)
+
+      for (const item of toolsGlobal.items) {
+        if (!item?.slug) continue
+        enabledBySlug.set(item.slug, item.enabled !== false)
+      }
+    }
+  } catch (err) {
+    console.warn('Tools global missing, using defaults', err)
+  }
+
+  const visibleTools = tools.filter((tool) => enabledBySlug.get(tool.slug) !== false)
+
   return (
     <main className="container space-y-8 py-6">
       <header className="flex items-start gap-3">
@@ -51,7 +80,7 @@ export default async function ToolsPage() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {tools.map((tool) => {
+        {visibleTools.map((tool) => {
           const Icon = tool.icon
           return (
             <Link
@@ -81,6 +110,12 @@ export default async function ToolsPage() {
           )
         })}
       </div>
+
+      {visibleTools.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          Hetkel pole tööriistu nähtavaks määratud.
+        </p>
+      )}
     </main>
   )
 }

@@ -40,15 +40,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <AdminBar
               adminBarProps={{
                 preview: isEnabled,
+                createProps: {
+                  target: '_self',
+                },
+                editProps: {
+                  target: '_self',
+                },
+                logoutProps: {
+                  target: '_self',
+                },
               }}
             />
           )}
 
           <Toaster />
           <Header />
-          <div className="py-10 px-4">
-            {children}
-          </div>
+          <div className="py-10 px-4">{children}</div>
           <Footer />
         </Providers>
       </body>

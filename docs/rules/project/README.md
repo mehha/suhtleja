@@ -16,5 +16,7 @@ Use these files for Verba-specific behavior and implementation rules.
   - Shared TTS endpoint and playback expectations.
 - `docs/rules/project/ui-components.md`
   - Prefer `@/components/ui` (shadcn/ui) components and install missing ones from the shadcn catalog.
+- `docs/rules/project/tools.md`
+  - `/tools` hub visibility is managed via Payload global toggles.
 
 When adding a new route under `src/app/(frontend)`, add a matching rule file here.

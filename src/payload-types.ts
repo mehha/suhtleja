@@ -115,11 +115,13 @@ export interface Config {
     header: Header;
     footer: Footer;
     'quick-chat': QuickChat;
+    tools: Tool;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     'quick-chat': QuickChatSelect<false> | QuickChatSelect<true>;
+    tools: ToolsSelect<false> | ToolsSelect<true>;
   };
   locale: null;
   user: User;
@@ -2101,6 +2103,24 @@ export interface QuickChat {
   createdAt?: string | null;
 }
 /**
+ * Vali, millised tööriistad on /tools vaates nähtavad.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tools".
+ */
+export interface Tool {
+  id: string;
+  items?:
+    | {
+        slug: '/feelings' | '/quick-chat' | '/connect-dots';
+        enabled?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
@@ -2177,6 +2197,22 @@ export interface QuickChatSelect<T extends boolean = true> {
         phrase?: T;
         enabled?: T;
         color?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tools_select".
+ */
+export interface ToolsSelect<T extends boolean = true> {
+  items?:
+    | T
+    | {
+        slug?: T;
+        enabled?: T;
         id?: T;
       };
   updatedAt?: T;

@@ -15,6 +15,7 @@ import { Boards } from './collections/Boards'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { QuickChat } from './QuickChat/config'
+import { ToolsGlobal } from './Tools/config'
 import { plugins } from './plugins'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
@@ -62,7 +63,7 @@ export default buildConfig({
   }),
   collections: [Pages, Posts, Media, Categories, Users, Boards],
   cors: [getServerSideURL()].filter(Boolean),
-  globals: [Header, Footer, QuickChat],
+  globals: [Header, Footer, QuickChat, ToolsGlobal],
   plugins,
   secret: process.env.PAYLOAD_SECRET,
   sharp,
