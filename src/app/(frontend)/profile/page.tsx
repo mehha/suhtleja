@@ -39,7 +39,12 @@ export default async function ProfilePage() {
         </dl>
       </section>
 
-      <ProfilePageClient hasPin={hasPin} />
+      <ProfilePageClient
+        hasPin={hasPin}
+        membershipStatus={u.membershipStatus}
+        trialEndsAt={u.trialEndsAt}
+        currentPeriodEndsAt={u.currentPeriodEndsAt}
+      />
     </div>
   )
 }

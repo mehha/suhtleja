@@ -89,6 +89,59 @@ export const Users: CollectionConfig = {
         readOnly: true,
       },
     },
+    {
+      name: 'stripeCustomerId',
+      label: 'Stripe Customer ID',
+      type: 'text',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'stripeSubscriptionId',
+      label: 'Stripe Subscription ID',
+      type: 'text',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'membershipStatus',
+      label: 'Liikmelisuse staatus',
+      type: 'select',
+      defaultValue: 'none',
+      options: [
+        { label: 'Puudub', value: 'none' },
+        { label: 'Trial', value: 'trialing' },
+        { label: 'Aktiivne', value: 'active' },
+        { label: 'Makseraskus', value: 'past_due' },
+        { label: 'Lõpetatud', value: 'canceled' },
+      ],
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'trialEndsAt',
+      label: 'Trial lõpeb',
+      type: 'date',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'currentPeriodEndsAt',
+      label: 'Periood lõpeb',
+      type: 'date',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
   ],
   timestamps: true,
 }

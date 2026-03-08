@@ -499,6 +499,11 @@ export interface User {
    */
   lastFeeling?: ('rõõmus' | 'kurb' | 'pahane' | 'hirmul' | 'elevil' | 'väsinud') | null;
   lastFeelingAt?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  membershipStatus?: ('none' | 'trialing' | 'active' | 'past_due' | 'canceled') | null;
+  trialEndsAt?: string | null;
+  currentPeriodEndsAt?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -1625,6 +1630,11 @@ export interface UsersSelect<T extends boolean = true> {
   pinUpdatedAt?: T;
   lastFeeling?: T;
   lastFeelingAt?: T;
+  stripeCustomerId?: T;
+  stripeSubscriptionId?: T;
+  membershipStatus?: T;
+  trialEndsAt?: T;
+  currentPeriodEndsAt?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
