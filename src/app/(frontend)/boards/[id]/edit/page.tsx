@@ -5,6 +5,7 @@ import BoardEditor from './BoardEditor/index'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
 import type { Board, User } from '@/payload-types'
 import { requireParentMode } from '@/utilities/uiMode'
+import { requireActiveMembership } from '@/utilities/membership'
 
 type Params = {
   id: string
@@ -24,6 +25,7 @@ export default async function BoardEditPage({
   if (!user) {
     redirect('/admin')
   }
+  requireActiveMembership(user)
 
   const doc = await payload
     .findByID({
@@ -57,6 +59,7 @@ export default async function BoardEditPage({
     if (!user) {
       redirect('/admin')
     }
+    requireActiveMembership(user)
 
     const boardId = formData.get('boardId') as string
     const rawName = (formData.get('name') as string) ?? ''

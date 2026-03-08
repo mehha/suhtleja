@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
+import { requireActiveMembership } from '@/utilities/membership'
 import { Heart, MessageCircle, ArrowRight, Sparkles, PencilRuler } from 'lucide-react'
 
 const tools = [
@@ -37,6 +38,7 @@ export const dynamic = 'force-dynamic'
 export default async function ToolsPage() {
   const { user } = await getCurrentUser()
   if (!user) redirect('/login')
+  requireActiveMembership(user)
 
   const payload = await getPayload({ config: configPromise })
 

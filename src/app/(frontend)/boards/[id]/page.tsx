@@ -6,6 +6,7 @@ import Runner from './Runner'
 import PageClient from './page.client'
 import React from 'react'
 import { isParentModeUtil } from '@/utilities/uiMode'
+import { requireActiveMembership } from '@/utilities/membership'
 
 type Args = {
   params: Promise<{
@@ -21,6 +22,7 @@ export default async function BoardRunPage({ params: paramsPromise }: Args) {
   if (!user) {
     redirect('/admin') // or your route
   }
+  requireActiveMembership(user)
 
   const isParentMode = await isParentModeUtil()
 

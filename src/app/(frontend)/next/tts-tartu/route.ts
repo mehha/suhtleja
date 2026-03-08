@@ -1,5 +1,9 @@
 // src/app/(frontend)/next/tts-tartu/route.ts
 import { NextResponse } from 'next/server'
+import configPromise from '@payload-config'
+import { getPayload } from 'payload'
+import type { User } from '@/payload-types'
+import { hasActiveMembership } from '@/utilities/membershipStatus'
 
 const TTS_URL = process.env.TTS_URL ?? 'http://localhost:8000/v2'
 const TTS_TIMEOUT_MS = Number(process.env.TTS_TIMEOUT_MS ?? 20000)
@@ -13,6 +17,17 @@ type TTSRequestBody = {
 }
 
 export async function POST(req: Request) {
+  const payload = await getPayload({ config: configPromise })
+  const { user } = await payload.auth({ headers: req.headers })
+
+  if (!user) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
+  if (!hasActiveMembership(user as User)) {
+    return NextResponse.json({ error: 'membership_required' }, { status: 402 })
+  }
+
   let body: TTSRequestBody
   try {
     body = await req.json()

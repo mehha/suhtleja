@@ -1,6 +1,8 @@
 'use server'
 
 import { getCurrentUser } from '@/utilities/getCurrentUser'
+import type { User } from '@/payload-types'
+import { hasActiveMembership } from '@/utilities/membershipStatus'
 import { FEELINGS, type FeelingValue } from './feelingsData'
 
 const ALLOWED: FeelingValue[] = FEELINGS.map((f) => f.value)
@@ -28,6 +30,10 @@ export async function logFeelingAction(
 
   if (!user) {
     return { success: false, error: 'Pole sisse logitud.' }
+  }
+
+  if (!hasActiveMembership(user as User)) {
+    return { success: false, error: 'Liikmelisus on vajalik.' }
   }
 
   const timestamp = new Date().toISOString()

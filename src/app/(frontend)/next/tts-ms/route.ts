@@ -1,5 +1,9 @@
 // src/app/(frontend)/next/tts-ms/route.ts
 import { NextResponse } from 'next/server'
+import configPromise from '@payload-config'
+import { getPayload } from 'payload'
+import type { User } from '@/payload-types'
+import { hasActiveMembership } from '@/utilities/membershipStatus'
 
 export const runtime = 'nodejs'
 
@@ -31,6 +35,17 @@ export async function POST(req: Request) {
       { error: 'missing_azure_config' },
       { status: 500 },
     )
+  }
+
+  const payload = await getPayload({ config: configPromise })
+  const { user } = await payload.auth({ headers: req.headers })
+
+  if (!user) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
+  if (!hasActiveMembership(user as User)) {
+    return NextResponse.json({ error: 'membership_required' }, { status: 402 })
   }
 
   let body: TTSRequestBody

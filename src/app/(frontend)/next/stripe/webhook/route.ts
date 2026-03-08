@@ -136,6 +136,13 @@ export async function POST(req: Request) {
             },
           })
         }
+
+        // Fallback: derive and persist membership state right after checkout completion.
+        // This keeps status in sync even if subscription.* webhook events are delayed/misconfigured.
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+          await updateMembershipFromSubscription(subscription)
+        }
         break
       }
 

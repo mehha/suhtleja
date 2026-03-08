@@ -1,6 +1,10 @@
 // app/(frontend)/next/groq/route.ts
 import { NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
+import configPromise from '@payload-config'
+import { getPayload } from 'payload'
+import type { User } from '@/payload-types'
+import { hasActiveMembership } from '@/utilities/membershipStatus'
 
 export const runtime = 'nodejs'
 
@@ -15,6 +19,17 @@ type GroqBody = {
 export async function POST(req: Request) {
   if (!process.env.GROQ_API_KEY) {
     return NextResponse.json({ error: 'GROQ_API_KEY missing' }, { status: 500 })
+  }
+
+  const payload = await getPayload({ config: configPromise })
+  const { user } = await payload.auth({ headers: req.headers })
+
+  if (!user) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
+  if (!hasActiveMembership(user as User)) {
+    return NextResponse.json({ error: 'membership_required' }, { status: 402 })
   }
 
   const body = (await req.json().catch(() => ({}))) as GroqBody
@@ -47,7 +62,7 @@ export async function POST(req: Request) {
     'Tagasta VAINULT JSON kujul: {"surface":"..."}',
   ].join('\n')
 
-  const user = [
+  const prompt = [
     `Kontekst: ${context || '-'}`,
     `Token: ${raw}`,
     'Vastus:',
@@ -59,7 +74,7 @@ export async function POST(req: Request) {
       response_format: { type: 'json_object' }, // garanteerib JSONi
       messages: [
         { role: 'system', content: system },
-        { role: 'user', content: user },
+        { role: 'user', content: prompt },
       ],
       temperature: 0,
     })

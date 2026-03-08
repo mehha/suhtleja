@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
+import { requireActiveMembership } from '@/utilities/membership'
 import { ConnectDotsPlayground } from './ConnectDotsPlayground'
 import { PUZZLES } from './puzzles'
 import { PencilRuler } from 'lucide-react'
@@ -9,6 +10,7 @@ export const dynamic = 'force-dynamic'
 export default async function ConnectDotsPage() {
   const { user } = await getCurrentUser()
   if (!user) redirect('/login')
+  requireActiveMembership(user)
 
   return (
     <main className="container space-y-6 py-6">

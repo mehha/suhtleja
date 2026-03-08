@@ -4,6 +4,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { QuickChatBoard } from './QuickChatBoard'
 import { DEFAULT_QUICK_CHAT_BUTTONS, type QuickChatButton } from './quickChatData'
+import { requireActiveMembership } from '@/utilities/membership'
 import { MessageCircle } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,7 @@ export const dynamic = 'force-dynamic'
 export default async function QuickChatPage() {
   const { user } = await getCurrentUser()
   if (!user) redirect('/login')
+  requireActiveMembership(user)
 
   const payload = await getPayload({ config: configPromise })
 

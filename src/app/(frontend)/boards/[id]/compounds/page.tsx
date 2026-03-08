@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { requireParentMode } from '@/utilities/uiMode'
+import { requireActiveMembership } from '@/utilities/membership'
 import { revalidatePath } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,7 @@ export default async function BoardCompoundsPage({ params }: any) {
 
   const { user } = await payload.auth({ headers: requestHeaders })
   if (!user) redirect('/admin')
+  requireActiveMembership(user)
 
   const boardRes = await payload.findByID({
     collection: 'boards',
@@ -53,6 +55,7 @@ export default async function BoardCompoundsPage({ params }: any) {
     const requestHeaders = await headers()
     const { user } = await payload.auth({ headers: requestHeaders })
     if (!user) redirect('/admin')
+    requireActiveMembership(user)
 
     const existing = (await payload.findByID({
       collection: 'boards',

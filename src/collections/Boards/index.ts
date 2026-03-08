@@ -1,13 +1,19 @@
 import type { CollectionConfig } from 'payload'
-import { authenticated } from '@/access/authenticated'
 import { isAdminOrOwner } from '@/access/isAdminOrOwner'
+import type { User } from '@/payload-types'
+import { hasActiveMembership } from '@/utilities/membershipStatus'
 
 export const Boards: CollectionConfig = {
   slug: 'boards',
   admin: { useAsTitle: 'name' },
   access: {
     read: isAdminOrOwner,
-    create: authenticated,
+    create: ({ req }) => {
+      const user = req.user as User | null | undefined
+      if (!user) return false
+      if (user.role === 'admin') return true
+      return hasActiveMembership(user)
+    },
     update: isAdminOrOwner,
     delete: isAdminOrOwner,
   },

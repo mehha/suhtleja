@@ -7,6 +7,7 @@ import type { Board } from '@/payload-types'
 import { BoardsList } from './BoardsList'
 import { CreateBoardForm } from './CreateBoardForm'
 import { requireParentMode } from '@/utilities/uiMode'
+import { requireActiveMembership } from '@/utilities/membership'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +20,7 @@ export default async function BoardsPage() {
   await requireParentMode()
 
   if (!user) redirect('/admin')
+  requireActiveMembership(user)
 
   const isAdmin = user.role === 'admin'
 
@@ -44,6 +46,7 @@ export default async function BoardsPage() {
     const requestHeaders = await headers()
     const { user } = await payload.auth({ headers: requestHeaders })
     if (!user) redirect('/admin')
+    requireActiveMembership(user)
 
     const rawName = formData.get('name')
     const name = typeof rawName === 'string' ? rawName.trim() : ''
@@ -75,6 +78,7 @@ export default async function BoardsPage() {
     const requestHeaders = await headers()
     const { user } = await payload.auth({ headers: requestHeaders })
     if (!user) redirect('/admin')
+    requireActiveMembership(user)
 
     await payload.update({
       collection: 'boards',
@@ -99,6 +103,7 @@ export default async function BoardsPage() {
     const requestHeaders = await headers()
     const { user } = await payload.auth({ headers: requestHeaders })
     if (!user) redirect('/admin')
+    requireActiveMembership(user)
 
     await payload.delete({ collection: 'boards', id: boardId })
 

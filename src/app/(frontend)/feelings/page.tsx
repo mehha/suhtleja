@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import type { User } from '@/payload-types'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
+import { requireActiveMembership } from '@/utilities/membership'
 import { FeelingsBoard } from './FeelingsBoard'
 import { Heart } from 'lucide-react'
 
@@ -14,6 +15,7 @@ type FeelingUser = User & {
 export default async function FeelingsPage() {
   const { user } = await getCurrentUser()
   if (!user) redirect('/login')
+  requireActiveMembership(user)
 
   const u = user as FeelingUser
 

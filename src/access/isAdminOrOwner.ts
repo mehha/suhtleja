@@ -1,5 +1,6 @@
 import type { AccessArgs, Where } from 'payload'
 import type { User } from '@/payload-types'
+import { hasActiveMembership } from '@/utilities/membershipStatus'
 
 /**
  * For collections where docs have `owner` (relationship to users)
@@ -9,6 +10,7 @@ import type { User } from '@/payload-types'
 export const isAdminOrOwner = ({ req }: AccessArgs<User>): boolean | Where => {
   if (!req.user) return false
   if (req.user.role === 'admin') return true
+  if (!hasActiveMembership(req.user)) return false
   return {
     owner: {
       equals: req.user.id,
