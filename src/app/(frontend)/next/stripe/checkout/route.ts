@@ -37,6 +37,23 @@ export async function POST(req: Request) {
   try {
     let customerId = (user as { stripeCustomerId?: string | null }).stripeCustomerId || undefined
 
+    if (customerId) {
+      try {
+        await stripe.customers.retrieve(customerId)
+      } catch (err) {
+        const stripeErr = err as Stripe.errors.StripeError
+        const isMissingCustomer =
+          stripeErr?.type === 'StripeInvalidRequestError' &&
+          stripeErr?.code === 'resource_missing'
+
+        if (isMissingCustomer) {
+          customerId = undefined
+        } else {
+          throw err
+        }
+      }
+    }
+
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email,
@@ -86,7 +103,19 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: session.url })
   } catch (err) {
-    console.error('Stripe checkout creation failed', err)
-    return NextResponse.json({ error: 'checkout_failed' }, { status: 500 })
+    const stripeErr = err as Stripe.errors.StripeError
+    const details = {
+      type: stripeErr?.type ?? null,
+      code: stripeErr?.code ?? null,
+      message: stripeErr?.message ?? null,
+      requestId: stripeErr?.requestId ?? null,
+    }
+
+    console.error('Stripe checkout creation failed', details)
+
+    return NextResponse.json(
+      { error: 'checkout_failed', details },
+      { status: 500 },
+    )
   }
 }
