@@ -73,6 +73,7 @@ export interface Config {
     categories: Category;
     users: User;
     boards: Board;
+    'connect-dots-puzzles': ConnectDotsPuzzle;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -96,6 +97,7 @@ export interface Config {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     boards: BoardsSelect<false> | BoardsSelect<true>;
+    'connect-dots-puzzles': ConnectDotsPuzzlesSelect<false> | ConnectDotsPuzzlesSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -984,6 +986,45 @@ export interface Board {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "connect-dots-puzzles".
+ */
+export interface ConnectDotsPuzzle {
+  id: string;
+  title: string;
+  enabled?: boolean | null;
+  /**
+   * Lower numbers appear first in the puzzle picker.
+   */
+  order?: number | null;
+  /**
+   * Optional short helper text shown under the puzzle selector.
+   */
+  description?: string | null;
+  /**
+   * Optional looping music for the frontend player. Starts after the child first taps the game.
+   */
+  backgroundMusic?: (string | null) | Media;
+  externalImageURL?: string | null;
+  dots:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  image?: (string | null) | Media;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -1195,6 +1236,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'boards';
         value: string | Board;
+      } | null)
+    | ({
+        relationTo: 'connect-dots-puzzles';
+        value: string | ConnectDotsPuzzle;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1712,6 +1757,24 @@ export interface BoardsSelect<T extends boolean = true> {
               id?: T;
             };
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "connect-dots-puzzles_select".
+ */
+export interface ConnectDotsPuzzlesSelect<T extends boolean = true> {
+  title?: T;
+  enabled?: T;
+  order?: T;
+  description?: T;
+  backgroundMusic?: T;
+  externalImageURL?: T;
+  dots?: T;
+  image?: T;
+  generateSlug?: T;
+  slug?: T;
   updatedAt?: T;
   createdAt?: T;
 }

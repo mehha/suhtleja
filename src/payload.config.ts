@@ -16,6 +16,7 @@ import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { QuickChat } from './QuickChat/config'
 import { ToolsGlobal } from './Tools/config'
+import { ConnectDotsPuzzles } from './collections/ConnectDotsPuzzles'
 import { plugins } from './plugins'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
@@ -61,7 +62,7 @@ export default buildConfig({
   db: mongooseAdapter({
     url: process.env.DATABASE_URI || '',
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Boards],
+  collections: [Pages, Posts, Media, Categories, Users, Boards, ConnectDotsPuzzles],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer, QuickChat, ToolsGlobal],
   plugins,
