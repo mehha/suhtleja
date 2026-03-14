@@ -1,7 +1,7 @@
 ---
 title: Audio TTS Rules
 description: Shared text-to-speech route and frontend playback conventions
-tags: [verba, tts, audio, frontend, nextjs]
+tags: [suhtleja, tts, audio, frontend, nextjs]
 ---
 
 # TTS and Audio Playback

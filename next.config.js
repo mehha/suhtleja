@@ -30,12 +30,12 @@ const nextConfig = {
       { protocol: 'https', hostname: 'unpkg.com' },
       {
         protocol: 'https',
-        hostname: 'verba.mehh.ee',
+        hostname: 'suhtleja.ee',
         pathname: '/api/media/**',
       },
       {
         protocol: 'http',
-        hostname: 'verba.test',
+        hostname: 'suhtleja.test',
         pathname: '/api/media/**',
       },
     ],

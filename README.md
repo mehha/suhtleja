@@ -200,9 +200,9 @@ If your deployment runs on Coolify and you want a local copy of production/stagi
 
 1. Configure env vars in `.env` (see `.env.example`):
    - `COOLIFY_MONGO_URI`
-   - `REMOTE_MONGO_DB` (recommended, e.g. `verba`)
+   - `REMOTE_MONGO_DB` (recommended, e.g. `suhtleja`)
    - `LOCAL_MONGO_URI` (or use `DATABASE_URI`)
-   - `LOCAL_MONGO_DB` (recommended, e.g. `verba`)
+   - `LOCAL_MONGO_DB` (recommended, e.g. `suhtleja`)
    - `DB_BACKUP_DIR`
 2. Pull remote DB dump:
    - `pnpm run db:pull`
@@ -227,7 +227,7 @@ Full sync helper:
 Recommended workflow is one-way sync (Coolify -> local), not local -> production.
 
 If you see `0 document(s) restored`, it usually means source and target namespaces did not match.
-Set `REMOTE_MONGO_DB` and `LOCAL_MONGO_DB` explicitly (both `verba` in most setups).
+Set `REMOTE_MONGO_DB` and `LOCAL_MONGO_DB` explicitly (both `suhtleja` in most setups).
 
 ### Working with Postgres
 
@@ -358,11 +358,11 @@ If you have any issues or questions, reach out to us on [Discord](https://discor
 ## DB
 
 Inner
-1. mongodb://root:eZv4tvD0at9e1f8L34vcmMf7rwNUP6aqlUvzVCNVCZNggx48sD7EGBu45lhnZe2m@fkwoo80s80kk0wsg88o0s0wg:27017/verba?authSource=admin&directConnection=true
-2. mongosh "mongodb://root:eZv4tvD0at9e1f8L34vcmMf7rwNUP6aqlUvzVCNVCZNggx48sD7EGBu45lhnZe2m@fkwoo80s80kk0wsg88o0s0wg:27017/verba?authSource=admin&directConnection=true"
+1. mongodb://root:eZv4tvD0at9e1f8L34vcmMf7rwNUP6aqlUvzVCNVCZNggx48sD7EGBu45lhnZe2m@fkwoo80s80kk0wsg88o0s0wg:27017/suhtleja?authSource=admin&directConnection=true
+2. mongosh "mongodb://root:eZv4tvD0at9e1f8L34vcmMf7rwNUP6aqlUvzVCNVCZNggx48sD7EGBu45lhnZe2m@fkwoo80s80kk0wsg88o0s0wg:27017/suhtleja?authSource=admin&directConnection=true"
 3. Dump DB: mongorestore \
   --uri="mongodb://<user,password,id>/?authSource=admin&directConnection=true" \
-  --db=verba \
+  --db=suhtleja \
   --drop \
-  ./dump/verba
+  ./dump/suhtleja
 4. Check in Coolify terminal: mongosh "mongodb://root:eZv4tvD0at9e1f8L34vcmMf7rwNUP6aqlUvzVCNVCZNggx48sD7EGBu45lhnZe2m@fkwoo80s80kk0wsg88o0s0wg:27017/?directConnection=true"

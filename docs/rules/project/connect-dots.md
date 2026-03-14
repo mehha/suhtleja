@@ -1,7 +1,7 @@
 ---
 title: Connect Dots Feature Rules
 description: Rules for puzzle authoring and play behavior in connect-dots
-tags: [verba, frontend, game, connect-dots, payload]
+tags: [suhtleja, frontend, game, connect-dots, payload]
 ---
 
 # Connect Dots (`/connect-dots`)

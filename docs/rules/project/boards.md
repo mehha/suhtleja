@@ -1,7 +1,7 @@
 ---
 title: Boards Feature Rules
 description: Rules for board management, pinning, ownership, and ordering
-tags: [verba, frontend, boards, payload]
+tags: [suhtleja, frontend, boards, payload]
 ---
 
 # Boards (`/boards` and `/home`)

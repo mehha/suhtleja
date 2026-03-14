@@ -1,14 +1,18 @@
 {
-  "name": "verba",
+  "name": "suhtleja",
   "version": "1.0.0",
   "description": "Website template for Payload",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
+    "deploy": "pnpm run deploy:database && pnpm run deploy:app:full",
+    "deploy:app": "opennextjs-cloudflare build && rm -rf .open-next/cache/__fetch && opennextjs-cloudflare deploy --cacheChunkSize 10",
+    "deploy:app:full": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --cacheChunkSize 10",
+    "deploy:database": "cross-env NODE_ENV=production PAYLOAD_SECRET=ignore payload migrate && wrangler d1 execute D1 --command 'PRAGMA optimize' --remote",
     "postbuild": "next-sitemap --config next-sitemap.config.cjs",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
-    "dev:verba": "cross-env NODE_OPTIONS=--no-deprecation NEXT_PUBLIC_SERVER_URL=http://verba.test:3000 next dev -H 0.0.0.0 -p 3000",
+    "dev:suhtleja": "cross-env NODE_OPTIONS=--no-deprecation NEXT_PUBLIC_SERVER_URL=http://suhtleja.test:3000 next dev -H 0.0.0.0 -p 3000",
     "dev:prod": "cross-env NODE_OPTIONS=--no-deprecation rm -rf .next && pnpm build && pnpm start",
     "db:pull": "bash ./scripts/db/pull.sh",
     "db:restore": "bash ./scripts/db/restore.sh",
@@ -16,19 +20,29 @@
     "media:pull": "bash ./scripts/db/sync-media.sh",
     "sync:coolify": "pnpm run db:refresh && pnpm run media:pull",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
-    "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
+    "generate:types": "pnpm run generate:types:cloudflare && pnpm run generate:types:payload",
+    "generate:types:cloudflare": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "generate:types:payload": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "ii": "cross-env NODE_OPTIONS=--no-deprecation pnpm --ignore-workspace install",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "lint:fix": "cross-env NODE_OPTIONS=--no-deprecation eslint . --fix",
+    "migrate:create": "pnpm payload migrate:create",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "reinstall": "cross-env NODE_OPTIONS=--no-deprecation rm -rf node_modules && rm pnpm-lock.yaml && pnpm --ignore-workspace install",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "test": "pnpm run test:int && pnpm run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --no-experimental-strip-types\" pnpm exec playwright test --config=playwright.config.ts",
-    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
+    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
+    "wrangler:login": "pnpm exec wrangler login"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@opennextjs/cloudflare": "^1.17.1",
     "@payloadcms/admin-bar": "3.76.1",
+    "@payloadcms/db-d1-sqlite": "3.76.1",
     "@payloadcms/db-mongodb": "3.76.1",
     "@payloadcms/live-preview-react": "3.76.1",
     "@payloadcms/next": "3.76.1",
@@ -38,6 +52,7 @@
     "@payloadcms/plugin-search": "3.76.1",
     "@payloadcms/plugin-seo": "3.76.1",
     "@payloadcms/richtext-lexical": "3.76.1",
+    "@payloadcms/storage-r2": "3.76.1",
     "@payloadcms/ui": "3.76.1",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-avatar": "^1.1.11",
@@ -75,7 +90,6 @@
     "react-grid-layout": "^1.5.2",
     "react-hook-form": "7.45.4",
     "react-konva": "^19.2.1",
-    "sharp": "0.34.2",
     "sonner": "^2.0.7",
     "stripe": "^20.3.1",
     "tailwind-merge": "^2.3.0",
@@ -104,7 +118,8 @@
     "tailwindcss": "^3.4.3",
     "typescript": "5.7.3",
     "vite-tsconfig-paths": "6.0.5",
-    "vitest": "4.0.18"
+    "vitest": "4.0.18",
+    "wrangler": "^4.73.0"
   },
   "engines": {
     "node": "^18.20.2 || >=20.9.0",
@@ -116,5 +131,12 @@
       "esbuild",
       "unrs-resolver"
     ]
+  },
+  "cloudflare": {
+    "bindings": {
+      "PAYLOAD_SECRET": {
+        "description": "Generate a random string using `openssl rand -hex 32`"
+      }
+    }
   }
 }

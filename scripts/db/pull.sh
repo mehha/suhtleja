@@ -39,7 +39,7 @@ BACKUP_DIR="${DB_BACKUP_DIR:-backups/db}"
 mkdir -p "$BACKUP_DIR"
 
 STAMP="$(date +%F-%H%M%S)"
-ARCHIVE_PATH="${1:-$BACKUP_DIR/verba-$STAMP.archive.gz}"
+ARCHIVE_PATH="${1:-$BACKUP_DIR/suhtleja-$STAMP.archive.gz}"
 
 echo "Creating MongoDB dump from Coolify..."
 if [[ -n "$REMOTE_DB" ]]; then

@@ -1,7 +1,7 @@
 ---
 title: UI Components Rules
 description: Prefer shared shadcn/ui components before building new primitives
-tags: [verba, ui, shadcn]
+tags: [suhtleja, ui, shadcn]
 ---
 
 # UI Components

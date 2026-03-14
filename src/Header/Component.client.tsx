@@ -74,7 +74,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
     <header className="container mt-6 relative z-20" {...(theme ? { 'data-theme': theme } : {})}>
       <div className="p-4 sm:px-8 flex items-center justify-between gap-4 bg-white rounded-full dark:bg-black shadow-sm ring-1 ring-gray-900/5">
         <div className="flex items-center gap-4 sm:gap-6">
-          <Link href="/" className="flex items-center" aria-label="Verba">
+          <Link href="/" className="flex items-center" aria-label="Suhtleja">
             <Logo loading="eager" priority="high" className="invert dark:invert-0" />
           </Link>
 

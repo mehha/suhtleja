@@ -7,7 +7,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - `AGENTS.md` should stay concise and point to rule files, not duplicate all details.
 - Rule sets:
   - `docs/rules/payload-official/*`: external Payload patterns and security notes.
-  - `docs/rules/project/*`: Verba-specific implementation rules (source of truth for app behavior).
+  - `docs/rules/project/*`: Suhtleja-specific implementation rules (source of truth for app behavior).
 - When changing behavior in `src/app/(frontend)`, update the matching file in `docs/rules/project/`.
 
 ## Project Structure

@@ -1,7 +1,7 @@
 ---
 title: Membership Rules
 description: Stripe checkout + webhook flow for user membership status
-tags: [verba, stripe, membership, profile]
+tags: [suhtleja, stripe, membership, profile]
 ---
 
 # Membership (Stripe)

@@ -9,9 +9,13 @@ import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
 import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
 import { searchFields } from '@/search/fieldOverrides'
 import { beforeSyncWithSearch } from '@/search/beforeSync'
+import { r2Storage } from '@payloadcms/storage-r2'
+import { getPayloadCloudflareContext } from '@/utilities/getCloudflareContext'
 
 import { Page, Post } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
+
+const cloudflare = await getPayloadCloudflareContext()
 
 const generateTitle: GenerateTitle<Post | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Website Template` : 'Payload Website Template'
@@ -88,5 +92,9 @@ export const plugins: Plugin[] = [
         return [...defaultFields, ...searchFields]
       },
     },
+  }),
+  r2Storage({
+    bucket: cloudflare.env.R2 as unknown as Parameters<typeof r2Storage>[0]['bucket'],
+    collections: { media: true },
   }),
 ]

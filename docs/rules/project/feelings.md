@@ -1,7 +1,7 @@
 ---
 title: Feelings Feature Rules
 description: Rules for feelings selection, playback, and persistence to user profile
-tags: [verba, frontend, feelings, users]
+tags: [suhtleja, frontend, feelings, users]
 ---
 
 # Feelings (`/feelings`)

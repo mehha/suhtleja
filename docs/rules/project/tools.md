@@ -1,7 +1,7 @@
 ---
 title: Tools Hub Rules
 description: Rules for /tools visibility and editor-managed tool toggles
-tags: [verba, frontend, tools, globals]
+tags: [suhtleja, frontend, tools, globals]
 ---
 
 # Tools Hub (`/tools`)

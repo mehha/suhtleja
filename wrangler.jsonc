@@ -49,8 +49,10 @@
     }
   ],
   "vars": {
-    "TEAMWORK_BASE_URL": "https://eklips.eu.teamwork.com",
+    "GROQ_MODEL": "qwen/qwen3-32b",
     "NEXT_PUBLIC_SERVER_URL": "https://suhtleja.ee",
-    "NEXT_INC_CACHE_R2_PREFIX": "opennext-cache"
+    "NEXT_INC_CACHE_R2_PREFIX": "opennext-cache",
+    "SPEECH_REGION": "northeurope",
+    "SPEECH_VOICE": "et-EE-AnuNeural"
   }
 }

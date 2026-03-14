@@ -1,7 +1,7 @@
 ---
 title: Parent Child Mode Rules
 description: Rules for PIN unlock, uiMode cookie, and parent-only route gating
-tags: [verba, auth, mode, home, boards]
+tags: [suhtleja, auth, mode, home, boards]
 ---
 
 # Parent/Child Mode

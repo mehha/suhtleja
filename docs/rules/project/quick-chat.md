@@ -1,7 +1,7 @@
 ---
 title: Quick Chat Feature Rules
 description: Rules for global-configured quick chat buttons and TTS playback
-tags: [verba, frontend, quick-chat, globals, tts]
+tags: [suhtleja, frontend, quick-chat, globals, tts]
 ---
 
 # Quick Chat (`/quick-chat`)

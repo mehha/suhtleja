@@ -1,6 +1,6 @@
 # Project Rules Index
 
-Use these files for Verba-specific behavior and implementation rules.
+Use these files for Suhtleja-specific behavior and implementation rules.
 
 - `docs/rules/project/boards.md`
   - Board ownership, pinning, ordering, and home integration.

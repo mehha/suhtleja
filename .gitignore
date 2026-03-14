@@ -25,3 +25,7 @@ node_modules/
 
 backups
 tsconfig.tsbuildinfo
+
+# OpenNext
+.open-next
+.wrangler

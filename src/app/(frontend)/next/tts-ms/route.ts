@@ -104,7 +104,7 @@ export async function POST(req: Request) {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/ssml+xml',
           'X-Microsoft-OutputFormat': OUTPUT_FORMAT,
-          'User-Agent': 'verba-aac-nextjs',
+          'User-Agent': 'suhtleja-aac-nextjs',
         },
         body: ssml,
       },

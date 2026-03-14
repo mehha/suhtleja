@@ -7,7 +7,7 @@ This repository keeps contribution rules under `docs/rules`. This is a good patt
   - Upstream Payload guidance and security references.
   - Treat as external reference material.
 - `docs/rules/project/`
-  - Verba-specific, implementation-level rules.
+  - Suhtleja-specific, implementation-level rules.
   - Update these files whenever feature behavior changes.
 
 ## Update Policy

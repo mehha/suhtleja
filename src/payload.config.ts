@@ -1,7 +1,6 @@
 // storage-adapter-import-placeholder
-import { mongooseAdapter } from '@payloadcms/db-mongodb'
+import { sqliteD1Adapter } from '@payloadcms/db-d1-sqlite'
 
-import sharp from 'sharp' // sharp-import
 import path from 'path'
 import { buildConfig, PayloadRequest } from 'payload'
 import { fileURLToPath } from 'url'
@@ -20,9 +19,12 @@ import { ConnectDotsPuzzles } from './collections/ConnectDotsPuzzles'
 import { plugins } from './plugins'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
+import { getPayloadCloudflareContext } from '@/utilities/getCloudflareContext'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+const cloudflare = await getPayloadCloudflareContext()
 
 export default buildConfig({
   admin: {
@@ -59,15 +61,12 @@ export default buildConfig({
   },
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
-  db: mongooseAdapter({
-    url: process.env.DATABASE_URI || '',
-  }),
+  db: sqliteD1Adapter({ binding: cloudflare.env.D1 }),
   collections: [Pages, Posts, Media, Categories, Users, Boards, ConnectDotsPuzzles],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer, QuickChat, ToolsGlobal],
   plugins,
   secret: process.env.PAYLOAD_SECRET,
-  sharp,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
