@@ -1,0 +1,56 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "suhtleja",
+  "account_id": "5e14935f8ec5af079f9a4b1090f57456",
+  "compatibility_date": "2025-08-15",
+  "compatibility_flags": [
+    // Enable Node.js API
+    // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag
+    "nodejs_compat",
+    // Allow to fetch URLs in your app
+    // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#global-fetch-strictly-public
+    "global_fetch_strictly_public"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "D1",
+      "database_id": "b034d8a8-f854-4dbf-8a76-68206fa284f9",
+      "database_name": "suhtleja",
+      "remote": true
+    },
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_id": "b034d8a8-f854-4dbf-8a76-68206fa284f9",
+      "database_name": "suhtleja",
+      "remote": true
+    }
+  ],
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "suhtleja"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "suhtleja",
+      "preview_bucket_name": "suhtleja"
+    },
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "suhtleja",
+      "preview_bucket_name": "suhtleja"
+    }
+  ],
+  "vars": {
+    "TEAMWORK_BASE_URL": "https://eklips.eu.teamwork.com",
+    "NEXT_PUBLIC_SERVER_URL": "https://suhtleja.ee",
+    "NEXT_INC_CACHE_R2_PREFIX": "opennext-cache"
+  }
+}
