@@ -21,6 +21,7 @@ tags: [suhtleja, stripe, membership, profile]
 - Pending-cancellation profile UI should be driven by `membershipCancelAtPeriodEnd` plus a future `currentPeriodEndsAt`, not only by the current status label.
 - Active membership statuses are only `trialing` and `active`.
 - In non-production environments only, admin users may bypass membership gates for premium routes and APIs.
+- The users with emails `info@mehh.ee` and `pilleriin.pukspuu@gmail.com` bypass membership gates in all environments.
 - Premium routes and premium API handlers must enforce membership on the server side.
 - Webhook must update user membership fields:
   - `stripeCustomerId`

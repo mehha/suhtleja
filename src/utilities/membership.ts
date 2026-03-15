@@ -3,10 +3,10 @@ import type { User } from '@/payload-types'
 import { hasActiveMembership } from '@/utilities/membershipStatus'
 
 export function requireActiveMembership(
-  user: Pick<User, 'membershipStatus' | 'role'> | null | undefined,
+  user: Pick<User, 'email' | 'membershipStatus' | 'role'> | null | undefined,
   redirectTo = '/profile?membership=required',
 ) {
-  if (!hasActiveMembership(user)) {
+  if (!hctiveMembership(user)) {
     redirect(redirectTo)
   }
 }
