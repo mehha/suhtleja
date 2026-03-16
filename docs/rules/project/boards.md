@@ -22,6 +22,9 @@ tags: [suhtleja, frontend, boards, payload]
   - `owner` is relationship to `users` and should default to current user on create.
   - `pinned` controls visibility on `/home`.
   - `order` controls pinned ordering.
+- Board cell editor rules:
+  - In image selection flow, `Sümbolid` is the default first tab when opening the cell modal.
+  - Choosing an image source (`Sümbolid`, upload, media) must not clear the current `Tekst` input before the user presses save.
 - Home page rules:
   - Show only pinned boards.
   - Sort by `order`.

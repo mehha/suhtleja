@@ -1,7 +1,7 @@
 // src/components/BoardEditor/CellEditModal.tsx
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 
 import { getClientSideURL } from '@/utilities/getURL'
@@ -98,7 +98,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   const [uploading, setUploading] = useState(false)
   const [uploadedPreview, setUploadedPreview] = useState<string | null>(null)
 
-  const [tab, setTab] = useState<TabKey>('upload')
+  const [tab, setTab] = useState<TabKey>('symbols')
 
   // Symbols
   const [symQ, setSymQ] = useState('')
@@ -114,21 +114,26 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   const [mediaError, setMediaError] = useState<string | null>(null)
   const [mediaPage, setMediaPage] = useState(1)
   const [mediaTotalPages, setMediaTotalPages] = useState(1)
+  const initializedCellIdRef = useRef<string | null>(null)
 
   // Sünkroniseeri state, kui dialog avaneb
   useEffect(() => {
-    if (open && cell) {
-      setTitle(cell.title ?? '')
-      if (cell.image && typeof cell.image === 'object' && cell.image.url) {
-        setUploadedPreview(cell.image.url as string)
-      } else if (cell.externalImageURL) {
-        setUploadedPreview(cell.externalImageURL)
-      } else {
-        setUploadedPreview(null)
-      }
-      // ära muuda taba – kasutaja jääb samasse vaatesse
-      // setTab('upload')
+    if (!open || !cell) {
+      initializedCellIdRef.current = null
+      return
     }
+    if (initializedCellIdRef.current === cell.id) return
+    initializedCellIdRef.current = cell.id
+
+    setTitle(cell.title ?? '')
+    if (cell.image && typeof cell.image === 'object' && cell.image.url) {
+      setUploadedPreview(cell.image.url as string)
+    } else if (cell.externalImageURL) {
+      setUploadedPreview(cell.externalImageURL)
+    } else {
+      setUploadedPreview(null)
+    }
+    setTab('symbols')
   }, [open, cell])
 
   const handleUpload = async (file: File) => {
@@ -327,8 +332,8 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
             className="flex flex-col gap-4"
           >
             <TabsList>
-              <TabsTrigger value="upload">Lae üles</TabsTrigger>
               <TabsTrigger value="symbols">Sümbolid</TabsTrigger>
+              <TabsTrigger value="upload">Lae üles</TabsTrigger>
               <TabsTrigger value="media">Meedia</TabsTrigger>
             </TabsList>
 
