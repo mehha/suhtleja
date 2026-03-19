@@ -39,4 +39,24 @@ jobs:
       - name: Deploy database and app
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PREVIEW_SECRET: ${{ secrets.PREVIEW_SECRET }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ vars.GROQ_MODEL }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          SPEECH_KEY: ${{ secrets.SPEECH_KEY }}
+          SPEECH_REGION: ${{ vars.SPEECH_REGION }}
+          SPEECH_VOICE: ${{ vars.SPEECH_VOICE }}
+          NEXT_PUBLIC_SERVER_URL: ${{ vars.NEXT_PUBLIC_SERVER_URL }}
+          NEXT_PUBLIC_MEDIA_BASE_URL: ${{ vars.NEXT_PUBLIC_MEDIA_BASE_URL }}
+          DEFAULT_PARENT_PIN: ${{ secrets.DEFAULT_PARENT_PIN }}
+          TTS_URL: ${{ vars.TTS_URL }}
+          TTS_TIMEOUT_MS: ${{ vars.TTS_TIMEOUT_MS }}
+          TTS_DEFAULT_SPEAKER: ${{ vars.TTS_DEFAULT_SPEAKER }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_ID_MEMBERSHIP: ${{ secrets.STRIPE_PRICE_ID_MEMBERSHIP }}
+          STRIPE_KEYRING: ${{ secrets.STRIPE_KEYRING }}
+          STRIPE_BILLING_PORTAL_CONFIGURATION_ID: ${{ vars.STRIPE_BILLING_PORTAL_CONFIGURATION_ID }}
         run: pnpm run deploy
