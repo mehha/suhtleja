@@ -65,5 +65,5 @@ export async function switchToChildModeAction() {
     maxAge: 60 * 60 * 24,
   })
 
-  redirect('/home')
+  redirect('/kodu')
 }

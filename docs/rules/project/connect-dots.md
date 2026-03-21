@@ -11,7 +11,7 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
 - Frontend editor routes:
   - `src/app/(frontend)/connect-dots/manage/new/page.tsx`
   - `src/app/(frontend)/connect-dots/manage/[id]/page.tsx`
-- Frontend management listing: `src/app/(frontend)/tegevused/page.tsx`
+- Frontend management listing: `src/app/(frontend)/koduhaldus/page.tsx`
 - Shared gameplay UI: `src/components/ConnectDots/ConnectDotsGame.tsx`
 - Frontend editor UI:
   - `src/components/ConnectDots/ConnectDotsFrontendEditor.tsx`
@@ -31,7 +31,7 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
 - Frontend management list should show:
   - admins: all puzzles
   - non-admin users: their own puzzles plus puzzles where `visibleToAllUsers = true`
-- Frontend management listing lives under `/tegevused`, not its own dedicated list route.
+- Frontend management listing lives under `/koduhaldus`, not its own dedicated list route.
 - Non-admin users may create puzzles for themselves and edit/delete only their own puzzles.
 - Only admins may mark a puzzle `visibleToAllUsers = true`.
 - In frontend create/edit routes, the save action must stay disabled until the form differs from its initial state.
@@ -65,8 +65,8 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
   - external symbol URLs from the shared symbols endpoint
 - Background music is stored as optional Payload media on the puzzle document.
 - Each puzzle has an `owner` relationship to `users`.
-- Owned puzzles use document-level `/home` visibility via `pinned` plus ordering via `order`.
-- Shared puzzles (`visibleToAllUsers`) use per-user hide/show and per-user order on `/home`.
+- Owned puzzles use document-level `/kodu` visibility via `pinned` plus ordering via `order`.
+- Shared puzzles (`visibleToAllUsers`) use per-user hide/show and per-user order on `/kodu`.
 - `visibleToAllUsers` controls whether an enabled puzzle is shared beyond its owner.
 - Frontend create/update parsing must reject submissions without:
   - a title

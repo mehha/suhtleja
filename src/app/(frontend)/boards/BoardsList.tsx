@@ -38,8 +38,8 @@ export type BoardsListBoard = Board & {
 type BoardsListProps = {
   boards: BoardsListBoard[]
   isAdmin: boolean
-  togglePinned: (formData: FormData) => Promise<void> // server action (/tegevused/page.tsx)
-  deleteBoard: (formData: FormData) => Promise<void> // server action (/tegevused/page.tsx)
+  togglePinned: (formData: FormData) => Promise<void> // server action (/koduhaldus/page.tsx)
+  deleteBoard: (formData: FormData) => Promise<void> // server action (/koduhaldus/page.tsx)
 }
 
 function renderCreator(owner: { email?: string; name?: string; role?: string } | null) {
@@ -135,7 +135,7 @@ export function BoardsList({
                   Nähtavus
                 </TableHead>
                 <TableHead className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Tegevused
+                  Koduhaldus
                 </TableHead>
               </TableRow>
             </TableHeader>

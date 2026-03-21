@@ -48,7 +48,7 @@ export default async function BoardEditPage({
       : board.owner
 
   if (!isAdmin && ownerId !== user.id) {
-    redirect('/home')
+    redirect('/kodu')
   }
 
   // --- server action: renameBoard ---
@@ -72,7 +72,7 @@ export default async function BoardEditPage({
     })
 
     revalidatePath(`/boards/${boardId}/edit`)
-    revalidatePath('/tegevused')
+    revalidatePath('/koduhaldus')
   }
 
   async function updateBoardVisibility(formData: FormData) {
@@ -85,7 +85,7 @@ export default async function BoardEditPage({
     requireActiveMembership(user)
 
     if (user.role !== 'admin') {
-      redirect('/home')
+      redirect('/kodu')
     }
 
     const boardId = formData.get('boardId') as string
@@ -99,8 +99,8 @@ export default async function BoardEditPage({
 
     revalidatePath(`/boards/${boardId}/edit`)
     revalidatePath(`/boards/${boardId}`)
-    revalidatePath('/tegevused')
-    revalidatePath('/home')
+    revalidatePath('/koduhaldus')
+    revalidatePath('/kodu')
   }
 
   return (

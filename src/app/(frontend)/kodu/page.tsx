@@ -237,7 +237,7 @@ export default async function HomePage() {
     const visible = formData.get('visible') === 'true'
 
     if (!boardId) {
-      redirect('/home')
+      redirect('/kodu')
     }
 
     const payload = await getPayload({ config: configPromise })
@@ -274,7 +274,7 @@ export default async function HomePage() {
       })
     }
 
-    redirect('/home')
+    redirect('/kodu')
   }
 
   async function togglePuzzleHomeVisibility(formData: FormData) {
@@ -284,7 +284,7 @@ export default async function HomePage() {
     const visible = formData.get('visible') === 'true'
 
     if (!puzzleId) {
-      redirect('/home')
+      redirect('/kodu')
     }
 
     const payload = await getPayload({ config: configPromise })
@@ -325,7 +325,7 @@ export default async function HomePage() {
       })
     }
 
-    redirect('/home')
+    redirect('/kodu')
   }
 
   async function reorderMixedBoards(boardIds: string[]) {
@@ -454,9 +454,9 @@ export default async function HomePage() {
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/tegevused" className="flex items-center gap-2">
+              <Link href="/koduhaldus" className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4" />
-                Halda tegevusi <ArrowRight className={`w-4 h-4`} />
+                Halda koduhaldust <ArrowRight className={`w-4 h-4`} />
               </Link>
             </Button>
           </div>

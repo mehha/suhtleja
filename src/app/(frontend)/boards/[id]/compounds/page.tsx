@@ -39,7 +39,7 @@ export default async function BoardCompoundsPage({ params }: any) {
 
   // omaniku kontroll
   if (ownerId !== user.id) {
-    redirect('/tegevused')
+    redirect('/koduhaldus')
   }
 
   const cells =

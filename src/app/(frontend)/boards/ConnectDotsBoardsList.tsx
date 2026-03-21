@@ -123,7 +123,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                   <TableHead>Looja</TableHead>
                   <TableHead>Koduvaade</TableHead>
                   <TableHead>Nähtavus</TableHead>
-                  <TableHead className="text-right">Tegevused</TableHead>
+                  <TableHead className="text-right">Koduhaldus</TableHead>
                 </TableRow>
               </TableHeader>
 

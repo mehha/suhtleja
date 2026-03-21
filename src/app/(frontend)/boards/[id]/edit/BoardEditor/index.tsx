@@ -180,7 +180,7 @@ export default function BoardEditor({
             {/* Parempoolsed nupud */}
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" asChild>
-                <Link href="/tegevused">Tagasi tegevuste juurde</Link>
+                <Link href="/koduhaldus">Tagasi koduhaldusse</Link>
               </Button>
 
               <Button

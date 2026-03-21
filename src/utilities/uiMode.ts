@@ -21,6 +21,6 @@ export async function requireParentMode() {
 
   if (mode !== 'parent') {
     // kui on child-mode või cookie puudub, viska minema
-    redirect('/home')
+    redirect('/kodu')
   }
 }

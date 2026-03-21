@@ -37,10 +37,10 @@ tags: [suhtleja, stripe, membership, profile]
 - Keep these routes available without membership:
   - `/profile` (upgrade/manage when membership exists, otherwise upgrade only)
   - `/login` and `/register`
-  - `/home` (navigation shell)
+  - `/kodu` (navigation shell)
 - Require active membership (`trialing` or `active`) on:
   - `/connect-dots`
-  - `/tegevused`
+  - `/koduhaldus`
   - `/boards/[id]`
   - `/boards/[id]/edit`
   - `/boards/[id]/compounds`

@@ -7,10 +7,10 @@ tags: [suhtleja, auth, mode, home, boards]
 # Parent/Child Mode
 
 ## Scope
-- Dialog UI: `src/app/(frontend)/home/ParentUnlockDialog.tsx`
-- Actions: `src/app/(frontend)/home/modeActions.ts`
+- Dialog UI: `src/app/(frontend)/kodu/ParentUnlockDialog.tsx`
+- Actions: `src/app/(frontend)/kodu/modeActions.ts`
 - Utilities: `src/utilities/uiMode.ts`
-- Protected route example: `src/app/(frontend)/tegevused/page.tsx`
+- Protected route example: `src/app/(frontend)/koduhaldus/page.tsx`
 - User PIN fields: `src/collections/Users/index.ts`
 
 ## Core Rules
@@ -25,7 +25,7 @@ tags: [suhtleja, auth, mode, home, boards]
   - `secure: true`
 - Guards:
   - Use `requireParentMode()` for parent-only routes/actions.
-  - Route should redirect to `/home` if mode is not `parent`.
+  - Route should redirect to `/kodu` if mode is not `parent`.
 
 ## PIN Rules
 - PIN validation: exactly 4 digits.

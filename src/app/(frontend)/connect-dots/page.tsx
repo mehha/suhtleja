@@ -89,7 +89,7 @@ export default async function ConnectDotsPage({
 
         {isParentMode ? (
           <Button asChild type="button" variant="outline">
-            <Link href="/tegevused">Halda puzzle&apos;eid</Link>
+            <Link href="/koduhaldus">Halda puzzle&apos;eid</Link>
           </Button>
         ) : null}
       </header>

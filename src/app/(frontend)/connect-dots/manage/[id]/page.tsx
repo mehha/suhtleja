@@ -59,7 +59,7 @@ export default async function ConnectDotsEditPuzzlePage({
     typeof puzzle.owner === 'object' && puzzle.owner !== null ? puzzle.owner.id : puzzle.owner
 
   if (user.role !== 'admin' && ownerId !== user.id) {
-    redirect('/tegevused')
+    redirect('/koduhaldus')
   }
 
   async function updatePuzzle(formData: FormData) {
@@ -87,17 +87,17 @@ export default async function ConnectDotsEditPuzzlePage({
     })
 
     revalidatePath('/connect-dots')
-    revalidatePath('/tegevused')
-    revalidatePath('/home')
+    revalidatePath('/koduhaldus')
+    revalidatePath('/kodu')
     revalidatePath(`/connect-dots/manage/${id}`)
-    redirect('/tegevused')
+    redirect('/koduhaldus')
   }
 
   return (
     <main className="container space-y-6 py-6">
       <ConnectDotsFrontendEditor
         action={updatePuzzle}
-        cancelHref="/tegevused"
+        cancelHref="/koduhaldus"
         canShareGlobally={user.role === 'admin'}
         initialPuzzle={puzzle}
         submitLabel="Salvesta muudatused"

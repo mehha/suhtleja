@@ -65,7 +65,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
         ].join('; ')
       }
 
-      router.push('/home')
+      router.push('/kodu')
       router.refresh()
     } catch (err) {
       console.error(err)

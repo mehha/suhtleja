@@ -45,7 +45,7 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
     if (state.success) {
       setOpen(false)
       setPin('')
-      router.push('/home')
+      router.push('/kodu')
     }
   }, [state.success, router])
 

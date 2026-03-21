@@ -80,7 +80,7 @@ export const ConnectDotsPuzzles: CollectionConfig = {
       name: 'pinned',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Visible in /home',
+      label: 'Visible in /kodu',
       admin: {
         position: 'sidebar',
       },

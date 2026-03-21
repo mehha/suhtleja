@@ -4,8 +4,8 @@ import { Baby, Smile } from 'lucide-react'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
-import { switchToChildModeAction } from '@/app/(frontend)/home/modeActions'
-import { ParentUnlockDialog } from '@/app/(frontend)/home/ParentUnlockDialog'
+import { switchToChildModeAction } from '@/app/(frontend)/kodu/modeActions'
+import { ParentUnlockDialog } from '@/app/(frontend)/kodu/ParentUnlockDialog'
 import { ButtonGroup } from '@/components/ui/button-group'
 
 type ParentModeToggleProps = {

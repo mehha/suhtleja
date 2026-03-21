@@ -103,7 +103,7 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
         ].join('; ')
       }
 
-      router.push('/home')
+      router.push('/kodu')
       router.refresh()
     } catch (err) {
       console.error(err)
