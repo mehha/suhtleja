@@ -103,11 +103,51 @@ export default async function BoardEditPage({
     revalidatePath('/kodu')
   }
 
+  async function updateBoardHomeVisibility(formData: FormData) {
+    'use server'
+
+    const { payload, user } = await getCurrentUser()
+    if (!user) {
+      redirect('/admin')
+    }
+    requireActiveMembership(user)
+
+    const boardId = formData.get('boardId') as string
+    const pinned = formData.get('pinned') === 'true'
+
+    const currentBoard = (await payload.findByID({
+      collection: 'boards',
+      id: boardId,
+      depth: 0,
+    })) as Board
+
+    const currentOwnerId =
+      typeof currentBoard.owner === 'object' && currentBoard.owner !== null
+        ? (currentBoard.owner as User).id
+        : currentBoard.owner
+
+    if (user.role !== 'admin' && currentOwnerId !== user.id) {
+      redirect('/kodu')
+    }
+
+    await payload.update({
+      collection: 'boards',
+      id: boardId,
+      data: { pinned },
+    })
+
+    revalidatePath(`/boards/${boardId}/edit`)
+    revalidatePath(`/boards/${boardId}`)
+    revalidatePath('/koduhaldus')
+    revalidatePath('/kodu')
+  }
+
   return (
     <BoardEditor
       board={board}
       isAdmin={isAdmin}
       renameBoard={renameBoard}
+      updateBoardHomeVisibility={updateBoardHomeVisibility}
       updateBoardVisibility={updateBoardVisibility}
     />
   )

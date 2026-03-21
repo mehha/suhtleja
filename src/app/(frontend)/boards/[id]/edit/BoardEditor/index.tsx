@@ -11,9 +11,16 @@ import { useViewportHeight } from '@/utilities/useViewportHeight'
 import { CellEditModal } from './CellEditModal'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import { Play, Trash, WholeWord, Edit3, Check, X } from 'lucide-react'
+import { Play, Trash, WholeWord, Edit3, Check, X, Settings2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Switch } from '@/components/ui/switch'
@@ -23,11 +30,15 @@ import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog'
 import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
 
 const ReactGridLayout = WidthProvider(RGL)
+const COMPACT_SWITCH_CLASS =
+  'h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4'
+const TOGGLE_CARD_CLASS = 'flex items-center gap-2 rounded-xl border bg-card px-2.5 py-1.5'
 
 type Props = {
   board: Board
   isAdmin: boolean
   renameBoard: (formData: FormData) => Promise<void>
+  updateBoardHomeVisibility: (formData: FormData) => Promise<void>
   updateBoardVisibility: (formData: FormData) => Promise<void>
 }
 
@@ -37,6 +48,7 @@ export default function BoardEditor({
   board,
   isAdmin,
   renameBoard,
+  updateBoardHomeVisibility,
   updateBoardVisibility,
 }: Props) {
   const {
@@ -61,6 +73,7 @@ export default function BoardEditor({
 
   const vh = useViewportHeight()
   const [editingCellId, setEditingCellId] = useState<string | null>(null)
+  const homeVisibilityFormRef = useRef<HTMLFormElement | null>(null)
   const visibilityFormRef = useRef<HTMLFormElement | null>(null)
 
   // title edit local state
@@ -247,63 +260,108 @@ export default function BoardEditor({
               disableClear={cells.length === 0}
             />
             <div className="flex items-center gap-3">
-              {isAdmin ? (
-                <form
-                  ref={visibilityFormRef}
-                  id="board-visibility-form"
-                  action={updateBoardVisibility}
-                  className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2"
-                >
-                  <input type="hidden" name="boardId" value={String(board.id)} />
-                  <input
-                    type="hidden"
-                    name="visibleToAllUsers"
-                    value={board.visibleToAllUsers ? 'false' : 'true'}
-                  />
-                  <div className="flex flex-col">
-                    <Label htmlFor="board-visibility-toggle">
-                      {board.visibleToAllUsers ? 'Kõigile nähtav' : 'Ainult omanikule'}
-                    </Label>
-                    {dirty ? (
-                      <p className="text-xs text-muted-foreground">
-                        Salvesta ruudustiku muudatused enne nähtavuse muutmist.
-                      </p>
+              <form
+                ref={homeVisibilityFormRef}
+                id="board-home-visibility-form"
+                action={updateBoardHomeVisibility}
+                className={TOGGLE_CARD_CLASS}
+              >
+                <input type="hidden" name="boardId" value={String(board.id)} />
+                <input type="hidden" name="pinned" value={board.pinned ? 'false' : 'true'} />
+                <div className="flex flex-col">
+                  <Label htmlFor="board-home-visibility-toggle" className="text-sm">
+                    {board.pinned ? 'Koduvaates sees' : 'Koduvaates väljas'}
+                  </Label>
+                  {dirty ? (
+                    <p className="text-xs text-muted-foreground">
+                      Salvesta ruudustiku muudatused enne koduvaate nähtavuse muutmist.
+                    </p>
+                  ) : null}
+                </div>
+                <Switch
+                  id="board-home-visibility-toggle"
+                  className={COMPACT_SWITCH_CLASS}
+                  checked={!!board.pinned}
+                  disabled={dirty}
+                  onCheckedChange={() => {
+                    homeVisibilityFormRef.current?.requestSubmit()
+                  }}
+                />
+              </form>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" size="icon" aria-label="Lisaseaded">
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Lisaseaded</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-3 py-1">
+                    {isAdmin ? (
+                      <form
+                        ref={visibilityFormRef}
+                        id="board-visibility-form"
+                        action={updateBoardVisibility}
+                        className={TOGGLE_CARD_CLASS}
+                      >
+                        <input type="hidden" name="boardId" value={String(board.id)} />
+                        <input
+                          type="hidden"
+                          name="visibleToAllUsers"
+                          value={board.visibleToAllUsers ? 'false' : 'true'}
+                        />
+                        <div className="flex flex-col">
+                          <Label htmlFor="board-visibility-toggle" className="text-sm">
+                            {board.visibleToAllUsers ? 'Kõigile nähtav' : 'Ainult omanikule'}
+                          </Label>
+                          {dirty ? (
+                            <p className="text-xs text-muted-foreground">
+                              Salvesta ruudustiku muudatused enne nähtavuse muutmist.
+                            </p>
+                          ) : null}
+                        </div>
+                        <Switch
+                          id="board-visibility-toggle"
+                          className={COMPACT_SWITCH_CLASS}
+                          checked={!!board.visibleToAllUsers}
+                          disabled={dirty}
+                          onCheckedChange={() => {
+                            visibilityFormRef.current?.requestSubmit()
+                          }}
+                        />
+                      </form>
                     ) : null}
+                    <div className={TOGGLE_CARD_CLASS}>
+                      <Switch
+                        id="action-bar-toggle"
+                        className={COMPACT_SWITCH_CLASS}
+                        checked={actionBar.enabled}
+                        onCheckedChange={(checked) => {
+                          void updateActionBar(checked)
+                        }}
+                      />
+                      <Label htmlFor="action-bar-toggle">
+                        {actionBar.enabled ? 'Tegevusriba sees' : 'Tegevusriba väljas'}
+                      </Label>
+                    </div>
+                    <div className={TOGGLE_CARD_CLASS}>
+                      <Switch
+                        id="action-ai-toggle"
+                        className={COMPACT_SWITCH_CLASS}
+                        checked={aiEnabled}
+                        onCheckedChange={(checked) => {
+                          void updateAi(checked)
+                        }}
+                      />
+                      <Label htmlFor="action-ai-toggle">
+                        {aiEnabled ? 'AI sees' : 'AI väljas'}
+                      </Label>
+                    </div>
                   </div>
-                  <Switch
-                    id="board-visibility-toggle"
-                    checked={!!board.visibleToAllUsers}
-                    disabled={dirty}
-                    onCheckedChange={() => {
-                      visibilityFormRef.current?.requestSubmit()
-                    }}
-                  />
-                </form>
-              ) : null}
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="action-bar-toggle"
-                  checked={actionBar.enabled}
-                  onCheckedChange={(checked) => {
-                    void updateActionBar(checked)
-                  }}
-                />
-                <Label htmlFor="action-bar-toggle">
-                  {actionBar.enabled ? 'Tegevusriba sees' : 'Tegevusriba väljas'}
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="action-ai-toggle"
-                  checked={aiEnabled}
-                  onCheckedChange={(checked) => {
-                    void updateAi(checked)
-                  }}
-                />
-                <Label htmlFor="action-ai-toggle">
-                  {aiEnabled ? 'AI sees' : 'AI väljas'}
-                </Label>
-              </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
