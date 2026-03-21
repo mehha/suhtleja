@@ -46,6 +46,8 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioUnlockedRef = useRef(false)
   const playbackTokenRef = useRef(0)
+  const preloadedAudioUrlBySourceRef = useRef<Map<string, string>>(new Map())
+  const preloadPromisesRef = useRef<Map<string, Promise<void>>>(new Map())
 
   const cols = Math.max(1, board.grid?.cols ?? 6)
   const cells = (board.grid?.cells ?? []).filter((c) => !c.locked)
@@ -215,7 +217,13 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
     const cachedURL = cachedAudioUrlByText.get(preparedText)
 
     if (cachedURL) {
-      await playAudioURL(cachedURL)
+      const preloadPromise = preloadPromisesRef.current.get(cachedURL)
+      if (preloadPromise) {
+        await preloadPromise.catch(() => undefined)
+      }
+
+      const readyURL = preloadedAudioUrlBySourceRef.current.get(cachedURL) ?? cachedURL
+      await playAudioURL(readyURL)
       return
     }
 
@@ -418,21 +426,83 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
   }, [sequenceCells.length])
 
   useEffect(() => {
-    const preloadMap = new Map<string, HTMLAudioElement>()
+    let cancelled = false
+    const objectURLs: string[] = []
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    let idleCallbackId: number | null = null
 
-    for (const url of cachedAudioUrlByText.values()) {
-      const audio = new Audio()
-      audio.preload = 'auto'
-      audio.src = url
-      audio.load()
-      preloadMap.set(url, audio)
+    preloadedAudioUrlBySourceRef.current.clear()
+    preloadPromisesRef.current.clear()
+
+    const startPreload = () => {
+      for (const url of cachedAudioUrlByText.values()) {
+        const preloadPromise = (async () => {
+          try {
+            const response = await fetch(url, { credentials: 'include' })
+            if (!response.ok) return
+
+            const blob = await response.blob()
+            const objectURL = URL.createObjectURL(blob)
+
+            if (cancelled) {
+              URL.revokeObjectURL(objectURL)
+              return
+            }
+
+            objectURLs.push(objectURL)
+            preloadedAudioUrlBySourceRef.current.set(url, objectURL)
+          } catch {
+            // Ignore preload failures; playback falls back to the original cache URL.
+          }
+        })()
+
+        preloadPromisesRef.current.set(url, preloadPromise)
+      }
+    }
+
+    const schedulePreload = () => {
+      if (cancelled) return
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        idleCallbackId = window.requestIdleCallback(() => startPreload(), { timeout: 1500 })
+        return
+      }
+
+      timeoutId = setTimeout(() => startPreload(), 300)
+    }
+
+    if (typeof document !== 'undefined' && document.readyState === 'complete') {
+      schedulePreload()
+    } else if (typeof window !== 'undefined') {
+      const handleLoad = () => {
+        window.removeEventListener('load', handleLoad)
+        schedulePreload()
+      }
+
+      window.addEventListener('load', handleLoad)
+
+      return () => {
+        cancelled = true
+        window.removeEventListener('load', handleLoad)
+        if (timeoutId) clearTimeout(timeoutId)
+        if (idleCallbackId !== null && 'cancelIdleCallback' in window) {
+          window.cancelIdleCallback(idleCallbackId)
+        }
+        preloadedAudioUrlBySourceRef.current.clear()
+        preloadPromisesRef.current.clear()
+        objectURLs.forEach((objectURL) => URL.revokeObjectURL(objectURL))
+      }
     }
 
     return () => {
-      preloadMap.forEach((audio) => {
-        audio.pause()
-        audio.src = ''
-      })
+      cancelled = true
+      if (timeoutId) clearTimeout(timeoutId)
+      if (idleCallbackId !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleCallbackId)
+      }
+      preloadedAudioUrlBySourceRef.current.clear()
+      preloadPromisesRef.current.clear()
+      objectURLs.forEach((objectURL) => URL.revokeObjectURL(objectURL))
     }
   }, [cachedAudioUrlByText])
 
@@ -444,8 +514,11 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
             <h1 className="text-center text-3xl font-semibold sr-only">{board.name}</h1>
 
             {actionBarEnabled && (
-              <div className="flex flex-1 min-h-[122px] items-center gap-3 rounded-3xl border bg-white ps-6 pe-2 py-2 shadow-lg ring-1 ring-gray-900/5">
-                <div ref={scrollContainerRef} className="flex-1 flex items-center gap-2 overflow-x-auto py-1">
+              <div className="flex min-w-0 max-w-full flex-1 items-center gap-3 overflow-hidden rounded-3xl border bg-white ps-6 pe-2 py-2 shadow-lg ring-1 ring-gray-900/5">
+                <div
+                  ref={scrollContainerRef}
+                  className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1"
+                >
                   {sequenceCells.length === 0 ? (
                     <span className="text-sm text-slate-400">
                       Vali pilte, et fraasi koostada
@@ -487,7 +560,7 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
                     })
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -669,7 +742,7 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
                     isOverridden || isActiveCell ? 'bg-blue-600/90' : 'bg-slate-800/85'
                   }`}
                 >
-                  <div className="break-words text-2xl uppercase leading-4">{titleToShow}</div>
+                  <div className="break-words text-2xl leading-4">{titleToShow}</div>
                 </div>
               )}
 

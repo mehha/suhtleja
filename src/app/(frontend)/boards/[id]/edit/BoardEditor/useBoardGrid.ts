@@ -14,6 +14,11 @@ type LocalCell = Cell & {
   image?: Cell['image'] | { id: string | number; url?: string } | null
 }
 
+type BulkTextCellInput = {
+  externalImageURL?: string
+  title: string
+}
+
 type LayoutShape = Pick<Layout, 'i' | 'x' | 'y' | 'w' | 'h'>
 
 function toLayoutShape(cell: LocalCell): LayoutShape {
@@ -184,6 +189,51 @@ export function useBoardGrid(board: Board) {
     [baseCols, cells],
   )
 
+  const appendTextCells = useCallback(
+    (items: BulkTextCellInput[]) => {
+      const normalizedItems = items
+        .map((item) => ({
+          title: item.title.trim(),
+          externalImageURL: item.externalImageURL?.trim() || '',
+        }))
+        .filter((item) => item.title)
+
+      if (!normalizedItems.length) {
+        return
+      }
+
+      const startY = getNextRow(cells)
+      const maxColsPerRow = Math.max(1, Math.min(baseCols, 6))
+      const cellsPerRow = Math.min(normalizedItems.length, maxColsPerRow)
+      const timestamp = Date.now()
+      const newCells: LocalCell[] = []
+
+      normalizedItems.forEach((item, index) => {
+        const row = Math.floor(index / cellsPerRow)
+        const col = index % cellsPerRow
+        const itemsInThisRow = Math.min(
+          cellsPerRow,
+          normalizedItems.length - row * cellsPerRow,
+        )
+        const cellW = Math.max(1, Math.floor(baseCols / itemsInThisRow))
+
+        newCells.push({
+          id: `cell-bulk-${timestamp}-${index}`,
+          x: col * cellW,
+          y: startY + row,
+          w: cellW,
+          h: 1,
+          title: item.title,
+          externalImageURL: item.externalImageURL,
+        })
+      })
+
+      setCells((prev) => [...prev, ...newCells])
+      setDirty(true)
+    },
+    [baseCols, cells],
+  )
+
   const deleteCell = useCallback((cellId: string) => {
     setCells((prev) => prev.filter((c) => c.id !== cellId))
     setDirty(true)
@@ -228,6 +278,7 @@ export function useBoardGrid(board: Board) {
     onLayoutChange,
     addCell,
     appendBlock,
+    appendTextCells,
     deleteCell,
     clearGrid,
     updateCellAction,

@@ -217,7 +217,7 @@ export default async function HomePage() {
       return
     }
 
-    await payload.create({
+    const createdBoard = await payload.create({
       collection: 'boards',
       data: {
         name,
@@ -227,7 +227,7 @@ export default async function HomePage() {
       },
     })
 
-    redirect('/tegevused')
+    redirect(`/boards/${createdBoard.id}/edit`)
   }
 
   async function toggleBoardHomeVisibility(formData: FormData) {

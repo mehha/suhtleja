@@ -127,7 +127,7 @@ export default async function ActivitiesPage() {
       return
     }
 
-    await payload.create({
+    const createdBoard = await payload.create({
       collection: 'boards',
       data: {
         name,
@@ -137,7 +137,7 @@ export default async function ActivitiesPage() {
       },
     })
 
-    redirect('/tegevused')
+    redirect(`/boards/${createdBoard.id}/edit`)
   }
 
   async function togglePinned(formData: FormData) {

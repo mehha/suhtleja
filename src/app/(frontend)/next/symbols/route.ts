@@ -11,7 +11,7 @@ type SymbolItem = {
   id: string
   title: string
   preview: string
-  source: 'arasaac' | 'openmoji'
+  source: 'arasaac' | 'local' | 'openmoji'
   license: string
   attribution?: string
   raw?: any
@@ -26,6 +26,47 @@ type OpenMojiEntry = {
   annotation: string
   hexcode: string
   tags?: string[]
+}
+
+async function findPreferredLocalMedia(payload: Awaited<ReturnType<typeof getPayload>>, q: string) {
+  const exactAlt = await payload.find({
+    collection: 'media',
+    depth: 0,
+    limit: 1,
+    pagination: false,
+    where: {
+      alt: {
+        equals: q,
+      },
+    },
+  })
+
+  if (exactAlt.docs[0]?.id && exactAlt.docs[0]?.url) {
+    return exactAlt.docs[0]
+  }
+
+  const looseMatch = await payload.find({
+    collection: 'media',
+    depth: 0,
+    limit: 1,
+    pagination: false,
+    where: {
+      or: [
+        {
+          alt: {
+            like: q,
+          },
+        },
+        {
+          filename: {
+            like: q,
+          },
+        },
+      ],
+    },
+  })
+
+  return looseMatch.docs[0]?.id && looseMatch.docs[0]?.url ? looseMatch.docs[0] : null
 }
 
 async function fetchArasaac(locale: string, q: string, limit: number) {
@@ -88,6 +129,7 @@ export async function GET(req: Request) {
   const q = (searchParams.get('q') || '').trim()
   const source = (searchParams.get('source') || 'arasaac').toLowerCase()
   const limit = Math.min(Number(searchParams.get('limit') || 40), 100)
+  const preferLocal = searchParams.get('preferLocal') === 'true'
 
   if (!q) return NextResponse.json({ items: [] })
 
@@ -113,8 +155,26 @@ export async function GET(req: Request) {
       return NextResponse.json({ items })
     }
 
-    // ARASAAC defaults to combined `et + en` results when locale is not provided.
-    // `locale` is still accepted for backwards compatibility.
+    if (preferLocal) {
+      const localMedia = await findPreferredLocalMedia(payload, q)
+      if (localMedia?.id && localMedia.url) {
+        return NextResponse.json({
+          items: [
+            {
+              id: `media-${localMedia.id}`,
+              title:
+                (typeof localMedia.alt === 'string' && localMedia.alt.trim()) || q,
+              preview: localMedia.url,
+              source: 'local',
+              license: 'Sisemine meedia',
+              attribution: 'Suhtleja meediakogu',
+              raw: localMedia,
+            },
+          ],
+        })
+      }
+    }
+
     const requestedLocale = (searchParams.get('locale') || '').toLowerCase().trim()
 
     let items: SymbolItem[] = []

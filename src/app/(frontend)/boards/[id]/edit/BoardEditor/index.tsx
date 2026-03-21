@@ -12,6 +12,7 @@ import { CellEditModal } from './CellEditModal'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
 import { Play, Trash, WholeWord, Edit3, Check, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -47,6 +48,7 @@ export default function BoardEditor({
     onLayoutChange,
     addCell,
     appendBlock,
+    appendTextCells,
     deleteCell,
     clearGrid,
     updateCellAction,
@@ -187,7 +189,16 @@ export default function BoardEditor({
                 onClick={() => void saveDraft()}
                 disabled={!dirty || saving}
               >
-                {saving ? 'Salvestan…' : dirty ? 'Salvesta' : 'Salvestatud'}
+                {saving ? (
+                  <>
+                    <Spinner className="mr-2" />
+                    Salvestan…
+                  </>
+                ) : dirty ? (
+                  'Salvesta'
+                ) : (
+                  'Salvestatud'
+                )}
               </Button>
 
               {/* Halda sõnaühendeid + tooltip */}
@@ -231,6 +242,7 @@ export default function BoardEditor({
             <BoardEditorToolbar
               onAddCellAction={addCell}
               onAddBlockAction={appendBlock}
+              onAddTextCellsAction={appendTextCells}
               onClearAction={clearGrid}
               disableClear={cells.length === 0}
             />
@@ -348,7 +360,7 @@ export default function BoardEditor({
 
                 {cell.title && (
                   <div className="absolute bottom-0 left-0 w-full bg-slate-800/85 p-2 text-center text-white">
-                    <div className="break-words text-2xl uppercase leading-4">{cell.title}</div>
+                    <div className="break-words text-2xl leading-4">{cell.title}</div>
                   </div>
                 )}
               </div>
