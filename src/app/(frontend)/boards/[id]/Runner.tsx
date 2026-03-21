@@ -16,6 +16,8 @@ import { applyCompounds, Compound, type SelectedToken } from './compounds/applyC
 import { getCompoundFormForLastToken } from './compounds/getCompoundFormForLastToken'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { AnimatedVolumeIcon } from '@/components/Animations/AnimatedVolumeIcon'
+import { getBoardTTSCacheManifest } from '@/utilities/boardTTSCacheManifest'
+import { prepareTextForTTS } from '@/utilities/azureTTS'
 
 const ResponsiveGridLayout = WidthProvider(ResponsiveGrid)
 
@@ -28,14 +30,6 @@ type SequenceItem = {
 
 type MorphResponse = {
   surface?: string
-}
-
-// Väike abifunktsioon prosody parandamiseks
-function prepareForTTS(text: string): string {
-  const trimmed = text.trim()
-  if (!trimmed) return trimmed
-  if (/[.!?]$/.test(trimmed)) return trimmed
-  return `${trimmed}.`
 }
 
 export default function Runner({ board, isParentMode }: RunnerProps) {
@@ -53,6 +47,14 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
 
   const cols = Math.max(1, board.grid?.cols ?? 6)
   const cells = (board.grid?.cells ?? []).filter((c) => !c.locked)
+  const ttsCacheManifest = useMemo(() => getBoardTTSCacheManifest(board), [board])
+  const cachedAudioUrlByText = useMemo(
+    () =>
+      new Map(
+        ttsCacheManifest.entries.map((entry) => [entry.text, entry.url] as const),
+      ),
+    [ttsCacheManifest.entries],
+  )
 
   const baseLayout: Layout[] = useMemo(
     () =>
@@ -170,14 +172,48 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
     }
   }
 
-  const playTTS = async (text: string) => {
+  const playAudioURL = async (url: string) => {
     ensureAudioUnlocked()
+
+    const audioEl = audioRef.current ?? new Audio()
+    audioRef.current = audioEl
+
+    await new Promise<void>((resolve) => {
+      let done = false
+      const cleanup = () => {
+        if (done) return
+        done = true
+        audioEl.onended = null
+        audioEl.onerror = null
+        resolve()
+      }
+
+      audioEl.onended = cleanup
+      audioEl.onerror = cleanup
+      audioEl.src = url
+      audioEl.currentTime = 0
+
+      const started = audioEl.play()
+      if (started && typeof started.catch === 'function') {
+        started.catch(() => cleanup())
+      }
+    })
+  }
+
+  const playSpeech = async (text: string) => {
+    const preparedText = prepareTextForTTS(text)
+    const cachedURL = cachedAudioUrlByText.get(preparedText)
+
+    if (cachedURL) {
+      await playAudioURL(cachedURL)
+      return
+    }
 
     const res = await fetch('/next/tts-ms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        text: prepareForTTS(text),
+        text: preparedText,
       }),
     })
 
@@ -267,7 +303,7 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
       setTempLabel({ id: String(cell.id), text: spoken })
 
       // 5) Loeme ainult selle sõna vormi
-      await playTTS(spoken)
+      await playSpeech(spoken)
     } finally {
       setBusy(false)
     }
@@ -279,7 +315,7 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
     setBusy(true)
     try {
       // Sõnaühendite järgi kombineeritud fraas
-      await playTTS(ttsAll)
+      await playSpeech(ttsAll)
     } finally {
       setBusy(false)
     }
@@ -349,6 +385,25 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
       behavior: 'smooth',
     })
   }, [sequenceCells.length])
+
+  useEffect(() => {
+    const preloadMap = new Map<string, HTMLAudioElement>()
+
+    for (const url of cachedAudioUrlByText.values()) {
+      const audio = new Audio()
+      audio.preload = 'auto'
+      audio.src = url
+      audio.load()
+      preloadMap.set(url, audio)
+    }
+
+    return () => {
+      preloadMap.forEach((audio) => {
+        audio.pause()
+        audio.src = ''
+      })
+    }
+  }, [cachedAudioUrlByText])
 
   return (
     <div>

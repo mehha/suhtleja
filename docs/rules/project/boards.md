@@ -25,11 +25,14 @@ tags: [suhtleja, frontend, boards, payload]
   - `pinned` controls visibility on `/home`.
   - `visibleToAllUsers` allows admins to expose a board to every authenticated user without transferring ownership.
   - `order` controls pinned ordering.
+  - `ttsCache` stores pregenerated speech metadata for saved cell labels and saved compound speech forms.
 - Board cell editor rules:
   - In image selection flow, `Sümbolid` is the default first tab when opening the cell modal.
   - Choosing an image source (`Sümbolid`, upload, media) must not clear the current `Tekst` input before the user presses save.
   - In `/boards/[id]/edit`, if there are unsaved changes, leaving the page must require explicit confirmation.
   - The unsaved-changes guard must apply to both anchor navigation and forms marked with `data-navigation-form` (e.g. parent/child mode switch flows).
+  - Saving board grid changes must regenerate missing cached TTS audio for current cell labels.
+  - Saving compounds must regenerate missing cached TTS audio for compound speech forms.
 - Home page rules:
   - Show board content and connect-dots content in separate top-level sections.
   - Within each top-level section, owned items and shared items may render as separate subsections.

@@ -950,6 +950,15 @@ export interface Board {
           | null;
       }[]
     | null;
+  ttsCache?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1659,6 +1668,7 @@ export interface BoardsSelect<T extends boolean = true> {
               id?: T;
             };
       };
+  ttsCache?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -1,6 +1,7 @@
 import type { AccessArgs, CollectionConfig, Where } from 'payload'
 import type { User } from '@/payload-types'
 import { hasActiveMembership } from '@/utilities/membershipStatus'
+import { ensureBoardTTSManifest } from '@/utilities/boardTTSCache'
 
 const canManageBoard = ({ req }: AccessArgs<User>): boolean | Where => {
   if (!req.user) return false
@@ -202,10 +203,21 @@ export const Boards: CollectionConfig = {
         },
       ],
     },
+    {
+      name: 'ttsCache',
+      type: 'json',
+      defaultValue: {
+        entries: [],
+        updatedAt: '',
+      },
+      admin: {
+        hidden: true,
+      },
+    },
   ],
   hooks: {
     beforeChange: [
-      async ({ data, operation, req }) => {
+      async ({ data, operation, originalDoc, req }) => {
         if (operation !== 'create') return data
 
         if (typeof data.order === 'number') return data
@@ -228,6 +240,35 @@ export const Boards: CollectionConfig = {
         data.order = maxOrder + 1
 
         return data
+      },
+      async ({ data, operation, originalDoc }) => {
+        if (operation !== 'update') {
+          return data
+        }
+
+        const touchesSpeechInputs =
+          Object.prototype.hasOwnProperty.call(data, 'grid') ||
+          Object.prototype.hasOwnProperty.call(data, 'compounds')
+
+        if (!touchesSpeechInputs || !originalDoc?.id) {
+          return data
+        }
+
+        const nextBoard = {
+          ...originalDoc,
+          ...data,
+          compounds: data.compounds ?? originalDoc.compounds,
+          grid: data.grid ?? originalDoc.grid,
+          id: originalDoc.id,
+          ttsCache: data.ttsCache ?? originalDoc.ttsCache,
+        }
+
+        return {
+          ...data,
+          ttsCache: await ensureBoardTTSManifest({
+            board: nextBoard,
+          }),
+        }
       },
     ],
   },
