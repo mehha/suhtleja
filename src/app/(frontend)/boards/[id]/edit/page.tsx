@@ -47,7 +47,7 @@ export default async function BoardEditPage({
       ? (board.owner as User).id
       : board.owner
 
-  if (!isAdmin && ownerId !== user.id) {
+  if (ownerId !== user.id) {
     redirect('/kodu')
   }
 

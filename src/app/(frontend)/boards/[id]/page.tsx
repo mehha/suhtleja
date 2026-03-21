@@ -1,6 +1,6 @@
 // src/app/(frontend)/boards/[id]/page.tsx
 import { notFound, redirect } from 'next/navigation'
-import type { Board } from '@/payload-types'
+import type { Board, User } from '@/payload-types'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
 import Runner from './Runner'
 import PageClient from './page.client'
@@ -38,11 +38,16 @@ export default async function BoardRunPage({ params: paramsPromise }: Args) {
   }
 
   const board = doc as Board
+  const ownerId =
+    typeof board.owner === 'object' && board.owner !== null
+      ? (board.owner as User).id
+      : board.owner
+  const canEdit = ownerId === user.id
 
   return (
     <>
       <PageClient />
-      <Runner board={board} isParentMode={isParentMode} />
+      <Runner board={board} isParentMode={isParentMode} canEdit={canEdit} />
     </>
   )
 }

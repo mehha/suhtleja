@@ -21,7 +21,7 @@ import { prepareTextForTTS } from '@/utilities/azureTTS'
 
 const ResponsiveGridLayout = WidthProvider(ResponsiveGrid)
 
-type RunnerProps = { board: Board; isParentMode: boolean }
+type RunnerProps = { board: Board; isParentMode: boolean; canEdit: boolean }
 
 type SequenceItem = {
   cellId: string
@@ -32,7 +32,7 @@ type MorphResponse = {
   surface?: string
 }
 
-export default function Runner({ board, isParentMode }: RunnerProps) {
+export default function Runner({ board, isParentMode, canEdit }: RunnerProps) {
   // UUS: hoiame cellId + teksti
   const [sequence, setSequence] = useState<SequenceItem[]>([])
   const [activeCellId, setActiveCellId] = useState<string | null>(null)
@@ -658,7 +658,7 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
               {/* Halda sõnaühendeid + tooltip */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  {isParentMode ? (
+                  {isParentMode && canEdit ? (
                     <Button variant="secondary" size="sm" asChild>
                       <Link href={`/boards/${board.id}/compounds`}>
                         <WholeWord className="mr-2 h-5 w-5 text-pink-600" />
@@ -691,7 +691,7 @@ export default function Runner({ board, isParentMode }: RunnerProps) {
                 </TooltipContent>
               </Tooltip>
 
-              {isParentMode && (
+              {isParentMode && canEdit && (
                 <Link href={`/boards/${board.id}/edit`}>
                   <Button variant="secondary" roundness="full" size="sm">
                     <Edit3 className="h-4 w-4 mr-2" />

@@ -5,7 +5,6 @@ import { ensureBoardTTSManifest } from '@/utilities/boardTTSCache'
 
 const canManageBoard = ({ req }: AccessArgs<User>): boolean | Where => {
   if (!req.user) return false
-  if (req.user.role === 'admin') return true
   if (!hasActiveMembership(req.user)) return false
 
   return {

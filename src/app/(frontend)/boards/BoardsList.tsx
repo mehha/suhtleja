@@ -38,6 +38,7 @@ export type BoardsListBoard = Board & {
 type BoardsListProps = {
   boards: BoardsListBoard[]
   isAdmin: boolean
+  toggleVisibility: (formData: FormData) => Promise<void>
   togglePinned: (formData: FormData) => Promise<void> // server action (/koduhaldus/page.tsx)
   deleteBoard: (formData: FormData) => Promise<void> // server action (/koduhaldus/page.tsx)
 }
@@ -63,6 +64,7 @@ function renderCreator(owner: { email?: string; name?: string; role?: string } |
 export function BoardsList({
   boards,
   isAdmin,
+  toggleVisibility,
   togglePinned,
   deleteBoard,
 }: BoardsListProps) {
@@ -147,7 +149,7 @@ export function BoardsList({
                   typeof board.owner === 'object' && board.owner
                     ? (board.owner as any)
                     : null
-                const canManageBoard = isAdmin || board.isOwnedByCurrentUser
+                const canEditBoard = board.isOwnedByCurrentUser
 
                 return (
                   <TableRow
@@ -174,7 +176,7 @@ export function BoardsList({
                             <Monitor className="h-3 w-3" />
                             <span>Vaata</span>
                           </Link>
-                          {canManageBoard ? (
+                          {canEditBoard ? (
                             <>
                               <span aria-hidden="true">·</span>
                               <Link
@@ -243,16 +245,51 @@ export function BoardsList({
                     </TableCell>
 
                     <TableCell className="px-3 py-2 align-middle">
-                      <Badge
-                        variant={board.visibleToAllUsers ? 'secondary' : 'outline'}
-                        className="px-2 py-0.5 text-[11px]"
-                      >
-                        {board.visibleToAllUsers ? 'Kõigile nähtav' : 'Ainult omanikule'}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={board.visibleToAllUsers ? 'secondary' : 'outline'}
+                          className="px-2 py-0.5 text-[11px]"
+                        >
+                          {board.visibleToAllUsers ? 'Kõigile nähtav' : 'Ainult omanikule'}
+                        </Badge>
+                        {isAdmin ? (
+                          <form action={toggleVisibility}>
+                            <input type="hidden" name="boardId" value={String(board.id)} />
+                            <input
+                              type="hidden"
+                              name="visibleToAllUsers"
+                              value={board.visibleToAllUsers ? 'false' : 'true'}
+                            />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="submit"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                >
+                                  {board.visibleToAllUsers ? (
+                                    <PinOff className="h-4 w-4" />
+                                  ) : (
+                                    <Pin className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  {board.visibleToAllUsers
+                                    ? 'Muuda ainult omanikule nähtavaks'
+                                    : 'Muuda kõigile nähtavaks'}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </form>
+                        ) : null}
+                      </div>
                     </TableCell>
 
                     <TableCell className="px-3 py-2 align-middle text-right">
-                      {canManageBoard ? (
+                      {canEditBoard ? (
                         <form
                           action={deleteBoard}
                           onSubmit={(e) => {

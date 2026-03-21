@@ -17,6 +17,9 @@ tags: [suhtleja, frontend, boards, payload]
   - Auth required for boards routes.
   - Parent mode is required for `/koduhaldus` management route.
   - Owner/admin boundaries must be preserved.
+  - Board content editing (layout, cells, compounds) is owner-only.
+  - Admin may view all boards but must not edit another user's board content.
+  - Admin may still manage board-level shared visibility as a moderation/oversight action.
   - Server actions that modify a board must enforce document-level permissions.
   - `/koduhaldus` is also the parent-mode management surface for connect-dots puzzles.
 - Board fields:
@@ -49,6 +52,8 @@ tags: [suhtleja, frontend, boards, payload]
   - The puzzles table must indicate that rows are connect-dots games.
   - Shared rows in `/koduhaldus` must expose personal `Koduvaade` hide/show controls without granting edit/delete rights.
   - Owned rows in `/koduhaldus` must keep document-level home pin/unpin controls.
+  - On the boards table, edit/delete actions are owner-only.
+  - Admin visibility moderation must be available separately from content editing.
 
 ## Change Checklist
 - When changing board schema in `src/collections/Boards/index.ts`:

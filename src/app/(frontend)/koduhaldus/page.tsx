@@ -184,6 +184,32 @@ export default async function ActivitiesPage() {
     redirect('/koduhaldus')
   }
 
+  async function toggleVisibility(formData: FormData) {
+    'use server'
+
+    const boardId = formData.get('boardId') as string
+    const visibleToAllUsers = formData.get('visibleToAllUsers') === 'true'
+
+    const payload = await getPayload({ config: configPromise })
+    const requestHeaders = await headers()
+    const { user } = await payload.auth({ headers: requestHeaders })
+    if (!user) redirect('/admin')
+    requireActiveMembership(user)
+
+    if (user.role !== 'admin') {
+      redirect('/kodu')
+    }
+
+    await payload.update({
+      collection: 'boards',
+      id: boardId,
+      data: { visibleToAllUsers },
+      overrideAccess: true,
+    })
+
+    redirect('/koduhaldus')
+  }
+
   async function deleteBoard(formData: FormData) {
     'use server'
 
@@ -287,6 +313,7 @@ export default async function ActivitiesPage() {
       <BoardsList
         boards={boards}
         isAdmin={isAdmin}
+        toggleVisibility={toggleVisibility}
         togglePinned={togglePinned}
         deleteBoard={deleteBoard}
       />
