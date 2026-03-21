@@ -41,14 +41,23 @@ export default async function HomePage() {
       : {
           and: [
             {
-              owner: {
-                equals: u.id,
-              },
-            },
-            {
               pinned: {
                 equals: true,
               },
+            },
+            {
+              or: [
+                {
+                  owner: {
+                    equals: u.id,
+                  },
+                },
+                {
+                  visibleToAllUsers: {
+                    equals: true,
+                  },
+                },
+              ],
             },
           ],
         },
@@ -181,6 +190,7 @@ export default async function HomePage() {
               <SortableBoards
                 boards={boards}
                 canManage={isParentMode}
+                currentUserId={u.id}
                 isAdmin={u.role === 'admin'}
                 onReorder={reorderBoards}
                 unpinAction={async (formData: FormData) => {

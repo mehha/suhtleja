@@ -23,6 +23,7 @@ tags: [suhtleja, frontend, boards, payload]
   - `name` is required.
   - `owner` is relationship to `users` and should default to current user on create.
   - `pinned` controls visibility on `/home`.
+  - `visibleToAllUsers` allows admins to expose a board to every authenticated user without transferring ownership.
   - `order` controls pinned ordering.
 - Board cell editor rules:
   - In image selection flow, `Sümbolid` is the default first tab when opening the cell modal.
@@ -31,8 +32,10 @@ tags: [suhtleja, frontend, boards, payload]
   - The unsaved-changes guard must apply to both anchor navigation and forms marked with `data-navigation-form` (e.g. parent/child mode switch flows).
 - Home page rules:
   - Show pinned boards and pinned connect-dots puzzles in separate sections.
+  - Pinned boards may include owner boards plus admin-shared boards (`visibleToAllUsers`).
   - Sort by `order`.
   - Reordering is parent-mode only within each section.
+  - Non-admin users must not be able to reorder or unpin boards they do not own.
   - Parent mode must expose both actions on `/home`: `Lisa uus tahvel` and `Halda tahvleid`.
 - Boards management rules:
   - `/boards` must include a separate connect-dots puzzles table.

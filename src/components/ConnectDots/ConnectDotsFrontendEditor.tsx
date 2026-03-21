@@ -17,11 +17,13 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Toaster } from '@/components/ui/sonner'
 import { getClientSideURL } from '@/utilities/getURL'
 import { getSymbolProxyURL } from '@/utilities/symbolProxy'
+import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
 import {
   type ConnectDotsPoint,
   getContainedImageRect,
@@ -81,11 +83,11 @@ type MediaUploadResponse = {
   }
 }
 
-function SubmitButton({ label }: { label: string }) {
+function SubmitButton({ disabled, label }: { disabled?: boolean; label: string }) {
   const { pending } = useFormStatus()
 
   return (
-    <Button disabled={pending} type="submit">
+    <Button disabled={pending || disabled} type="submit">
       {pending ? 'Salvestan…' : label}
     </Button>
   )
@@ -135,6 +137,15 @@ export function ConnectDotsFrontendEditor({
   const boardRef = useRef<HTMLDivElement | null>(null)
   const dotsRef = useRef<ConnectDotsPoint[]>(dots)
   const dragMovedRef = useRef(false)
+  const initialState = {
+    description: initialPuzzle?.description?.trim() || '',
+    dots: normalizeDots(initialPuzzle?.dots),
+    enabled: initialPuzzle?.enabled ?? true,
+    externalImageURL: initialPuzzle?.externalImageURL?.trim() ?? '',
+    imageId: getMediaState(initialPuzzle?.image).id ? String(getMediaState(initialPuzzle?.image).id) : '',
+    title: initialPuzzle?.title?.trim() ?? '',
+    visibleToAllUsers: initialPuzzle?.visibleToAllUsers ?? false,
+  }
 
   useEffect(() => {
     dotsRef.current = dots
@@ -239,6 +250,21 @@ export function ConnectDotsFrontendEditor({
       : []
 
   const validationMessage = validateConnectDotsDots(dots)
+  const isDirty =
+    title.trim() !== initialState.title ||
+    description.trim() !== initialState.description ||
+    enabled !== initialState.enabled ||
+    visibleToAllUsers !== initialState.visibleToAllUsers ||
+    externalImageURL.trim() !== initialState.externalImageURL ||
+    (imageState.id ? String(imageState.id) : '') !== initialState.imageId ||
+    JSON.stringify(dots) !== JSON.stringify(initialState.dots)
+  const {
+    dialogOpen: leaveDialogOpen,
+    setDialogOpen: setLeaveDialogOpen,
+    confirmNavigation: confirmLeave,
+  } = useUnsavedChangesGuard({
+    enabled: isDirty,
+  })
 
   const commitDots = (nextDots: ConnectDotsPoint[]) => {
     setDots(nextDots)
@@ -466,6 +492,7 @@ export function ConnectDotsFrontendEditor({
             <Play className="mr-2 h-4 w-4" />
             Eelvaade
           </Button>
+          <SubmitButton disabled={!isDirty} label={submitLabel} />
         </div>
       </div>
 
@@ -837,8 +864,14 @@ export function ConnectDotsFrontendEditor({
           <Link href={cancelHref}>Tagasi</Link>
         </Button>
 
-        <SubmitButton label={submitLabel} />
+        <SubmitButton disabled={!isDirty} label={submitLabel} />
       </div>
+
+      <UnsavedChangesDialog
+        open={leaveDialogOpen}
+        onOpenChange={setLeaveDialogOpen}
+        onConfirm={confirmLeave}
+      />
     </form>
   )
 }

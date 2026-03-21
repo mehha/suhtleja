@@ -1,21 +1,56 @@
-import type { CollectionConfig } from 'payload'
-import { isAdminOrOwner } from '@/access/isAdminOrOwner'
+import type { AccessArgs, CollectionConfig, Where } from 'payload'
 import type { User } from '@/payload-types'
 import { hasActiveMembership } from '@/utilities/membershipStatus'
 
+const canManageBoard = ({ req }: AccessArgs<User>): boolean | Where => {
+  if (!req.user) return false
+  if (req.user.role === 'admin') return true
+  if (!hasActiveMembership(req.user)) return false
+
+  return {
+    owner: {
+      equals: req.user.id,
+    },
+  }
+}
+
+const canReadBoard = ({ req }: AccessArgs<User>): boolean | Where => {
+  if (!req.user) return false
+  if (req.user.role === 'admin') return true
+  if (!hasActiveMembership(req.user)) return false
+
+  return {
+    or: [
+      {
+        owner: {
+          equals: req.user.id,
+        },
+      },
+      {
+        visibleToAllUsers: {
+          equals: true,
+        },
+      },
+    ],
+  }
+}
+
 export const Boards: CollectionConfig = {
   slug: 'boards',
-  admin: { useAsTitle: 'name' },
+  admin: {
+    defaultColumns: ['name', 'owner', 'pinned', 'visibleToAllUsers', 'updatedAt'],
+    useAsTitle: 'name',
+  },
   access: {
-    read: isAdminOrOwner,
+    read: canReadBoard,
     create: ({ req }) => {
       const user = req.user as User | null | undefined
       if (!user) return false
       if (user.role === 'admin') return true
       return hasActiveMembership(user)
     },
-    update: isAdminOrOwner,
-    delete: isAdminOrOwner,
+    update: canManageBoard,
+    delete: canManageBoard,
   },
   fields: [
     { name: 'name', type: 'text', required: true },
@@ -32,6 +67,19 @@ export const Boards: CollectionConfig = {
       type: 'checkbox',
       label: 'Näita koduvaates',
       defaultValue: true,
+    },
+    {
+      name: 'visibleToAllUsers',
+      type: 'checkbox',
+      label: 'Nähtav kõigile kasutajatele',
+      defaultValue: false,
+      admin: {
+        description: 'Kui väljas, näevad tahvlit ainult omanik ja administraatorid.',
+        position: 'sidebar',
+      },
+      access: {
+        update: ({ req }) => req.user?.role === 'admin',
+      },
     },
     {
       name: 'order',

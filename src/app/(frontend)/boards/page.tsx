@@ -8,7 +8,6 @@ import type { Board } from '@/payload-types'
 import { BoardsList } from './BoardsList'
 import { ConnectDotsBoardsList, type ConnectDotsBoardsPuzzle } from './ConnectDotsBoardsList'
 import { CreateBoardForm } from './CreateBoardForm'
-import { Button } from '@/components/ui/button'
 import { requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
 
@@ -180,12 +179,7 @@ export default async function BoardsPage() {
     <main className="container space-y-6">
       <header className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Kõik tahvlid</h1>
-        <div className="flex items-center gap-2">
-          <CreateBoardForm createBoard={createBoard} />
-          <Button asChild variant="outline">
-            <Link href="/connect-dots/manage/new">Lisa uus puzzle</Link>
-          </Button>
-        </div>
+        <CreateBoardForm createBoard={createBoard} />
       </header>
 
       <BoardsList
@@ -195,12 +189,14 @@ export default async function BoardsPage() {
         deleteBoard={deleteBoard}
       />
 
-      <ConnectDotsBoardsList
-        deletePuzzle={deletePuzzle}
-        isAdmin={isAdmin}
-        puzzles={puzzles}
-        togglePinned={togglePuzzlePinned}
-      />
+      <div className="pt-4 md:pt-6">
+        <ConnectDotsBoardsList
+          deletePuzzle={deletePuzzle}
+          isAdmin={isAdmin}
+          puzzles={puzzles}
+          togglePinned={togglePuzzlePinned}
+        />
+      </div>
     </main>
   )
 }

@@ -110,6 +110,9 @@ export function BoardsList({
                 <TableHead className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Koduvaade
                 </TableHead>
+                <TableHead className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Nähtavus
+                </TableHead>
                 <TableHead className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Tegevused
                 </TableHead>
@@ -225,6 +228,15 @@ export function BoardsList({
                           </Tooltip>
                         </form>
                       </div>
+                    </TableCell>
+
+                    <TableCell className="px-3 py-2 align-middle">
+                      <Badge
+                        variant={board.visibleToAllUsers ? 'secondary' : 'outline'}
+                        className="px-2 py-0.5 text-[11px]"
+                      >
+                        {board.visibleToAllUsers ? 'Kõigile nähtav' : 'Ainult omanikule'}
+                      </Badge>
                     </TableCell>
 
                     <TableCell className="px-3 py-2 align-middle text-right">

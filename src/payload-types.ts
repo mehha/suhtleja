@@ -846,6 +846,10 @@ export interface Board {
   owner: number | User;
   pinned?: boolean | null;
   /**
+   * Kui väljas, näevad tahvlit ainult omanik ja administraatorid.
+   */
+  visibleToAllUsers?: boolean | null;
+  /**
    * Mida väiksem number, seda eespool koduvaates.
    */
   order?: number | null;
@@ -1564,6 +1568,7 @@ export interface BoardsSelect<T extends boolean = true> {
   name?: T;
   owner?: T;
   pinned?: T;
+  visibleToAllUsers?: T;
   order?: T;
   thumbnail?: T;
   actionBar?:

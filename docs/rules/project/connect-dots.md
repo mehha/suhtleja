@@ -34,6 +34,8 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
 - Frontend management listing lives under `/boards`, not its own dedicated list route.
 - Non-admin users may create puzzles for themselves and edit/delete only their own puzzles.
 - Only admins may mark a puzzle `visibleToAllUsers = true`.
+- In frontend create/edit routes, the save action must stay disabled until the form differs from its initial state.
+- In frontend create/edit routes, leaving with unsaved changes must require explicit confirmation.
 - A puzzle is playable only when it has:
   - an uploaded image
   - at least 2 valid dots

@@ -9,7 +9,7 @@ import { useBoardGrid } from './useBoardGrid'
 import { BoardEditorToolbar } from './Toolbar'
 import { useViewportHeight } from '@/utilities/useViewportHeight'
 import { CellEditModal } from './CellEditModal'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Play, Trash, WholeWord, Edit3, Check, X } from 'lucide-react'
@@ -18,19 +18,26 @@ import Link from 'next/link'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog'
 import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
-import { UnsavedChangesDialog } from './UnsavedChangesDialog'
 
 const ReactGridLayout = WidthProvider(RGL)
 
 type Props = {
   board: Board
+  isAdmin: boolean
   renameBoard: (formData: FormData) => Promise<void>
+  updateBoardVisibility: (formData: FormData) => Promise<void>
 }
 
 type Compound = NonNullable<Board['compounds']>[number]
 
-export default function BoardEditor({ board, renameBoard }: Props) {
+export default function BoardEditor({
+  board,
+  isAdmin,
+  renameBoard,
+  updateBoardVisibility,
+}: Props) {
   const {
     saving,
     dirty,
@@ -53,6 +60,7 @@ export default function BoardEditor({ board, renameBoard }: Props) {
 
   const vh = useViewportHeight()
   const [editingCellId, setEditingCellId] = useState<string | null>(null)
+  const visibilityFormRef = useRef<HTMLFormElement | null>(null)
 
   // title edit local state
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -225,6 +233,39 @@ export default function BoardEditor({ board, renameBoard }: Props) {
               disableClear={cells.length === 0}
             />
             <div className="flex items-center gap-3">
+              {isAdmin ? (
+                <form
+                  ref={visibilityFormRef}
+                  id="board-visibility-form"
+                  action={updateBoardVisibility}
+                  className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2"
+                >
+                  <input type="hidden" name="boardId" value={String(board.id)} />
+                  <input
+                    type="hidden"
+                    name="visibleToAllUsers"
+                    value={board.visibleToAllUsers ? 'false' : 'true'}
+                  />
+                  <div className="flex flex-col">
+                    <Label htmlFor="board-visibility-toggle">
+                      {board.visibleToAllUsers ? 'Kõigile nähtav' : 'Ainult omanikule'}
+                    </Label>
+                    {dirty ? (
+                      <p className="text-xs text-muted-foreground">
+                        Salvesta ruudustiku muudatused enne nähtavuse muutmist.
+                      </p>
+                    ) : null}
+                  </div>
+                  <Switch
+                    id="board-visibility-toggle"
+                    checked={!!board.visibleToAllUsers}
+                    disabled={dirty}
+                    onCheckedChange={() => {
+                      visibilityFormRef.current?.requestSubmit()
+                    }}
+                  />
+                </form>
+              ) : null}
               <div className="flex items-center space-x-2">
                 <Switch
                   id="action-bar-toggle"

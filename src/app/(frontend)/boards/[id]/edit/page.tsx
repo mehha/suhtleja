@@ -75,5 +75,40 @@ export default async function BoardEditPage({
     revalidatePath('/boards')
   }
 
-  return <BoardEditor board={board} renameBoard={renameBoard} />
+  async function updateBoardVisibility(formData: FormData) {
+    'use server'
+
+    const { payload, user } = await getCurrentUser()
+    if (!user) {
+      redirect('/admin')
+    }
+    requireActiveMembership(user)
+
+    if (user.role !== 'admin') {
+      redirect('/home')
+    }
+
+    const boardId = formData.get('boardId') as string
+    const visibleToAllUsers = formData.get('visibleToAllUsers') === 'true'
+
+    await payload.update({
+      collection: 'boards',
+      id: boardId,
+      data: { visibleToAllUsers },
+    })
+
+    revalidatePath(`/boards/${boardId}/edit`)
+    revalidatePath(`/boards/${boardId}`)
+    revalidatePath('/boards')
+    revalidatePath('/home')
+  }
+
+  return (
+    <BoardEditor
+      board={board}
+      isAdmin={isAdmin}
+      renameBoard={renameBoard}
+      updateBoardVisibility={updateBoardVisibility}
+    />
+  )
 }

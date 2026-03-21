@@ -31,6 +31,7 @@ import { Media } from '@/components/Media'
 type SortableBoardsProps = {
   boards: Board[]
   canManage: boolean
+  currentUserId: number | string
   isAdmin: boolean
   onReorder: (ids: string[]) => Promise<void>
   unpinAction: (formData: FormData) => Promise<void>
@@ -39,8 +40,18 @@ type SortableBoardsProps = {
 type SortableBoardCardProps = {
   board: Board
   canManage: boolean
+  currentUserId: number | string
   isAdmin: boolean
   unpinAction: (formData: FormData) => Promise<void>
+}
+
+function getBoardOwnerId(board: Board): number | string | null {
+  if (!board.owner) return null
+  if (typeof board.owner === 'object') {
+    return board.owner.id
+  }
+
+  return board.owner
 }
 
 function getVisualCell(board: Board): any | undefined {
@@ -52,6 +63,7 @@ function getVisualCell(board: Board): any | undefined {
 function SortableBoardCard({
   board,
   canManage,
+  currentUserId,
   isAdmin,
   unpinAction,
 }: SortableBoardCardProps) {
@@ -63,6 +75,8 @@ function SortableBoardCard({
     })
 
   const visualCell = getVisualCell(board)
+  const ownerId = getBoardOwnerId(board)
+  const canManageBoard = canManage && (isAdmin || ownerId === currentUserId)
   const hasUploadImage =
     visualCell?.image && typeof visualCell.image === 'object' && visualCell.image.url
   const hasExternalImage = visualCell?.externalImageURL
@@ -96,7 +110,7 @@ function SortableBoardCard({
     >
       <div className="flex items-center justify-between gap-2">
         {/* DRAG HANDLE – ainult parent mode saab sortida */}
-        {canManage ? (
+        {canManageBoard ? (
           <button
             type="button"
             {...listeners}
@@ -114,7 +128,7 @@ function SortableBoardCard({
           <span className="w-5 h-5" aria-hidden="true" />
         )}
 
-        {canManage && (
+        {canManageBoard && (
           <div className="flex items-center gap-2">
             {isAdmin && <UserCog className="w-5 h-5" />}
 
@@ -201,15 +215,19 @@ function SortableBoardCard({
 export function SortableBoards({
   boards,
   canManage,
+  currentUserId,
   isAdmin,
   onReorder,
   unpinAction,
 }: SortableBoardsProps) {
   const [items, setItems] = useState<Board[]>(boards)
   const [isPending, startTransition] = useTransition()
+  const allowReorder =
+    canManage &&
+    (isAdmin || items.every((board) => getBoardOwnerId(board) === currentUserId))
 
   const handleDragEnd = (event: DragEndEvent) => {
-    if (!canManage) return
+    if (!allowReorder) return
 
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -239,7 +257,8 @@ export function SortableBoards({
               <SortableBoardCard
                 key={board.id}
                 board={board}
-                canManage={canManage}
+                canManage={allowReorder}
+                currentUserId={currentUserId}
                 isAdmin={isAdmin}
                 unpinAction={unpinAction}
               />
