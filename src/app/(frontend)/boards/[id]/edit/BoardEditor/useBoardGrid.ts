@@ -14,6 +14,40 @@ type LocalCell = Cell & {
   image?: Cell['image'] | { id: string | number; url?: string } | null
 }
 
+type LayoutShape = Pick<Layout, 'i' | 'x' | 'y' | 'w' | 'h'>
+
+function toLayoutShape(cell: LocalCell): LayoutShape {
+  return {
+    i: cell.id,
+    x: cell.x ?? 0,
+    y: cell.y ?? 0,
+    w: cell.w ?? 1,
+    h: cell.h ?? 1,
+  }
+}
+
+function sortLayout(layout: LayoutShape[]) {
+  return [...layout].sort((a, b) => a.i.localeCompare(b.i))
+}
+
+function layoutsMatch(a: LayoutShape[], b: LayoutShape[]) {
+  if (a.length !== b.length) return false
+
+  const sortedA = sortLayout(a)
+  const sortedB = sortLayout(b)
+
+  return sortedA.every((item, index) => {
+    const other = sortedB[index]
+    return (
+      item.i === other.i &&
+      item.x === other.x &&
+      item.y === other.y &&
+      item.w === other.w &&
+      item.h === other.h
+    )
+  })
+}
+
 export function useBoardGrid(board: Board) {
   const baseCols = board.grid?.cols ?? 12
 
@@ -35,14 +69,7 @@ export function useBoardGrid(board: Board) {
   })
 
   const layout: Layout[] = useMemo(
-    () =>
-      cells.map((cell) => ({
-        i: cell.id,
-        x: cell.x ?? 0,
-        y: cell.y ?? 0,
-        w: cell.w ?? 1,
-        h: cell.h ?? 1,
-      })),
+    () => cells.map((cell) => toLayoutShape(cell)),
     [cells],
   )
 
@@ -83,6 +110,18 @@ export function useBoardGrid(board: Board) {
 
   // ---- RGL change: mark dirty, no save ----
   const onLayoutChange = useCallback((newLayout: Layout[]) => {
+    const nextLayout = newLayout.map((item) => ({
+      i: item.i,
+      x: item.x,
+      y: item.y,
+      w: item.w,
+      h: item.h,
+    }))
+
+    if (layoutsMatch(layout, nextLayout)) {
+      return
+    }
+
     const nextCells: LocalCell[] = newLayout.map((item) => {
       const orig = cells.find((c) => c.id === item.i)
       return {
@@ -92,7 +131,7 @@ export function useBoardGrid(board: Board) {
     })
     setCells(nextCells)
     setDirty(true)
-  }, [cells])
+  }, [cells, layout])
 
   const addCell = useCallback(() => {
     const id =
@@ -165,14 +204,16 @@ export function useBoardGrid(board: Board) {
   }, [])
 
   const updateActionBar = useCallback((enabled: boolean) => {
+    if (actionBar.enabled === enabled) return
     setActionBar({ enabled })
     setDirty(true)
-  }, [])
+  }, [actionBar.enabled])
 
   const updateAi = useCallback((enabled: boolean) => {
+    if (aiEnabled === enabled) return
     setAiEnabled(enabled)
     setDirty(true)
-  }, [])
+  }, [aiEnabled])
 
   return {
     // state

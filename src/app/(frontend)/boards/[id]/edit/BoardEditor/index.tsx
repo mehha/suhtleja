@@ -18,6 +18,8 @@ import Link from 'next/link'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
+import { UnsavedChangesDialog } from './UnsavedChangesDialog'
 
 const ReactGridLayout = WidthProvider(RGL)
 
@@ -102,6 +104,13 @@ export default function BoardEditor({ board, renameBoard }: Props) {
   }
 
   const compounds = (board.compounds ?? []) as Compound[]
+  const {
+    dialogOpen: leaveDialogOpen,
+    setDialogOpen: setLeaveDialogOpen,
+    confirmNavigation: confirmLeave,
+  } = useUnsavedChangesGuard({
+    enabled: dirty,
+  })
 
   return (
     <TooltipProvider>
@@ -323,6 +332,12 @@ export default function BoardEditor({ board, renameBoard }: Props) {
               : null
           }
           onSaveAction={handleModalSave}
+        />
+
+        <UnsavedChangesDialog
+          open={leaveDialogOpen}
+          onOpenChange={setLeaveDialogOpen}
+          onConfirm={confirmLeave}
         />
       </div>
     </TooltipProvider>

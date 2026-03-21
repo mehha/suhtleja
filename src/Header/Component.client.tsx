@@ -12,6 +12,7 @@ import { UserMenu } from '@/Header/Nav/UserMenu'
 import { NavMobile } from '@/Header/Nav/NavMobile'
 import { getClientSideURL } from '@/utilities/getURL'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { LogIn } from 'lucide-react'
 import { ParentModeToggle } from '@/Header/Nav/ParentModeToggle'
 
@@ -96,11 +97,23 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
               />
             </>
           ) : (
-            <Link href="/login" className="flex items-center">
-              <Button variant="secondary" size="xs">
-                <LogIn />
-              </Button>
-            </Link>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    aria-label="Logi sisse"
+                    onClick={() => router.push('/login')}
+                  >
+                    <LogIn />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Logi sisse</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           <NavMobile data={data} />

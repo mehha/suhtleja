@@ -108,6 +108,7 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
           <form
             ref={formRef}
             action={formAction}
+            data-navigation-form
             className="space-y-4"
           >
             <div className="space-y-2">

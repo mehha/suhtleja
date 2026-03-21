@@ -6,9 +6,11 @@ import type { Board, User } from '@/payload-types'
 import { SortableBoards } from './SortableBoards'
 import { reorderBoards } from './reorderBoards'
 import { ArrowRight, MonitorCheck } from 'lucide-react'
-import { isParentModeUtil } from '@/utilities/uiMode'
+import { isParentModeUtil, requireParentMode } from '@/utilities/uiMode'
+import { requireActiveMembership } from '@/utilities/membership'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { CreateBoardForm } from '../boards/CreateBoardForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,6 +55,38 @@ export default async function HomePage() {
 
   const boards = boardsRes.docs as Board[]
 
+  async function createBoard(formData: FormData) {
+    'use server'
+
+    const payload = await getPayload({ config: configPromise })
+    const requestHeaders = await headers()
+    const { user } = await payload.auth({ headers: requestHeaders })
+
+    await requireParentMode()
+
+    if (!user) redirect('/admin')
+    requireActiveMembership(user)
+
+    const rawName = formData.get('name')
+    const name = typeof rawName === 'string' ? rawName.trim() : ''
+
+    if (!name) {
+      return
+    }
+
+    await payload.create({
+      collection: 'boards',
+      data: {
+        name,
+        owner: user.id,
+        grid: { cols: 6, rows: 8, cells: [] },
+        pinned: false,
+      },
+    })
+
+    redirect('/boards')
+  }
+
   return (
     <main className="p-6 space-y-10">
       <header className="flex items-center gap-6">
@@ -61,11 +95,14 @@ export default async function HomePage() {
           <h1 className="text-2xl font-semibold">Kodu</h1>
         </div>
         {isParentMode && (
-          <Button variant="outline">
-            <Link href="/boards" className="flex items-center gap-2">
-              Lisa kodu vaatesse uus tahvel <ArrowRight className={`w-4 h-4`} />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <CreateBoardForm createBoard={createBoard} />
+            <Button variant="outline" asChild>
+              <Link href="/boards" className="flex items-center gap-2">
+                Halda tahvleid <ArrowRight className={`w-4 h-4`} />
+              </Link>
+            </Button>
+          </div>
         )}
       </header>
 

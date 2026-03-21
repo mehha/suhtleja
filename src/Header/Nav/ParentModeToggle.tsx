@@ -23,7 +23,7 @@ export function ParentModeToggle({ isParentMode, hasPin }: ParentModeToggleProps
       {/* Lapse vaade */}
       {inParentMode ? (
         // vanema vaates -> Lapse nupp on klikitav (switchToChildModeAction)
-        <form action={switchToChildModeAction}>
+        <form action={switchToChildModeAction} data-navigation-form>
           <Button
             type="submit"
             size="icon"

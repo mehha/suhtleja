@@ -3,6 +3,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
+import { Copy } from 'lucide-react'
 
 import { getClientSideURL } from '@/utilities/getURL'
 import { Button } from '@/components/ui/button'
@@ -317,12 +318,25 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
             <Label htmlFor="cell-title" className="text-lg">
               Tekst
             </Label>
-            <Input
-              id="cell-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="nt. Koer"
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                id="cell-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="nt. Koer"
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => setSymQ(title)}
+                disabled={tab !== 'symbols' || !title.trim()}
+                title="Kopeeri tekst sümbolite otsingusse"
+                aria-label="Kopeeri tekst sümbolite otsingusse"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Tabs */}
@@ -364,17 +378,30 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
             <TabsContent value="symbols">
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Input
-                    id="cell-symbol-search"
-                    value={symQ}
-                    placeholder="Otsi sümboleid eesti või inglise keeles… (nt kass, koer, dog, eat, play)"
-                    onChange={(e) => setSymQ(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
-                      e.preventDefault()
-                      void runSymbolsSearch()
-                    }}
-                  />
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <Input
+                      id="cell-symbol-search"
+                      value={symQ}
+                      placeholder="Otsi sümboleid eesti või inglise keeles… (nt kass, koer, dog, eat, play)"
+                      onChange={(e) => setSymQ(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+                        e.preventDefault()
+                        void runSymbolsSearch()
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setTitle(symQ)}
+                      disabled={tab !== 'symbols' || !symQ.trim()}
+                      title="Kopeeri sümbolite otsing tekstiväljale"
+                      aria-label="Kopeeri sümbolite otsing tekstiväljale"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <Select
                     value={symSource}
                     onValueChange={(value: 'arasaac' | 'openmoji') =>

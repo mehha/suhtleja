@@ -25,10 +25,13 @@ tags: [suhtleja, frontend, boards, payload]
 - Board cell editor rules:
   - In image selection flow, `Sümbolid` is the default first tab when opening the cell modal.
   - Choosing an image source (`Sümbolid`, upload, media) must not clear the current `Tekst` input before the user presses save.
+  - In `/boards/[id]/edit`, if there are unsaved changes, leaving the page must require explicit confirmation.
+  - The unsaved-changes guard must apply to both anchor navigation and forms marked with `data-navigation-form` (e.g. parent/child mode switch flows).
 - Home page rules:
   - Show only pinned boards.
   - Sort by `order`.
   - Reordering is parent-mode only.
+  - Parent mode must expose both actions on `/home`: `Lisa uus tahvel` and `Halda tahvleid`.
 
 ## Change Checklist
 - When changing board schema in `src/collections/Boards/index.ts`:
