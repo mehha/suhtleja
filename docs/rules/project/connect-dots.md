@@ -11,7 +11,7 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
 - Frontend editor routes:
   - `src/app/(frontend)/connect-dots/manage/new/page.tsx`
   - `src/app/(frontend)/connect-dots/manage/[id]/page.tsx`
-- Frontend management listing: `src/app/(frontend)/boards/page.tsx`
+- Frontend management listing: `src/app/(frontend)/tegevused/page.tsx`
 - Shared gameplay UI: `src/components/ConnectDots/ConnectDotsGame.tsx`
 - Frontend editor UI:
   - `src/components/ConnectDots/ConnectDotsFrontendEditor.tsx`
@@ -31,7 +31,7 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
 - Frontend management list should show:
   - admins: all puzzles
   - non-admin users: their own puzzles plus puzzles where `visibleToAllUsers = true`
-- Frontend management listing lives under `/boards`, not its own dedicated list route.
+- Frontend management listing lives under `/tegevused`, not its own dedicated list route.
 - Non-admin users may create puzzles for themselves and edit/delete only their own puzzles.
 - Only admins may mark a puzzle `visibleToAllUsers = true`.
 - In frontend create/edit routes, the save action must stay disabled until the form differs from its initial state.

@@ -48,6 +48,10 @@ function layoutsMatch(a: LayoutShape[], b: LayoutShape[]) {
   })
 }
 
+function getNextRow(cells: LocalCell[]) {
+  return cells.reduce((maxBottom, cell) => Math.max(maxBottom, (cell.y ?? 0) + (cell.h ?? 1)), 0)
+}
+
 export function useBoardGrid(board: Board) {
   const baseCols = board.grid?.cols ?? 12
 
@@ -68,10 +72,7 @@ export function useBoardGrid(board: Board) {
     return initial.map((c) => c as LocalCell)
   })
 
-  const layout: Layout[] = useMemo(
-    () => cells.map((cell) => toLayoutShape(cell)),
-    [cells],
-  )
+  const layout: Layout[] = useMemo(() => cells.map((cell) => toLayoutShape(cell)), [cells])
 
   // ---- SAVE (explicit) ----
   const saveDraft = useCallback(async () => {
@@ -82,7 +83,10 @@ export function useBoardGrid(board: Board) {
       }
       return {
         id: c.id,
-        x: c.x, y: c.y, w: c.w, h: c.h,
+        x: c.x,
+        y: c.y,
+        w: c.w,
+        h: c.h,
         title: c.title ?? undefined,
         externalImageURL: c.externalImageURL ?? undefined,
         audio: c.audio ?? undefined,
@@ -109,92 +113,84 @@ export function useBoardGrid(board: Board) {
   }, [board.id, board.grid, baseCols, cells, actionBar, aiEnabled, board.extra])
 
   // ---- RGL change: mark dirty, no save ----
-  const onLayoutChange = useCallback((newLayout: Layout[]) => {
-    const nextLayout = newLayout.map((item) => ({
-      i: item.i,
-      x: item.x,
-      y: item.y,
-      w: item.w,
-      h: item.h,
-    }))
+  const onLayoutChange = useCallback(
+    (newLayout: Layout[]) => {
+      const nextLayout = newLayout.map((item) => ({
+        i: item.i,
+        x: item.x,
+        y: item.y,
+        w: item.w,
+        h: item.h,
+      }))
 
-    if (layoutsMatch(layout, nextLayout)) {
-      return
-    }
-
-    const nextCells: LocalCell[] = newLayout.map((item) => {
-      const orig = cells.find((c) => c.id === item.i)
-      return {
-        ...(orig || { id: item.i, title: '' }),
-        x: item.x, y: item.y, w: item.w, h: item.h,
+      if (layoutsMatch(layout, nextLayout)) {
+        return
       }
-    })
-    setCells(nextCells)
-    setDirty(true)
-  }, [cells, layout])
+
+      const nextCells: LocalCell[] = newLayout.map((item) => {
+        const orig = cells.find((c) => c.id === item.i)
+        return {
+          ...(orig || { id: item.i, title: '' }),
+          x: item.x,
+          y: item.y,
+          w: item.w,
+          h: item.h,
+        }
+      })
+      setCells(nextCells)
+      setDirty(true)
+    },
+    [cells, layout],
+  )
 
   const addCell = useCallback(() => {
     const id =
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : `cell-${Date.now()}`
-    // place at the first free row under current content
-    const maxBottom = cells.reduce((m, c) => Math.max(m, (c.y ?? 0) + (c.h ?? 1)), 0)
-    const newCell: LocalCell = { id, x: 0, y: maxBottom, w: 1, h: 1, title: '' }
-    setCells(prev => [...prev, newCell])
+    const newCell: LocalCell = { id, x: 0, y: getNextRow(cells), w: 1, h: 1, title: '' }
+    setCells((prev) => [...prev, newCell])
     setDirty(true)
   }, [cells])
 
-  // ---- Append NxN below existing cells (DON'T remove existing) ----
-  const appendLogicalGrid = useCallback((n: number) => {
-    const cellW = Math.max(1, Math.floor(baseCols / n))
-    const startY = cells.reduce((m, c) => Math.max(m, (c.y ?? 0) + (c.h ?? 1)), 0)
+  const appendBlock = useCallback(
+    (rows: number, cols: number) => {
+      const safeRows = Math.max(1, Math.min(12, Math.floor(rows)))
+      const safeCols = Math.max(1, Math.min(12, Math.floor(cols)))
+      const cellW = Math.max(1, Math.floor(baseCols / safeCols))
+      const startY = getNextRow(cells)
+      const timestamp = Date.now()
 
-    const newOnes: LocalCell[] = []
-    let i = 0
-    for (let row = 0; row < n; row += 1) {
-      for (let col = 0; col < n; col += 1) {
-        newOnes.push({
-          id: `cell-${n}x${n}-${Date.now()}-${i++}`,
-          x: col * cellW,
-          y: startY + row,
-          w: cellW,
-          h: 1,
-          title: '',
-        })
+      const newCells: LocalCell[] = []
+      let index = 0
+
+      for (let row = 0; row < safeRows; row += 1) {
+        for (let col = 0; col < safeCols; col += 1) {
+          newCells.push({
+            id: `cell-block-${safeRows}x${safeCols}-${timestamp}-${index}`,
+            x: col * cellW,
+            y: startY + row,
+            w: cellW,
+            h: 1,
+            title: '',
+          })
+          index += 1
+        }
       }
-    }
-    setCells(prev => [...prev, ...newOnes])
-    setDirty(true)
-  }, [baseCols, cells])
 
-  const appendRow = useCallback((cellCount: number) => {
-    const cellW = Math.max(1, Math.floor(baseCols / cellCount))
-    const startY = cells.reduce((m, c) => Math.max(m, (c.y ?? 0) + (c.h ?? 1)), 0)
-
-    const newOnes: LocalCell[] = Array.from({ length: cellCount }, (_, idx) => ({
-      id: `cell-row-${cellCount}-${Date.now()}-${idx}`,
-      x: idx * cellW,
-      y: startY,
-      w: cellW,
-      h: 1,
-      title: '',
-    }))
-
-    setCells(prev => [...prev, ...newOnes])
-    setDirty(true)
-  }, [baseCols, cells])
-
-  const make2x2 = useCallback(() => appendLogicalGrid(2), [appendLogicalGrid])
-  const addRow = useCallback(() => appendRow(6), [appendRow])
+      setCells((prev) => [...prev, ...newCells])
+      setDirty(true)
+    },
+    [baseCols, cells],
+  )
 
   const deleteCell = useCallback((cellId: string) => {
-    setCells(prev => prev.filter(c => c.id !== cellId))
+    setCells((prev) => prev.filter((c) => c.id !== cellId))
     setDirty(true)
   }, [])
 
   const updateCellAction = useCallback((cellId: string, patch: Partial<LocalCell>) => {
-    setCells(prev => prev.map(c => (c.id === cellId ? { ...c, ...patch } : c)))
+    setCells((prev) => prev.map((c) => (c.id === cellId ? { ...c, ...patch } : c)))
     setDirty(true)
   }, [])
 
@@ -203,33 +199,40 @@ export function useBoardGrid(board: Board) {
     setDirty(true)
   }, [])
 
-  const updateActionBar = useCallback((enabled: boolean) => {
-    if (actionBar.enabled === enabled) return
-    setActionBar({ enabled })
-    setDirty(true)
-  }, [actionBar.enabled])
+  const updateActionBar = useCallback(
+    (enabled: boolean) => {
+      if (actionBar.enabled === enabled) return
+      setActionBar({ enabled })
+      setDirty(true)
+    },
+    [actionBar.enabled],
+  )
 
-  const updateAi = useCallback((enabled: boolean) => {
-    if (aiEnabled === enabled) return
-    setAiEnabled(enabled)
-    setDirty(true)
-  }, [aiEnabled])
+  const updateAi = useCallback(
+    (enabled: boolean) => {
+      if (aiEnabled === enabled) return
+      setAiEnabled(enabled)
+      setDirty(true)
+    },
+    [aiEnabled],
+  )
 
   return {
-    // state
-    saving, dirty,
+    saving,
+    dirty,
     cols: baseCols,
-    cells, layout,
+    cells,
+    layout,
     actionBar,
     aiEnabled,
-
-    // callbacks
     onLayoutChange,
     addCell,
-    make2x2, addRow,
-    deleteCell, clearGrid,
-    updateCellAction, updateActionBar,
+    appendBlock,
+    deleteCell,
+    clearGrid,
+    updateCellAction,
+    updateActionBar,
     saveDraft,
-    updateAi
+    updateAi,
   }
 }

@@ -72,7 +72,7 @@ export default async function BoardEditPage({
     })
 
     revalidatePath(`/boards/${boardId}/edit`)
-    revalidatePath('/boards')
+    revalidatePath('/tegevused')
   }
 
   async function updateBoardVisibility(formData: FormData) {
@@ -99,7 +99,7 @@ export default async function BoardEditPage({
 
     revalidatePath(`/boards/${boardId}/edit`)
     revalidatePath(`/boards/${boardId}`)
-    revalidatePath('/boards')
+    revalidatePath('/tegevused')
     revalidatePath('/home')
   }
 

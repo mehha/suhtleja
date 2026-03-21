@@ -4,10 +4,10 @@ description: Rules for board management, pinning, ownership, and ordering
 tags: [suhtleja, frontend, boards, payload]
 ---
 
-# Boards (`/boards` and `/home`)
+# Boards (`/tegevused`, `/boards/[id]`, and `/home`)
 
 ## Scope
-- Route UI: `src/app/(frontend)/boards/*`
+- Route UI: `src/app/(frontend)/tegevused/page.tsx`, shared management UI in `src/app/(frontend)/boards/*`
 - Home pinned listing and ordering: `src/app/(frontend)/home/*`
 - Collection: `src/collections/Boards/index.ts`
 - Related managed game collection: `src/collections/ConnectDotsPuzzles/index.ts`
@@ -15,10 +15,10 @@ tags: [suhtleja, frontend, boards, payload]
 ## Behavior Rules
 - Access model:
   - Auth required for boards routes.
-  - Parent mode is required for `/boards` management route.
+  - Parent mode is required for `/tegevused` management route.
   - Owner/admin boundaries must be preserved.
   - Server actions that modify a board must enforce document-level permissions.
-  - `/boards` is also the parent-mode management surface for connect-dots puzzles.
+  - `/tegevused` is also the parent-mode management surface for connect-dots puzzles.
 - Board fields:
   - `name` is required.
   - `owner` is relationship to `users` and should default to current user on create.
@@ -37,13 +37,13 @@ tags: [suhtleja, frontend, boards, payload]
   - Shared items (`visibleToAllUsers`) are shown on `/home` by default for every user unless that user hides them.
   - Shared item hide/show and order are stored per user, not on the shared document itself.
   - Reordering is parent-mode only within each rendered subsection.
-  - Parent mode must expose both actions on `/home`: `Lisa uus tahvel` and `Halda tahvleid`.
+  - Parent mode must expose both actions on `/home`: `Lisa uus tahvel` and `Halda tegevusi`.
 - Boards management rules:
-  - `/boards` must include a separate connect-dots puzzles table.
+  - `/tegevused` must include a separate connect-dots puzzles table.
   - Non-admin users must see their own rows plus rows shared via `visibleToAllUsers`.
   - The puzzles table must indicate that rows are connect-dots games.
-  - Shared rows in `/boards` must expose personal `Koduvaade` hide/show controls without granting edit/delete rights.
-  - Owned rows in `/boards` must keep document-level home pin/unpin controls.
+  - Shared rows in `/tegevused` must expose personal `Koduvaade` hide/show controls without granting edit/delete rights.
+  - Owned rows in `/tegevused` must keep document-level home pin/unpin controls.
 
 ## Change Checklist
 - When changing board schema in `src/collections/Boards/index.ts`:

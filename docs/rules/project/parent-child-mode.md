@@ -10,7 +10,7 @@ tags: [suhtleja, auth, mode, home, boards]
 - Dialog UI: `src/app/(frontend)/home/ParentUnlockDialog.tsx`
 - Actions: `src/app/(frontend)/home/modeActions.ts`
 - Utilities: `src/utilities/uiMode.ts`
-- Protected route example: `src/app/(frontend)/boards/page.tsx`
+- Protected route example: `src/app/(frontend)/tegevused/page.tsx`
 - User PIN fields: `src/collections/Users/index.ts`
 
 ## Core Rules

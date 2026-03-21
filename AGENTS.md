@@ -19,8 +19,8 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - Runtime data/storage: Cloudflare D1 for Payload data, Cloudflare R2 for media/object storage.
 
 ## Frontend Feature Map
-- `boards`: `src/app/(frontend)/boards`, collection `src/collections/Boards/index.ts`, rule `docs/rules/project/boards.md`.
-- `connect-dots`: player route `src/app/(frontend)/connect-dots`, collection `src/collections/ConnectDotsPuzzles/index.ts`, board management surface `src/app/(frontend)/boards`, rule `docs/rules/project/connect-dots.md`.
+- `boards`: management hub `src/app/(frontend)/tegevused`, board play/edit routes `src/app/(frontend)/boards`, collection `src/collections/Boards/index.ts`, rule `docs/rules/project/boards.md`.
+- `connect-dots`: player route `src/app/(frontend)/connect-dots`, collection `src/collections/ConnectDotsPuzzles/index.ts`, management surface `src/app/(frontend)/tegevused`, rule `docs/rules/project/connect-dots.md`.
 - Parent/child mode shared flow: `src/app/(frontend)/home/ParentUnlockDialog.tsx`, `src/app/(frontend)/home/modeActions.ts`, `src/utilities/uiMode.ts`, rule `docs/rules/project/parent-child-mode.md`.
 - Shared speech pattern (`/next/tts-ms`): `src/app/(frontend)/next/tts-ms/route.ts`, rule `docs/rules/project/audio-tts.md`.
 

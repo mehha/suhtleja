@@ -66,7 +66,7 @@ export function UserMenu({ name, email, avatarUrl, onSignOut, isParentMode }: Us
                 <Link href="/profile">Profiil</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="rounded-xl">
-                <Link href="/boards">Kõik tahvlid</Link>
+                <Link href="/tegevused">Tegevused</Link>
               </DropdownMenuItem>
             </>
           )}

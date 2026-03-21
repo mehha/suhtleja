@@ -40,7 +40,7 @@ tags: [suhtleja, stripe, membership, profile]
   - `/home` (navigation shell)
 - Require active membership (`trialing` or `active`) on:
   - `/connect-dots`
-  - `/boards`
+  - `/tegevused`
   - `/boards/[id]`
   - `/boards/[id]/edit`
   - `/boards/[id]/compounds`

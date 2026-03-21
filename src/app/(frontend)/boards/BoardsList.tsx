@@ -38,8 +38,8 @@ export type BoardsListBoard = Board & {
 type BoardsListProps = {
   boards: BoardsListBoard[]
   isAdmin: boolean
-  togglePinned: (formData: FormData) => Promise<void> // server action (/boards/page.tsx)
-  deleteBoard: (formData: FormData) => Promise<void> // server action (/boards/page.tsx)
+  togglePinned: (formData: FormData) => Promise<void> // server action (/tegevused/page.tsx)
+  deleteBoard: (formData: FormData) => Promise<void> // server action (/tegevused/page.tsx)
 }
 
 function renderCreator(owner: { email?: string; name?: string; role?: string } | null) {

@@ -46,8 +46,7 @@ export default function BoardEditor({
     layout,
     onLayoutChange,
     addCell,
-    make2x2,
-    addRow,
+    appendBlock,
     deleteCell,
     clearGrid,
     updateCellAction,
@@ -178,6 +177,10 @@ export default function BoardEditor({
 
             {/* Parempoolsed nupud */}
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/tegevused">Tagasi tegevuste juurde</Link>
+              </Button>
+
               <Button
                 variant="secondary"
                 size="sm"
@@ -227,8 +230,7 @@ export default function BoardEditor({
           <div className="flex items-center justify-between gap-2">
             <BoardEditorToolbar
               onAddCellAction={addCell}
-              onMake2x2Action={make2x2}
-              onAddRowAction={addRow}
+              onAddBlockAction={appendBlock}
               onClearAction={clearGrid}
               disableClear={cells.length === 0}
             />

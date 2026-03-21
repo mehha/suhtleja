@@ -227,7 +227,7 @@ export default async function HomePage() {
       },
     })
 
-    redirect('/boards')
+    redirect('/tegevused')
   }
 
   async function toggleBoardHomeVisibility(formData: FormData) {
@@ -454,9 +454,9 @@ export default async function HomePage() {
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/boards" className="flex items-center gap-2">
+              <Link href="/tegevused" className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4" />
-                Halda tahvleid <ArrowRight className={`w-4 h-4`} />
+                Halda tegevusi <ArrowRight className={`w-4 h-4`} />
               </Link>
             </Button>
           </div>
