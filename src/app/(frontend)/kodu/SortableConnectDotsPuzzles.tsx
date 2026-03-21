@@ -187,6 +187,10 @@ export function SortableConnectDotsPuzzles({
     setMounted(true)
   }, [])
 
+  useEffect(() => {
+    setItems(puzzles)
+  }, [puzzles])
+
   const handleDragEnd = (event: DragEndEvent) => {
     if (!canManage) return
 

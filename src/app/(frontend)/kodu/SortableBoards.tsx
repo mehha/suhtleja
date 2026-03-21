@@ -224,6 +224,10 @@ export function SortableBoards({
     setMounted(true)
   }, [])
 
+  useEffect(() => {
+    setItems(boards)
+  }, [boards])
+
   const handleDragEnd = (event: DragEndEvent) => {
     if (!canManage) return
 
