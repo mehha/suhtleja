@@ -46,6 +46,8 @@ tags: [suhtleja, frontend, boards, payload]
   - Shared item hide/show and order are stored per user, not on the shared document itself.
   - Reordering is parent-mode only within each rendered subsection.
   - Parent mode must expose both actions on `/kodu`: `Lisa uus tahvel` and `Halda koduhaldust`.
+- Board runner rules:
+  - On `/boards/[id]`, `sm` and `xs` layouts must always render two items per row by forcing each mobile tile to `w=1`.
 - Boards management rules:
   - `/koduhaldus` must include a separate connect-dots puzzles table.
   - Non-admin users must see their own rows plus rows shared via `visibleToAllUsers`.

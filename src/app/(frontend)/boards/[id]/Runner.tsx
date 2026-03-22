@@ -89,15 +89,7 @@ export default function Runner({ board, isParentMode, canEdit }: RunnerProps) {
     const colHeights = [0, 0]
 
     return sorted.map((item) => {
-      const w = Math.max(1, Math.min(item.w, 2))
       const h = Math.max(1, item.h)
-
-      if (w === 2) {
-        const y = Math.max(colHeights[0], colHeights[1])
-        colHeights[0] = y + h
-        colHeights[1] = y + h
-        return { ...item, x: 0, y, w: 2, h }
-      }
 
       const colIndex = colHeights[0] <= colHeights[1] ? 0 : 1
       const y = colHeights[colIndex]
