@@ -588,7 +588,7 @@ export function ConnectDotsGame({
   return (
     <div className={cn('space-y-5', embedded && 'space-y-4')}>
       {showPicker && puzzles.length > 1 && (
-        <div className="rounded-[2rem] border border-sky-100 bg-[linear-gradient(135deg,rgba(240,249,255,0.95),rgba(255,255,255,0.98))] p-4 shadow-sm">
+        <div className="overflow-x-auto rounded-[2rem] border border-sky-100 bg-[linear-gradient(135deg,rgba(240,249,255,0.95),rgba(255,255,255,0.98))] p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="block text-sm font-semibold text-slate-800">Vali pilt</div>
@@ -670,10 +670,10 @@ export function ConnectDotsGame({
       )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-[2rem] border border-sky-100 bg-white p-3 shadow-[0_24px_80px_-40px_rgba(14,116,144,0.45)]">
+        <div className="min-w-0 rounded-[2rem] border border-sky-100 bg-white p-3 shadow-[0_24px_80px_-40px_rgba(14,116,144,0.45)]">
           <div
             ref={boardRef}
-            className="group relative min-h-[360px] select-none overflow-hidden rounded-[1.6rem] border border-sky-100 bg-[radial-gradient(circle_at_top,#f0f9ff,white_60%)] touch-none"
+            className="group relative min-h-[360px] w-full max-w-full select-none overflow-hidden rounded-[1.6rem] border border-sky-100 bg-[radial-gradient(circle_at_top,#f0f9ff,white_60%)] touch-none"
             style={{
               aspectRatio: imageAspectRatio,
               cursor: !finished ? PENCIL_CURSOR : 'default',
@@ -813,7 +813,11 @@ export function ConnectDotsGame({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     alt="Success animation"
-                    className="h-[32rem] w-[32rem] object-contain drop-shadow-[0_24px_48px_rgba(15,23,42,0.3)] animate-[successGifIn_2.6s_cubic-bezier(0.18,0.9,0.2,1)_1]"
+                    className="object-contain drop-shadow-[0_24px_48px_rgba(15,23,42,0.3)] animate-[successGifIn_2.6s_cubic-bezier(0.18,0.9,0.2,1)_1]"
+                    style={{
+                      height: 'min(32rem, 90vw)',
+                      width: 'min(32rem, 90vw)',
+                    }}
                     draggable={false}
                     src="/success.gif"
                   />

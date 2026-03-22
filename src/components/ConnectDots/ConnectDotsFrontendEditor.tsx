@@ -10,7 +10,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import { ArrowDown, ArrowUp, PencilRuler, Play, Search, Trash2, Upload } from 'lucide-react'
+import { ArrowDown, ArrowUp, PencilRuler, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Toaster } from '@/components/ui/sonner'
@@ -453,6 +454,7 @@ export function ConnectDotsFrontendEditor({
       : selectedSymbolSource === 'openmoji'
         ? 'OpenMoji'
         : 'Sümbol'
+  const previewEnabled = Boolean(media?.url && dots.length >= 2)
 
   return (
     <form action={action} className="space-y-6">
@@ -479,19 +481,19 @@ export function ConnectDotsFrontendEditor({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setMode('edit')} type="button" variant={mode === 'edit' ? 'default' : 'outline'}>
-            Muuda
-          </Button>
-          <Button
-            disabled={!media?.url || dots.length < 2}
-            onClick={() => setMode('preview')}
-            type="button"
-            variant={mode === 'preview' ? 'default' : 'outline'}
-          >
-            <Play className="mr-2 h-4 w-4" />
-            Eelvaade
-          </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-full border bg-card px-4 py-2">
+            <span className="text-sm font-medium text-muted-foreground">Muuda</span>
+            <Switch
+              checked={mode === 'preview'}
+              disabled={!previewEnabled && mode === 'edit'}
+              onCheckedChange={(checked) => {
+                setMode(checked ? 'preview' : 'edit')
+              }}
+              aria-label="Lülita eelvaate režiim"
+            />
+            <span className="text-sm font-medium text-muted-foreground">Eelvaade</span>
+          </div>
           <SubmitButton disabled={!isDirty} label={submitLabel} />
         </div>
       </div>

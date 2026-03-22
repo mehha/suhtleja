@@ -55,7 +55,7 @@ export default async function ConnectDotsNewPuzzlePage() {
   }
 
   return (
-    <main className="container space-y-6 py-6">
+    <main className="xl:container space-y-6 py-6">
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold">Lisa uus connect-dots puzzle</h1>

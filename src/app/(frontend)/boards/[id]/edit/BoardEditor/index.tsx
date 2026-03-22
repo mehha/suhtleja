@@ -137,8 +137,8 @@ export default function BoardEditor({
   return (
     <TooltipProvider>
       <div className="space-y-2">
-        <div className="container mb-10">
-          <div className="mb-10 flex items-center justify-between gap-2">
+        <div className="xl:container mb-10">
+          <div className="mb-10 flex flex-wrap items-center justify-between gap-2">
             {/* Title + edit */}
             <div className="flex items-center gap-2">
               {isEditingTitle ? (
@@ -191,7 +191,7 @@ export default function BoardEditor({
             </div>
 
             {/* Parempoolsed nupud */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" asChild>
                 <Link href="/koduhaldus">Tagasi koduhaldusse</Link>
               </Button>
@@ -251,7 +251,7 @@ export default function BoardEditor({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <BoardEditorToolbar
               onAddCellAction={addCell}
               onAddBlockAction={appendBlock}
@@ -372,8 +372,9 @@ export default function BoardEditor({
           <ReactGridLayout
             className="layout"
             cols={cols}
-            rowHeight={200}
+            rowHeight={140}
             width={1200}
+            containerPadding={[1, 0]}
             layout={layout}
             onLayoutChange={onLayoutChange}
             isResizable

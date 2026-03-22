@@ -13,10 +13,11 @@ type Props = { data: HeaderType }
 
 export function NavMobile({ data }: Props) {
   const items = data?.navItems ?? []
+  const [open, setOpen] = React.useState(false)
 
   return (
     <div className="lg:hidden">
-      <Sheet>
+      <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" aria-label="Open menu">
             <Menu className="h-6 w-6" />
@@ -45,7 +46,8 @@ export function NavMobile({ data }: Props) {
                       <CMSLink
                         appearance="link"
                         {...(item.link ?? {})}
-                        label={topLabel}     // ⬅ no children!
+                        label={topLabel}
+                        onClick={() => setOpen(false)}
                       />
                     </SheetClose>
                   </li>

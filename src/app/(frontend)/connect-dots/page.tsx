@@ -69,7 +69,7 @@ export default async function ConnectDotsPage({
     .filter((puzzle): puzzle is ConnectDotsPlayerPuzzle => puzzle !== null)
 
   return (
-    <main className="container space-y-6 py-6">
+    <main className="xl:container space-y-6 py-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-sky-700">

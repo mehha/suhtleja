@@ -94,7 +94,7 @@ export default async function ConnectDotsEditPuzzlePage({
   }
 
   return (
-    <main className="container space-y-6 py-6">
+    <main className="xl:container space-y-6 py-6">
       <ConnectDotsFrontendEditor
         action={updatePuzzle}
         cancelHref="/koduhaldus"

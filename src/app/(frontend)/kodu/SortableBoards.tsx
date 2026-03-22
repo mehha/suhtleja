@@ -99,7 +99,7 @@ function SortableBoardCard({
       tabIndex={0}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
-      className="relative border p-3 flex flex-col gap-3 aspect-[4/3] w-[280px] rounded-xl bg-white shadow-sm ring-1 ring-gray-900/5 cursor-pointer"
+      className="relative flex aspect-[4/3] w-full min-w-0 cursor-pointer flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm ring-1 ring-gray-900/5"
     >
       <div className="flex items-center justify-between gap-2">
         {/* DRAG HANDLE – ainult parent mode saab sortida */}
@@ -166,7 +166,7 @@ function SortableBoardCard({
         )}
       </div>
 
-      <div className="relative w-full h-28 rounded-lg overflow-hidden flex items-center justify-center">
+      <div className="relative flex h-[calc(100%-50px)] w-full items-center justify-center overflow-hidden rounded-lg">
         {hasUploadImage ? (
           <Media
             resource={visualCell.image}
@@ -249,7 +249,7 @@ export function SortableBoards({
 
   if (!mounted) {
     return (
-      <ul className="flex flex-wrap gap-4">
+      <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
         {items.map((board) => (
           <SortableBoardCard
             key={board.id}
@@ -270,7 +270,7 @@ export function SortableBoards({
           items={items.map((item) => String(item.id))}
           strategy={rectSortingStrategy}
         >
-          <ul className="flex flex-wrap gap-4">
+          <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
             {items.map((board) => (
               <SortableBoardCard
                 key={board.id}

@@ -10,11 +10,12 @@ import {
 } from 'react'
 import type { UIFieldClientProps } from 'payload'
 import { Button, TextInput, useField } from '@payloadcms/ui'
-import { ArrowDown, ArrowUp, PencilRuler, Play, Search, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, PencilRuler, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getClientSideURL } from '@/utilities/getURL'
 import { getSymbolProxyURL } from '@/utilities/symbolProxy'
 import { Toaster } from '@/components/ui/sonner'
+import { Switch } from '@/components/ui/switch'
 import {
   type ConnectDotsPoint,
   getContainedImageRect,
@@ -358,6 +359,7 @@ export function ConnectDotsEditorField(_props: UIFieldClientProps) {
       : selectedSymbolSource === 'openmoji'
         ? 'OpenMoji'
         : 'Sümbol'
+  const previewEnabled = Boolean(media?.url && dots.length >= 2)
 
   return (
     <div className={styles.shell}>
@@ -375,26 +377,16 @@ export function ConnectDotsEditorField(_props: UIFieldClientProps) {
         </div>
 
         <div className={styles.toolbar}>
-          <Button
-            buttonStyle={mode === 'edit' ? 'primary' : 'secondary'}
-            className={styles.payloadButton}
-            onClick={() => setMode('edit')}
-            size="medium"
-            type="button"
-          >
-            Muuda
-          </Button>
-          <Button
-            buttonStyle={mode === 'preview' ? 'primary' : 'secondary'}
-            className={styles.payloadButton}
-            disabled={!media?.url || dots.length < 2}
-            onClick={() => setMode('preview')}
-            size="medium"
-            type="button"
-          >
-            <Play size={14} style={{ marginRight: 6, verticalAlign: 'text-bottom' }} />
-            Eelvaade
-          </Button>
+          <span className={styles.modeLabel}>Muuda</span>
+          <Switch
+            checked={mode === 'preview'}
+            disabled={!previewEnabled && mode === 'edit'}
+            onCheckedChange={(checked) => {
+              setMode(checked ? 'preview' : 'edit')
+            }}
+            aria-label="Lülita eelvaate režiim"
+          />
+          <span className={styles.modeLabel}>Eelvaade</span>
         </div>
       </div>
 

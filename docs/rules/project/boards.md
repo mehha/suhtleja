@@ -66,3 +66,4 @@ tags: [suhtleja, frontend, boards, payload]
 - When changing card UI on `/kodu`:
   - Keep keyboard navigation and drag behavior usable.
   - Validate image fallback behavior for missing board visuals.
+  - Use responsive grid columns for the home card lists rather than fixed card widths so mobile can render one column and wider screens can expand naturally.

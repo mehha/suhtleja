@@ -304,7 +304,7 @@ export default async function ActivitiesPage() {
   }
 
   return (
-    <main className="container space-y-6">
+    <main className="xl:container space-y-6">
       <header className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Tahvlid</h1>
         <CreateBoardForm createBoard={createBoard} />

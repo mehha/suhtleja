@@ -11,6 +11,7 @@ type CMSLinkType = {
   children?: React.ReactNode
   className?: string
   label?: string | null
+  onClick?: React.MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>
   newTab?: boolean | null
   accent?: 'board' | 'tools' | 'none' | null
   reference?: {
@@ -29,6 +30,7 @@ export const CMSLink: React.FC<CMSLinkType> = (props) => {
     children,
     className,
     label,
+    onClick,
     newTab,
     accent,
     reference,
@@ -67,7 +69,12 @@ export const CMSLink: React.FC<CMSLinkType> = (props) => {
   /* Ensure we don't break any styles set by richText */
   if (appearance === 'inline') {
     return (
-      <Link className={cn(accentClass, className)} href={href || url || ''} {...newTabProps}>
+      <Link
+        className={cn(accentClass, className)}
+        href={href || url || ''}
+        onClick={onClick}
+        {...newTabProps}
+      >
         {label && label}
         {accentInfo?.icon}
         {children && children}
@@ -77,7 +84,12 @@ export const CMSLink: React.FC<CMSLinkType> = (props) => {
 
   return (
     <Button asChild className={className} size={size} variant={appearance}>
-      <Link className={cn(accentClass, className)} href={href || url || ''} {...newTabProps}>
+      <Link
+        className={cn(accentClass, className)}
+        href={href || url || ''}
+        onClick={onClick}
+        {...newTabProps}
+      >
         {label && label}
         {accentInfo?.icon}
         {children && children}

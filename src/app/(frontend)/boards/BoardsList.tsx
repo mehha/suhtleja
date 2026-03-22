@@ -21,7 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Edit3,
   Monitor,
@@ -117,8 +116,8 @@ export function BoardsList({
           </div>
         </div>
 
-        <ScrollArea className="rounded-xl border bg-background">
-          <Table className="min-w-full text-sm">
+        <div className="w-full overflow-x-auto rounded-xl border bg-background">
+          <Table className="min-w-max text-sm">
             <TableHeader className="bg-muted/60">
               <TableRow className="border-b">
                 <TableHead className="w-10 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -329,7 +328,7 @@ export function BoardsList({
               })}
             </TableBody>
           </Table>
-        </ScrollArea>
+        </div>
       </div>
     </TooltipProvider>
   )

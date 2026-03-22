@@ -7,7 +7,6 @@ import { Globe2, Pencil, Pin, PinOff, PlusCircle, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -115,8 +114,8 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
             Puzzle&apos;id veel ei ole. Lisa esimene ülevalt paremalt.
           </div>
         ) : (
-          <ScrollArea className="rounded-xl border bg-background">
-            <Table className="min-w-full text-sm">
+          <div className="w-full overflow-x-auto rounded-xl border bg-background">
+            <Table className="min-w-max text-sm">
               <TableHeader className="bg-muted/60">
                 <TableRow>
                   <TableHead>Puzzle</TableHead>
@@ -263,7 +262,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                 })}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         )}
       </section>
     </TooltipProvider>

@@ -508,13 +508,13 @@ export default function Runner({ board, isParentMode, canEdit }: RunnerProps) {
 
   return (
     <div>
-      <div className="container">
+      <div className="">
         <TooltipProvider>
-          <div className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4 lg:gap-10">
+          <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <h1 className="text-center text-3xl font-semibold sr-only">{board.name}</h1>
 
             {actionBarEnabled && (
-              <div className="flex min-w-0 max-w-full flex-1 items-center gap-3 overflow-hidden rounded-3xl border bg-white ps-6 pe-2 py-2 shadow-lg ring-1 ring-gray-900/5">
+              <div className="flex min-w-0 max-w-full flex-1 items-center gap-3 overflow-hidden rounded-xl border bg-slate-100/95 ps-6 pe-4 py-2 shadow-lg ring-1 ring-gray-900/10">
                 <div
                   ref={scrollContainerRef}
                   className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1"
@@ -560,7 +560,7 @@ export default function Runner({ board, isParentMode, canEdit }: RunnerProps) {
                     })
                   )}
                 </div>
-                <div className="flex shrink-0 gap-2">
+                <div className="flex flex-col shrink-0 gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -659,10 +659,9 @@ export default function Runner({ board, isParentMode, canEdit }: RunnerProps) {
               <Tooltip>
                 <TooltipTrigger asChild>
                   {isParentMode && canEdit ? (
-                    <Button variant="secondary" size="sm" asChild>
+                    <Button variant="secondary" size="icon" asChild>
                       <Link href={`/boards/${board.id}/compounds`}>
-                        <WholeWord className="mr-2 h-5 w-5 text-pink-600" />
-                        Halda sõnaühendeid
+                        <WholeWord className="h-5 w-5 text-pink-600" />
                       </Link>
                     </Button>
                   ) : (
@@ -708,10 +707,11 @@ export default function Runner({ board, isParentMode, canEdit }: RunnerProps) {
         className="layout"
         breakpoints={{ lg: 1024, md: 768, sm: 640, xs: 0 }}
         cols={{ lg: cols, md: mdCols, sm: 2, xs: 2 }}
-        rowHeight={200}
+        rowHeight={140}
         isResizable={false}
         isDraggable={false}
         margin={[16, 16]}
+        containerPadding={[0, 0]}
         compactType={null}
         preventCollision
         layouts={responsiveLayouts}

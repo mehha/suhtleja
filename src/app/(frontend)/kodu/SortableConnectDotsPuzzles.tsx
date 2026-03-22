@@ -79,7 +79,7 @@ function SortablePuzzleCard({
       tabIndex={0}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
-      className="relative flex aspect-[4/3] w-[280px] cursor-pointer flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm ring-1 ring-gray-900/5"
+      className="relative flex aspect-[4/3] w-full min-w-0 cursor-pointer flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm ring-1 ring-gray-900/5"
     >
       <div className="flex items-center justify-between gap-2">
         {canManage ? (
@@ -115,7 +115,10 @@ function SortablePuzzleCard({
                 {puzzle.canEdit ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Link href={`/connect-dots/manage/${puzzle.id}`} onClick={(e) => e.stopPropagation()}>
+                      <Link
+                        href={`/connect-dots/manage/${puzzle.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Edit className="h-5 w-5" />
                       </Link>
                     </TooltipTrigger>
@@ -127,7 +130,11 @@ function SortablePuzzleCard({
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <form action={unpinAction} className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                    <form
+                      action={unpinAction}
+                      className="flex items-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <input name="puzzleId" type="hidden" value={puzzle.id} />
                       <input name="visible" type="hidden" value="false" />
                       <button type="submit">
@@ -145,7 +152,7 @@ function SortablePuzzleCard({
         </div>
       </div>
 
-      <div className="relative h-28 w-full overflow-hidden rounded-lg bg-[radial-gradient(circle_at_top,#f8fafc,#e2e8f0)]">
+      <div className="relative h-[calc(100%-50px)] w-full overflow-hidden rounded-lg bg-[radial-gradient(circle_at_top,#f8fafc,#e2e8f0)]">
         <img src={puzzle.imageUrl} alt={puzzle.title} className="h-full w-full object-contain" />
       </div>
 
@@ -211,7 +218,7 @@ export function SortableConnectDotsPuzzles({
 
   if (!mounted) {
     return (
-      <ul className="flex flex-wrap gap-4">
+      <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
         {items.map((puzzle) => (
           <SortablePuzzleCard
             key={puzzle.id}
@@ -229,7 +236,7 @@ export function SortableConnectDotsPuzzles({
     <>
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={items.map((item) => item.id)} strategy={rectSortingStrategy}>
-          <ul className="flex flex-wrap gap-4">
+          <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
             {items.map((puzzle) => (
               <SortablePuzzleCard
                 key={puzzle.id}

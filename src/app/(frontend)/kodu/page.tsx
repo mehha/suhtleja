@@ -438,14 +438,14 @@ export default async function HomePage() {
   const hasPuzzles = ownedPuzzles.length > 0 || sharedPuzzles.length > 0
 
   return (
-    <main className="p-6 space-y-10">
-      <header className="flex items-center gap-6">
+    <main className="xl:p-6 space-y-10">
+      <header className="flex flex-wrap items-center gap-6">
         <div className="flex items-center gap-2">
           <MonitorCheck className="h-6 w-6 text-pink-500" />
           <h1 className="text-2xl font-semibold">Kodu</h1>
         </div>
         {isParentMode && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <CreateBoardForm createBoard={createBoard} />
             <Button className="gap-2" asChild>
               <Link href="/connect-dots/manage/new">
