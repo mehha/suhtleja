@@ -62,14 +62,6 @@ export async function POST(req: Request) {
         },
       })
       customerId = customer.id
-
-      await payload.update({
-        collection: 'users',
-        id: user.id,
-        data: {
-          stripeCustomerId: customerId,
-        },
-      })
     }
 
     const baseURL = getBaseURL(req)

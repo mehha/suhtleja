@@ -21,7 +21,12 @@ const initialState = {
 type StripeRedirectResponse = {
   url?: string
   error?: string
+  details?: {
+    message?: string | null
+  }
 }
+
+const STRIPE_REQUEST_TIMEOUT_MS = 20_000
 
 type Props = {
   hasPin: boolean
@@ -91,20 +96,29 @@ export function ProfilePageClient({
     setCheckoutError(null)
 
     try {
+      const controller = new AbortController()
+      const timeoutId = window.setTimeout(() => controller.abort(), STRIPE_REQUEST_TIMEOUT_MS)
       const res = await fetch('/next/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
       })
+      window.clearTimeout(timeoutId)
 
       const json = (await res.json().catch(() => ({}))) as StripeRedirectResponse
       if (!res.ok || !json?.url) {
-        throw new Error(json?.error || 'Checkout session creation failed')
+        throw new Error(json?.details?.message || json?.error || 'Checkout session creation failed')
       }
 
       window.location.href = json.url as string
     } catch (err) {
       console.error('Stripe checkout failed', err)
-      setCheckoutError('Checkouti avamine ebaõnnestus. Proovi uuesti.')
+      const isAbortError = err instanceof DOMException && err.name === 'AbortError'
+      setCheckoutError(
+        isAbortError
+          ? 'Checkout ei vastanud piisavalt kiiresti. Proovi uuesti.'
+          : 'Checkouti avamine ebaõnnestus. Proovi uuesti.',
+      )
       setCheckoutLoading(false)
     }
   }
@@ -116,20 +130,29 @@ export function ProfilePageClient({
     setCheckoutError(null)
 
     try {
+      const controller = new AbortController()
+      const timeoutId = window.setTimeout(() => controller.abort(), STRIPE_REQUEST_TIMEOUT_MS)
       const res = await fetch('/next/stripe/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
       })
+      window.clearTimeout(timeoutId)
 
       const json = (await res.json().catch(() => ({}))) as StripeRedirectResponse
       if (!res.ok || !json?.url) {
-        throw new Error(json?.error || 'Billing portal creation failed')
+        throw new Error(json?.details?.message || json?.error || 'Billing portal creation failed')
       }
 
       window.location.href = json.url as string
     } catch (err) {
       console.error('Stripe billing portal failed', err)
-      setCheckoutError('Liikmelisuse haldus ei avanenud. Proovi uuesti.')
+      const isAbortError = err instanceof DOMException && err.name === 'AbortError'
+      setCheckoutError(
+        isAbortError
+          ? 'Liikmelisuse haldus ei vastanud piisavalt kiiresti. Proovi uuesti.'
+          : 'Liikmelisuse haldus ei avanenud. Proovi uuesti.',
+      )
       setPortalLoading(false)
     }
   }
