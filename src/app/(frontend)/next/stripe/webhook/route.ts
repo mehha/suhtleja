@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import Stripe from 'stripe'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import Stripe from 'stripe'
+import { createStripeClient } from '@/utilities/stripe'
 
 export const runtime = 'nodejs'
 
@@ -106,7 +107,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'missing_signature' }, { status: 400 })
   }
 
-  const stripe = new Stripe(STRIPE_SECRET_KEY)
+  const stripe = createStripeClient(STRIPE_SECRET_KEY)
   const body = await req.text()
 
   let event: Stripe.Event
