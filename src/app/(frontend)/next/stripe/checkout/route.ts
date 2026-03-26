@@ -56,6 +56,35 @@ export async function POST(req: Request) {
     }
 
     if (!customerId) {
+      const existing = await stripe.customers.list({
+        email: user.email,
+        limit: 10,
+      })
+
+      const customersWithSameEmail = existing.data.filter((customer) => customer.email === user.email)
+      const metadataMatchedCustomer = customersWithSameEmail.find(
+        (customer) => customer.metadata?.payloadUserId === String(user.id),
+      )
+
+      if (metadataMatchedCustomer) {
+        customerId = metadataMatchedCustomer.id
+      } else if (customersWithSameEmail.length === 1) {
+        customerId = customersWithSameEmail[0]?.id
+      } else if (customersWithSameEmail.length > 1) {
+        console.warn('Stripe checkout blocked due to duplicate customers for email', {
+          email: user.email,
+          userId: String(user.id),
+          customerIds: customersWithSameEmail.map((customer) => customer.id),
+        })
+
+        return NextResponse.json(
+          { error: 'multiple_matching_customers' },
+          { status: 409 },
+        )
+      }
+    }
+
+    if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email,
         metadata: {
