@@ -53,6 +53,25 @@ git clone -n --depth=1 --filter=tree:0 https://github.com/payloadcms/payload my-
 
 ### Development
 
+Use Node.js 22.12+ and pnpm 9 or 10. The app uses Payload 3.90.0,
+Next.js 16, and React 19.2. Development and production builds explicitly use
+Webpack to preserve the existing Payload and custom webpack configuration.
+
+#### Payload 3.90.0 upgrade deployment prerequisite
+
+The dependency update requires a reviewed D1 migration before deployment.
+Generated types now include `users.resetPasswordRequestedAt` and
+`media._objectKey`; create and inspect the schema migration only after owner
+approval. No migration is included or applied by the dependency update.
+Keep `push: false`. Existing sessions may require users to sign in again.
+
+Reference: [Payload 3.90.0 release notes](https://github.com/payloadcms/payload/releases/tag/v3.90.0).
+
+Next 16 cache invalidation hooks use `revalidateTag(tag, 'max')`, matching the
+Payload website template's stale-while-revalidate behavior. Its ESLint preset also
+enables additional React Hooks checks; existing component findings should be
+addressed separately from dependency updates.
+
 1. First [clone the repo](#clone) if you have not done so already
 1. `cd my-project && cp .env.example .env` to copy the example environment variables
 1. `pnpm install && pnpm dev` to install dependencies and start the dev server

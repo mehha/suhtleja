@@ -44,7 +44,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - Keep `dynamic = 'force-dynamic'` on auth/cookie-dependent routes unless you intentionally redesign caching.
 
 ## Build and Test Commands
-- `pnpm install` (Node 18.20+ or 20+, pnpm 9+).
+- `pnpm install` (Node 22.12+, pnpm 9 or 10).
 - `pnpm dev` for local development.
 - `pnpm lint` / `pnpm lint:fix`.
 - `pnpm test:int`, `pnpm test:e2e`, `pnpm test`.

@@ -212,14 +212,11 @@ function VideoDialog({ video }: { video?: SuhtlejaHomepageProps['video'] }) {
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="group block w-full rounded-[28px] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c79dd] focus-visible:ring-offset-4"
-          aria-label={video?.title ? `Ava video: ${video.title}` : 'Ava video'}
-        >
-          {poster}
-        </button>
+      <DialogTrigger
+        className="group block w-full rounded-[28px] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c79dd] focus-visible:ring-offset-4"
+        aria-label={video?.title ? `Ava video: ${video.title}` : 'Ava video'}
+      >
+        {poster}
       </DialogTrigger>
       <DialogContent className="w-[min(92vw,1040px)] max-w-none border-0 bg-transparent p-0 shadow-none [&>button:last-child]:hidden">
         <DialogTitle className="sr-only">{video?.title || 'Suhtleja video'}</DialogTitle>

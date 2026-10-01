@@ -25,6 +25,7 @@ tags: [suhtleja, homepage, payload, media]
   - home, kindergarten, school, and therapy usage context
 - Media fields are optional. When missing, the component must render a polished product-style mockup instead of an empty frame.
 - The video section should show a poster/placeholder with a play button and open the uploaded video or embed URL inside a Dialog.
+- Use `DialogTrigger`'s native button for the video poster. Passing a server-rendered button through `asChild` can omit the trigger from server HTML and cause a hydration mismatch. Verify the trigger is present before hydration and the dialog opens/closes after a full reload.
 - Homepage dialog videos must not rely on unmuted autoplay; uploaded videos should use native controls, `playsInline`, and `preload="metadata"` for iPad Safari/Chrome compatibility.
 - Homepage video embed URLs should be normalized to player/embed URLs for common providers such as YouTube and Vimeo.
 - Feature media under “Suhtlustahvlid ja harjutused samas kohas” must support editable aspect ratios, with `16/9` as the default and `9/16` available for phone portrait mockups.
