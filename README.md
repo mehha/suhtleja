@@ -56,6 +56,8 @@ git clone -n --depth=1 --filter=tree:0 https://github.com/payloadcms/payload my-
 Use Node.js 22.12+ and pnpm 9 or 10. The app uses Payload 3.90.0,
 Next.js 16, and React 19.2. Development and production builds explicitly use
 Webpack to preserve the existing Payload and custom webpack configuration.
+Static generation uses one worker and one page at a time to avoid concurrent
+Workerd processes contending for the local proxy database during remote D1 reads.
 
 #### Payload 3.90.0 upgrade deployment prerequisite
 

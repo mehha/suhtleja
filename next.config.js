@@ -11,6 +11,12 @@ const mediaURL = new URL(NEXT_PUBLIC_MEDIA_BASE_URL)
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // Serialize static generation to avoid concurrent Workerd processes contending
+    // for the local proxy database while reading remote D1 during builds.
+    cpus: 1,
+    staticGenerationMaxConcurrency: 1,
+  },
   images: {
     remotePatterns: [
       ...[NEXT_PUBLIC_SERVER_URL /* 'https://example.com' */].map((item) => {
