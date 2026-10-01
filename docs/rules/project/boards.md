@@ -13,6 +13,7 @@ tags: [suhtleja, frontend, boards, payload]
 - Related managed game collection: `src/collections/ConnectDotsPuzzles/index.ts`
 
 ## Behavior Rules
+- `/tegevused` is a legacy alias and only redirects to `/koduhaldus`. Keep it for existing links; do not add logic there.
 - Access model:
   - Auth required for boards routes.
   - Parent mode is required for `/koduhaldus` management route.
