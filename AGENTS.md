@@ -22,13 +22,14 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - `boards`: management hub `src/app/(frontend)/koduhaldus`, board play/edit routes `src/app/(frontend)/boards`, collection `src/collections/Boards/index.ts`, rule `docs/rules/project/boards.md`.
 - `connect-dots`: player route `src/app/(frontend)/connect-dots`, collection `src/collections/ConnectDotsPuzzles/index.ts`, management surface `src/app/(frontend)/koduhaldus`, rule `docs/rules/project/connect-dots.md`.
 - Parent/child mode shared flow: `src/app/(frontend)/kodu/ParentUnlockDialog.tsx`, `src/app/(frontend)/kodu/modeActions.ts`, `src/utilities/uiMode.ts`, rule `docs/rules/project/parent-child-mode.md`.
-- Shared speech pattern (`/next/tts-ms`, `/next/tts-tartu`): `src/app/(frontend)/next/tts-ms/route.ts`, rule `docs/rules/project/audio-tts.md`.
+- Shared speech pattern (`/next/tts-ms`): `src/app/(frontend)/next/tts-ms/route.ts`, rule `docs/rules/project/audio-tts.md`.
 - `membership`: Stripe routes `src/app/(frontend)/next/stripe`, helper `src/utilities/membershipStatus.ts`, rule `docs/rules/project/membership.md`.
 - `auth/profile`: `src/app/(frontend)/login`, `register`, `profile`, rule `docs/rules/project/auth-profile.md`.
-- `symbols/AI helpers`: `src/app/(frontend)/next/{symbols,symbol-image,groq,pexels}`, rule `docs/rules/project/symbols-ai.md`.
+- `symbols/AI helpers`: `src/app/(frontend)/next/{symbols,symbol-image,groq}`, rule `docs/rules/project/symbols-ai.md`.
 - `search`: `src/app/(frontend)/search`, `src/search`, rule `docs/rules/project/search.md`.
 - `homepage`: block `src/blocks/SuhtlejaHomepage`, rule `docs/rules/project/homepage.md`.
 - `media`: collection `src/collections/Media.ts`, rule `docs/rules/project/media.md`.
+- `preview`: `src/app/(frontend)/next/preview`, `exit-preview`, `src/utilities/generatePreviewPath.ts`, rule `docs/rules/project/preview.md`.
 - `seo`: metadata utilities `src/utilities/seo.ts`, `generateMeta.ts`, rule `docs/rules/project/seo.md`.
 - Route naming is Estonian: `kodu` = child home, `koduhaldus` = parent management, `tegevused` = legacy redirect to `koduhaldus`.
 

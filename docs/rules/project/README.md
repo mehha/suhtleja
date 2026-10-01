@@ -29,6 +29,8 @@ Infrastructure baseline:
 - `docs/rules/project/search.md`
   - `/search` route and Payload search plugin sync.
 - `docs/rules/project/symbols-ai.md`
-  - `/next/symbols`, `/next/symbol-image`, `/next/groq`, `/next/pexels` helper endpoints.
+  - `/next/symbols`, `/next/symbol-image`, `/next/groq` helper endpoints.
+- `docs/rules/project/preview.md`
+  - Draft preview enable/disable routes used by the admin panel and admin bar.
 
 When adding a new route under `src/app/(frontend)`, add a matching rule file here.

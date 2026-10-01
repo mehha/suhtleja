@@ -1,27 +1,25 @@
 ---
-title: Symbols, Grammar AI, and Photo Search Rules
-description: Membership-gated helper endpoints under /next for pictograms, Groq, and Pexels
-tags: [suhtleja, frontend, symbols, groq, pexels, api]
+title: Symbols and Grammar AI Rules
+description: Helper endpoints under /next for pictograms and Groq
+tags: [suhtleja, frontend, symbols, groq, api]
 ---
 
-# Symbols, Groq, and Pexels (`/next/*`)
+# Symbols and Groq (`/next/*`)
 
 ## Scope
 - Routes in `src/app/(frontend)/next/`:
   - `symbols/route.ts` (`GET /next/symbols`)
   - `symbol-image/route.ts` (`GET /next/symbol-image`)
   - `groq/route.ts` (`POST /next/groq`)
-  - `pexels/route.ts` (`GET /next/pexels`)
 - Helper: `src/utilities/symbolProxy.ts`, `src/utilities/membershipStatus.ts`
 - Consumers:
   - `boards/[id]/edit/BoardEditor/Toolbar.tsx`, `CellEditModal.tsx` (symbols, groq)
   - `boards/[id]/Runner.tsx` (groq surface-form correction)
   - `src/components/ConnectDots/ConnectDotsEditorField.tsx`, `ConnectDotsFrontendEditor.tsx` (symbols)
-  - `pexels` has no current frontend consumer.
 
 ## Auth Gate
 - All routes call `payload.auth({ headers })` and return `401 { error: 'unauthorized' }` without a user.
-- `symbols`, `groq`, and `pexels` also require `hasActiveMembership(user)` and return `402 { error: 'membership_required' }` otherwise.
+- `symbols` and `groq` also require `hasActiveMembership(user)` and return `402 { error: 'membership_required' }` otherwise.
 - `symbol-image` requires login only (no membership check), because already-saved board/puzzle images must keep rendering.
 
 ## `GET /next/symbols`
@@ -47,11 +45,7 @@ tags: [suhtleja, frontend, symbols, groq, pexels, api]
 - Soft-fail rule: on Groq errors respond `200` with the original `surface` (or empty `terms`) plus an `error` string, so board playback is never blocked by the LLM.
 - Do not send user PII to the prompt; only the card label and up to 2 preceding words.
 
-## `GET /next/pexels`
-- Env: `PEXELS_API_KEY`. Param `q` (default `cat`), returns the Pexels search JSON (20 results) or `{ photos: [] }` on upstream failure.
-- Legacy/unused. Remove it or add a consumer and attribution handling before relying on it.
-
 ## Change Checklist
 - New external symbol source: add license/attribution to each item and extend `isProxyableSymbolURL` deliberately.
-- Keep all four routes `runtime = 'nodejs'` where already set and never cache authenticated responses publicly.
+- Keep all three routes `runtime = 'nodejs'` where already set and never cache authenticated responses publicly.
 - Keep user-facing errors Estonian in the UI layer; the routes return machine-readable `error` codes.

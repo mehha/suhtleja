@@ -29,15 +29,6 @@ tags: [suhtleja, tts, audio, frontend, nextjs]
   - `SPEECH_VOICE`
   - `SPEECH_OUTPUT_FORMAT`
 
-## Estonian TTS Proxy (`/next/tts-tartu`)
-- Route: `src/app/(frontend)/next/tts-tartu/route.ts`
-- Endpoint: `POST /next/tts-tartu` with JSON `{ text, speaker?, speed? }`.
-- Auth: logged-in user with active membership (`401 unauthorized`, `402 membership_required`).
-- Proxies to an external Estonian TTS server and returns `audio/wav` with `Cache-Control: no-store`.
-- Env: `TTS_URL` (default `http://localhost:8000/v2`), `TTS_TIMEOUT_MS` (default `20000`), `TTS_DEFAULT_SPEAKER` (default `mari`).
-- `speed` is clamped to `0.5`–`2`. Upstream failure returns `502 tts_failed`, timeout returns `504 tts_timeout`.
-- Currently no frontend consumer; `tts-ms` is the active path. Confirm a consumer exists before changing its payload.
-
 ## Frontend Playback Rules
 - Normalize text before sending:
   - Trim whitespace.

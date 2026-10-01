@@ -28,6 +28,10 @@ tags: [suhtleja, stripe, membership, profile]
 - Pending-cancellation profile UI should be driven by `membershipCancelAtPeriodEnd` plus a future `currentPeriodEndsAt`, not only by the current status label.
 - Active membership statuses are only `trialing` and `active`.
 - In non-production environments only, admin users may bypass membership gates for premium routes and APIs.
+- `MEMBERSHIP_BYPASS_EMAILS` (comma-separated, case-insensitive) lists accounts that skip the membership gate in every environment, including production.
+  - Source: `src/utilities/membershipStatus.ts`. Emails must never be hardcoded in source.
+  - Unset or empty means nobody bypasses. Set it as a Cloudflare secret/variable, not in `wrangler.jsonc` or committed files.
+  - Treat it as a privileged allowlist: keep it to owner/test accounts and review it when accounts change.
 - The users with emails `info@mehh.ee` and `pilleriin.pukspuu@gmail.com` bypass membership gates in all environments.
 - Premium routes and premium API handlers must enforce membership on the server side.
 - Webhook must update user membership fields:
@@ -53,10 +57,8 @@ tags: [suhtleja, stripe, membership, profile]
   - `/boards/[id]/compounds`
 - Require active membership for premium API handlers:
   - `/next/groq`
-  - `/next/pexels`
   - `/next/symbols`
   - `/next/tts-ms`
-  - `/next/tts-tartu`
 - Enforce the same rule at collection access level for premium data:
   - `boards` create/read/update/delete for non-admin users.
 
@@ -66,6 +68,7 @@ tags: [suhtleja, stripe, membership, profile]
 - `STRIPE_PRICE_ID_MEMBERSHIP`
 - `STRIPE_BILLING_PORTAL_CONFIGURATION_ID` (optional)
 - `NEXT_PUBLIC_SERVER_URL` (for success/cancel URLs)
+- `MEMBERSHIP_BYPASS_EMAILS` (optional, see Core Rules)
 
 ## Change Checklist
 - If adding new membership statuses, update:
