@@ -59,10 +59,15 @@ Webpack to preserve the existing Payload and custom webpack configuration.
 
 #### Payload 3.90.0 upgrade deployment prerequisite
 
+GitHub Actions deploys the application on pushes to `main`/`master`, or through
+**Actions → Deploy to Cloudflare → Run workflow**. Neither path runs migrations.
+The owner must apply required production D1 migrations manually before pushing
+an application change that depends on them.
+
 The dependency update requires a reviewed D1 migration before deployment.
 Generated types now include `users.resetPasswordRequestedAt` and
-`media._objectKey`; create and inspect the schema migration only after owner
-approval. No migration is included or applied by the dependency update.
+`media._objectKey`; migration `20261001_135529` adds these fields. The owner must
+apply it to production before deploying the upgraded application.
 Keep `push: false`. Existing sessions may require users to sign in again.
 
 Reference: [Payload 3.90.0 release notes](https://github.com/payloadcms/payload/releases/tag/v3.90.0).
@@ -236,7 +241,7 @@ If you want the app to actually run against that cloned local D1, do not leave t
 
 #### D1 migrations
 
-[Migrations](https://payloadcms.com/docs/database/migrations) are SQL-backed schema versions. With D1, keep schema changes in Payload migrations and run them as part of deployment.
+[Migrations](https://payloadcms.com/docs/database/migrations) are SQL-backed schema versions. With D1, keep schema changes in Payload migrations. Production migrations are manual owner actions, separate from application deployment.
 
 Locally create a migration
 
@@ -246,13 +251,25 @@ pnpm payload migrate:create
 
 This creates the migration files you will need to push alongside with your new configuration.
 
-On the server after building and before running `pnpm start` you will want to run your migrations
+Apply pending migrations to the local development database:
 
 ```bash
 pnpm payload migrate
 ```
 
 This command will check for any migrations that have not yet been run and try to run them and it will keep a record of migrations that have been run in the database.
+
+Check and apply committed migrations to production D1 manually, with Cloudflare
+credentials available, before deploying a schema-dependent application change:
+
+```bash
+pnpm migrate:status:remote
+pnpm migrate:remote
+```
+
+`pnpm deploy` and GitHub Actions deploy only the application. They never run
+migrations or database optimization. `deploy:database` remains an explicit manual
+alias for `migrate:remote`.
 
 ### Docker
 
