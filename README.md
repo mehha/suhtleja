@@ -59,6 +59,26 @@ Webpack to preserve the existing Payload and custom webpack configuration.
 Static generation uses one worker and one page at a time to avoid concurrent
 Workerd processes contending for the local proxy database during remote D1 reads.
 
+### Cloudflare deployment cache uploads
+
+Deployment uploads the incremental cache through OpenNext's `--rclone` option,
+matching Mehh's workaround for hangs at “Populating remote R2 incremental cache”.
+Configure these under the GitHub repository's **Settings → Secrets and variables
+→ Actions** before deploying:
+
+- Variable `CLOUDFLARE_ACCOUNT_ID`: the account ID from `wrangler.jsonc`.
+- Secrets `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`: R2 S3 API credentials with
+  object read/write access to the bucket bound as `NEXT_INC_CACHE_R2_BUCKET`.
+
+The workflow maps `CLOUDFLARE_ACCOUNT_ID` to OpenNext's `CF_ACCOUNT_ID` and checks
+for missing configuration before building. Local deployments need the same
+`CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, and `R2_SECRET_ACCESS_KEY` environment values.
+The existing `CLOUDFLARE_API_TOKEN` is still needed for Worker deployment.
+
+`pnpm deploy` removes generated `__fetch` cache files before upload; they are
+recreated at runtime. Use `pnpm deploy:app:full` only when intentionally uploading
+the complete generated cache. Both commands deploy the app without migrations.
+
 #### Payload 3.90.0 upgrade deployment prerequisite
 
 GitHub Actions deploys the application on pushes to `main`/`master`, or through

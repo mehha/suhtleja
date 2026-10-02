@@ -7,9 +7,9 @@
   "scripts": {
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build --webpack",
     "db:clone:remote-to-local": "bash ./scripts/db/clone-d1-remote-to-local.sh",
-    "deploy": "pnpm run deploy:app:full",
-    "deploy:app": "opennextjs-cloudflare build && rm -rf .open-next/cache/__fetch && opennextjs-cloudflare deploy --cacheChunkSize 10",
-    "deploy:app:full": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --cacheChunkSize 10",
+    "deploy": "pnpm run deploy:app",
+    "deploy:app": "opennextjs-cloudflare build && rm -rf .open-next/cache/__fetch && opennextjs-cloudflare deploy --rclone --cacheChunkSize 10",
+    "deploy:app:full": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --rclone --cacheChunkSize 10",
     "deploy:database": "pnpm run migrate:remote",
     "postbuild": "next-sitemap --config next-sitemap.config.cjs",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --webpack",
@@ -114,6 +114,7 @@
     "playwright-core": "1.58.2",
     "postcss": "^8.4.38",
     "prettier": "^3.4.2",
+    "rclone.js": "0.6.6",
     "tailwindcss": "^3.4.3",
     "typescript": "5.7.3",
     "vite-tsconfig-paths": "6.0.5",
@@ -126,6 +127,7 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "rclone.js",
       "sharp",
       "esbuild",
       "unrs-resolver"
