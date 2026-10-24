@@ -20,8 +20,6 @@ import configPromise from '@payload-config'
 import { Toaster } from '@/components/ui/sonner'
 import { DEFAULT_META_DESCRIPTION, SITE_NAME } from '@/utilities/seo'
 import { getUiMode } from '@/utilities/uiMode'
-import { CLOUDFLARE_WEB_ANALYTICS_TOKEN } from '@/utilities/analytics'
-import Script from 'next/script'
 import { FrontendShell } from './FrontendShell'
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -69,14 +67,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
           </FrontendShell>
         </Providers>
-        {/* Cookieless traffic analytics; admins are left out so the owner's visits don't skew it. */}
-        {process.env.NODE_ENV === 'production' && !isAdmin && (
-          <Script
-            data-cf-beacon={JSON.stringify({ token: CLOUDFLARE_WEB_ANALYTICS_TOKEN })}
-            src="https://static.cloudflareinsights.com/beacon.min.js"
-            strategy="afterInteractive"
-          />
-        )}
       </body>
     </html>
   )
