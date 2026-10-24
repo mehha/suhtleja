@@ -24,6 +24,29 @@ type AuthResponse = {
   message?: string
 }
 
+// Payload REST vead: { errors: [{ message, data?: { errors: [{ message, path }] } }] }
+type PayloadErrorResponse = {
+  errors?: {
+    message?: string
+    data?: {
+      errors?: { message?: string; path?: string }[]
+    }
+  }[]
+}
+
+function getRegisterErrorMessage(body: PayloadErrorResponse | null): string {
+  const error = body?.errors?.[0]
+  const fieldError = error?.data?.errors?.[0]
+
+  if (fieldError?.path === 'email') {
+    return /already registered/i.test(fieldError.message ?? '')
+      ? 'Selle e-posti aadressiga konto on juba olemas. Logi sisse.'
+      : 'Kontrolli e-posti aadressi.'
+  }
+
+  return fieldError?.message ?? error?.message ?? 'Registreerimine ebaõnnestus'
+}
+
 export function RegisterForm({ className, ...props }: RegisterFormProps) {
   const router = useRouter()
 
@@ -62,10 +85,11 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
         }),
       })
 
-      const createData = (await createRes.json().catch(() => null)) as AuthResponse | null
+      const createData = (await createRes.json().catch(() => null)) as PayloadErrorResponse | null
 
       if (!createRes.ok) {
-        setError(createData?.message ?? 'Registreerimine ebaõnnestus')
+        console.error('Register failed', createRes.status, createData)
+        setError(getRegisterErrorMessage(createData))
         setLoading(false)
         return
       }

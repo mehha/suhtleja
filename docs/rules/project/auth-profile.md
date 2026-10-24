@@ -22,6 +22,7 @@ tags: [suhtleja, frontend, auth, profile, users]
 - `/login` and `/register` are public, client-side forms and are `noindex, nofollow`.
   - Login posts to Payload `POST /api/users/login`, then `router.push('/kodu')`.
   - Register posts to `POST /api/users`, then logs in via `/api/users/login`, then goes to `/kodu`.
+  - If account creation fails, read the message from Payload's `errors[]` response (field error first). A duplicate email shows an Estonian "account already exists, log in" message; other errors fall back to Payload's message or "Registreerimine ebaõnnestus".
   - If account creation succeeds but the follow-up login fails, show a message asking the user to log in manually.
 - `/profile` requires a logged-in user. Unauthenticated requests redirect to `/admin`.
 - `/profile` keeps `dynamic = 'force-dynamic'` because it depends on cookies.
