@@ -90,7 +90,7 @@ tags: [suhtleja, stripe, membership, profile]
   - `stripe listen --latest --forward-to http://127.0.0.1:3000/next/stripe/webhook`
   - Put the printed `whsec_…` in `.env.local` as `STRIPE_WEBHOOK_SECRET`. It stays the same for the same CLI login.
   - Sandbox events reach local development only through `stripe listen`. The sandbox must not have a webhook endpoint pointing at production (`https://suhtleja.ee/next/stripe/webhook`): production verifies with the live endpoint's secret, so every sandbox event fails there with "No signatures found matching the expected signature" and Stripe retries it for days. The old sandbox endpoint `we_1T8keiCI2glJglFUA0RZNdsl` was disabled on 2026-10-24 for this reason.
-  - Keep `--latest`. The sandbox default API version (2019-09-09) sends subscriptions without `items[].current_period_end`, so `currentPeriodEndsAt` would be stored as null.
+  - `--latest` forwards events in the newest API version. Without it, `stripe listen` uses the account default `2019-09-09`, the same version as the live endpoint (`we_1T8m6GCI2glJglFUuFMqPM2E`). Both work: subscription events in `2019-09-09` still include `items[].current_period_end`, which the webhook reads for `currentPeriodEndsAt` (checked on 2026-10-24 with sandbox and live events).
 - Test checkout with card `4242 4242 4242 4242`, any future expiry and any CVC.
 - `stripe trigger customer.subscription.created` only checks signature verification. Triggered objects have no `payloadUserId`, so no user is updated.
 - Cancelling in the Billing Portal sets `cancel_at` instead of `cancel_at_period_end`. The webhook maps a future `cancel_at` to `membershipCancelAtPeriodEnd: true`.
