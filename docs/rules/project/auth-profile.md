@@ -29,6 +29,7 @@ tags: [suhtleja, frontend, auth, profile, users]
 - `/profile` keeps `dynamic = 'force-dynamic'` because it depends on cookies.
 
 ## Behavior Rules
+- Account passwords use Payload's local strategy with `patches/payload@3.92.0.patch`: on Workers new hashes use 100,000 PBKDF2 iterations (Workers rejects more), on Node.js 600,000. The parameters are stored in the hash, so both runtimes verify either. See the README's Payload 3.90.0 upgrade notes before upgrading Payload.
 - Profile shows user name, email, parent PIN controls, and membership state (see `membership.md` for Stripe flow).
 - `?membership=required` on `/profile` shows a "membership required" notice; premium routes and APIs redirect or respond here when `hasActiveMembership` fails.
 - Parent PIN:

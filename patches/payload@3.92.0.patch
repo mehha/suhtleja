@@ -1,0 +1,108 @@
+diff --git a/dist/auth/strategies/local/authenticate.js b/dist/auth/strategies/local/authenticate.js
+index 86ac1733797fdbd53debdcb1c12ffd20ee847d1f..2f328116d64aa9dcd3b7218fee725ccf64c26759 100644
+--- a/dist/auth/strategies/local/authenticate.js
++++ b/dist/auth/strategies/local/authenticate.js
+@@ -1,6 +1,6 @@
+ // @ts-strict-ignore
+ import crypto from 'crypto';
+-import { getPasswordHashParameters, isCurrentPasswordHash } from './generatePasswordSaltHash.js';
++import { getPasswordHashParameters, shouldUpdatePasswordHash } from './generatePasswordSaltHash.js';
+ export const authenticateLocalStrategy = async ({ doc, password })=>{
+     try {
+         const { hash, salt } = doc;
+@@ -15,7 +15,7 @@ export const authenticateLocalStrategy = async ({ doc, password })=>{
+                     if (hashBuffer.length === storedHashBuffer.length && crypto.timingSafeEqual(hashBuffer, storedHashBuffer)) {
+                         resolve({
+                             doc,
+-                            shouldUpdatePasswordHash: !isCurrentPasswordHash(hash)
++                            shouldUpdatePasswordHash: shouldUpdatePasswordHash({ hash })
+                         });
+                     } else {
+                         reject(new Error('Invalid password'));
+diff --git a/dist/auth/strategies/local/generatePasswordSaltHash.js b/dist/auth/strategies/local/generatePasswordSaltHash.js
+index 7eb8b1c2e274e5c58736c7b29a77424ed91de0fc..66c46d5be8bd3f1c9834ba4358eaeae4af2667ee 100644
+--- a/dist/auth/strategies/local/generatePasswordSaltHash.js
++++ b/dist/auth/strategies/local/generatePasswordSaltHash.js
+@@ -1,11 +1,25 @@
+ import crypto from 'crypto';
+ import { ValidationError } from '../../../errors/index.js';
+ import { password } from '../../../fields/validations.js';
+-const currentPasswordHashPrefix = 'pbkdf2-sha256-v1:';
+-const currentPasswordHashIterations = 600000;
++// Backport of https://github.com/payloadcms/payload/pull/18461 (without the
++// auth.passwordHashing.iterations option). Remove when Payload ships it.
++const defaultPasswordHashIterations = 600000;
+ const currentPasswordHashKeyLength = 32;
++// Hashes created before the parameters were embedded in the hash itself. They
++// were always generated with these parameters, so verification keeps using them.
++const legacyV1PasswordHashPrefix = 'pbkdf2-sha256-v1:';
++const legacyV1PasswordHashIterations = 600000;
++const legacyV1PasswordHashKeyLength = 32;
+ const legacyPasswordHashIterations = 25000;
+ const legacyPasswordHashKeyLength = 512;
++// Cloudflare Workers rejects PBKDF2 iteration counts above 100,000.
++const cloudflareWorkersMaxPBKDF2Iterations = 100000;
++const isCloudflareWorkersRuntime = ()=>typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers';
++export const getTargetPasswordHashIterations = ()=>isCloudflareWorkersRuntime() ? Math.min(defaultPasswordHashIterations, cloudflareWorkersMaxPBKDF2Iterations) : defaultPasswordHashIterations;
++// The parameters a hash was created with are embedded in the hash itself so
++// verification does not depend on which runtime created it:
++// pbkdf2-sha256-v2-i<iterations>-l<keyLength>:<hex>
++const currentPasswordHashRegex = /^pbkdf2-sha256-v2-i(\d+)-l(\d+):([0-9a-f]+)$/;
+ export const generatePasswordSaltHash = async ({ collection, isPasswordAuthenticated, password: passwordToSet, req })=>{
+     if (!isPasswordAuthenticated) {
+         const validationResult = password(passwordToSet, {
+@@ -36,26 +50,35 @@ export const generatePasswordSaltHash = async ({ collection, isPasswordAuthentic
+             });
+         }
+     }
++    const iterations = getTargetPasswordHashIterations();
+     const saltBuffer = await randomBytes();
+     const salt = saltBuffer.toString('hex');
+     const hashRaw = await pbkdf2Promisified({
+-        iterations: currentPasswordHashIterations,
++        iterations,
+         keyLength: currentPasswordHashKeyLength,
+         password: passwordToSet,
+         salt
+     });
+-    const hash = `${currentPasswordHashPrefix}${hashRaw.toString('hex')}`;
++    const hash = `pbkdf2-sha256-v2-i${iterations}-l${currentPasswordHashKeyLength}:${hashRaw.toString('hex')}`;
+     return {
+         hash,
+         salt
+     };
+ };
+ export const getPasswordHashParameters = (hash)=>{
+-    if (isCurrentPasswordHash(hash)) {
++    const [, iterations, keyLength, storedHash] = currentPasswordHashRegex.exec(hash) ?? [];
++    if (iterations && keyLength && storedHash) {
+         return {
+-            hash: hash.slice(currentPasswordHashPrefix.length),
+-            iterations: currentPasswordHashIterations,
+-            keyLength: currentPasswordHashKeyLength
++            hash: storedHash,
++            iterations: Number(iterations),
++            keyLength: Number(keyLength)
++        };
++    }
++    if (hash.startsWith(legacyV1PasswordHashPrefix)) {
++        return {
++            hash: hash.slice(legacyV1PasswordHashPrefix.length),
++            iterations: legacyV1PasswordHashIterations,
++            keyLength: legacyV1PasswordHashKeyLength
+         };
+     }
+     return {
+@@ -64,7 +87,11 @@ export const getPasswordHashParameters = (hash)=>{
+         keyLength: legacyPasswordHashKeyLength
+     };
+ };
+-export const isCurrentPasswordHash = (hash)=>typeof hash === 'string' && hash.startsWith(currentPasswordHashPrefix);
++export const isCurrentPasswordHash = (hash)=>typeof hash === 'string' && currentPasswordHashRegex.test(hash);
++// Legacy and v1 hashes are rehashed after a successful login. A v2 hash is not:
++// the default differs between Node.js and Workers, so following it would rehash
++// a Workers-created hash on a Node.js login and lock that user out of Workers.
++export const shouldUpdatePasswordHash = ({ hash })=>!isCurrentPasswordHash(hash);
+ function randomBytes() {
+     return new Promise((resolve, reject)=>crypto.randomBytes(32, (err, saltBuffer)=>err ? reject(err) : resolve(saltBuffer)));
+ }

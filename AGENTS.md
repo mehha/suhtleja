@@ -53,6 +53,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - Keep `dynamic = 'force-dynamic'` on auth/cookie-dependent routes unless you intentionally redesign caching.
 - Production D1 migrations run in deploy: `pnpm deploy` (and the GitHub Actions deploy on push to `master`) runs `deploy:database` (`payload migrate` + `PRAGMA optimize`) before deploying the app. `push: false` stays, so every schema change needs a committed Payload migration.
 - Local migrations: after a schema change (collection, field or block config), agents run `pnpm payload migrate:create <name>` and then `pnpm migrate` themselves, without asking. Review the generated migration before committing it; it must contain only the intended changes. These commands use the local D1. Agents must not run `migrate:remote`, `deploy:database`, `pnpm deploy` or any command with `NODE_ENV=production` unless explicitly authorized.
+- `payload` is patched (`patches/payload@3.92.0.patch`, password hashing on Workers). When upgrading Payload, follow the README's Payload 3.90.0 upgrade notes to drop or recreate the patch.
 
 ## Build and Test Commands
 - `pnpm install` (Node 22.23.4+ or 24.22.1+, pnpm 9 or 10).

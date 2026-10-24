@@ -97,6 +97,18 @@ by the deploy. Keep `push: false`. Existing sessions may require users to sign i
 
 Reference: [Payload 3.90.0 release notes](https://github.com/payloadcms/payload/releases/tag/v3.90.0).
 
+Payload 3.90+ hashes new passwords with 600,000 PBKDF2 iterations, but Cloudflare
+Workers rejects more than 100,000, so registration and password changes failed in
+production ([payload#18274](https://github.com/payloadcms/payload/issues/18274)).
+`patches/payload@3.92.0.patch` backports the upstream fix
+([payload#18461](https://github.com/payloadcms/payload/pull/18461)): on Workers new
+hashes use 100,000 iterations and store their parameters
+(`pbkdf2-sha256-v2-i100000-l32:…`), and older hashes are upgraded on login.
+`tests/int/password-hashing.int.spec.ts` covers it. When upgrading Payload, drop the
+patch if the release includes #18461 with the same hash format; otherwise recreate it
+with `pnpm patch payload@<version>`. pnpm fails the install while the patch targets an
+old version.
+
 Next 16 cache invalidation hooks use `revalidateTag(tag, 'max')`, matching the
 Payload website template's stale-while-revalidate behavior. Its ESLint preset also
 enables additional React Hooks checks; existing component findings should be

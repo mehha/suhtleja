@@ -128,7 +128,10 @@
       "sharp",
       "esbuild",
       "unrs-resolver"
-    ]
+    ],
+    "patchedDependencies": {
+      "payload@3.92.0": "patches/payload@3.92.0.patch"
+    }
   },
   "cloudflare": {
     "bindings": {
