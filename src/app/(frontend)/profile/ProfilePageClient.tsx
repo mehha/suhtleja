@@ -88,6 +88,8 @@ export function ProfilePageClient({
   const isTrialWithoutCancellation = membership === 'trialing' && !isPendingCancellation
   const trialEndsLabel = formatDate(trialEndsAt)
   const periodEndsLabel = formatDate(currentPeriodEndsAt)
+  // During a trial the billing period ends with the trial, so the trial line is enough.
+  const showPeriodEnd = Boolean(periodEndsLabel) && !(membership === 'trialing' && trialEndsLabel)
 
   const startMembershipCheckout = async () => {
     if (checkoutLoading || hasMembershipAccess) return
@@ -201,7 +203,7 @@ export function ProfilePageClient({
                 Ilma makseviisita lõpeb liikmelisus automaatselt ja tasu ei võeta.
               </p>
             )}
-            {periodEndsLabel && (
+            {showPeriodEnd && (
               <p className="text-xs text-muted-foreground">Periood lõpeb: {periodEndsLabel}</p>
             )}
           </div>
