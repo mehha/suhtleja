@@ -84,6 +84,11 @@ migrations, and removes generated `__fetch` cache files before upload; they are
 recreated at runtime. Deploy runs are queued, not cancelled, so a migration is
 never interrupted.
 
+In production, Payload logs JSON through `console` (`src/utilities/cloudflareLogger.ts`),
+because Workers drops pino's stdout output. Watch live errors with
+`pnpm exec wrangler tail suhtleja --format pretty`. Query params in database errors are
+redacted.
+
 #### Payload 3.90.0 upgrade
 
 Generated types now include `users.resetPasswordRequestedAt` and

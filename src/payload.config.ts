@@ -18,6 +18,7 @@ import { plugins } from './plugins'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
 import { getPayloadCloudflareContext } from '@/utilities/getCloudflareContext'
+import { cloudflareLogger } from '@/utilities/cloudflareLogger'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -66,6 +67,7 @@ export default buildConfig({
   collections: [Pages, Posts, Media, Categories, Users, Boards, ConnectDotsPuzzles],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
+  logger: process.env.NODE_ENV === 'production' ? cloudflareLogger : undefined,
   plugins,
   secret: process.env.PAYLOAD_SECRET,
   typescript: {
