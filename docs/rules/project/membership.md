@@ -78,6 +78,23 @@ tags: [suhtleja, stripe, membership, profile]
 - `NEXT_PUBLIC_SERVER_URL` (for success/cancel URLs)
 - `MEMBERSHIP_BYPASS_EMAILS` (optional, see Core Rules)
 
+## Local Development
+- Use Stripe test mode locally. `.env` holds test-mode values only:
+  - `STRIPE_SECRET_KEY=sk_test_…`
+  - `STRIPE_PRICE_ID_MEMBERSHIP` set to a test-mode price
+  - Never put a live key (`sk_live_…`) in any `.env*` file.
+- Production reads `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `STRIPE_PRICE_ID_MEMBERSHIP` from Cloudflare Worker secrets.
+  - Worker secrets take precedence over values from `.env*` files, so local test values never replace them.
+  - OpenNext still copies every `.env*` file into the build (`.open-next/cloudflare/next-env.mjs`), so anything in them ships in the Worker bundle.
+- Forward webhooks with the Stripe CLI, logged in to the sandbox:
+  - `stripe listen --latest --forward-to http://127.0.0.1:3000/next/stripe/webhook`
+  - Put the printed `whsec_…` in `.env.local` as `STRIPE_WEBHOOK_SECRET`. It stays the same for the same CLI login.
+  - Keep `--latest`. The sandbox default API version (2019-09-09) sends subscriptions without `items[].current_period_end`, so `currentPeriodEndsAt` would be stored as null.
+- Test checkout with card `4242 4242 4242 4242`, any future expiry and any CVC.
+- `stripe trigger customer.subscription.created` only checks signature verification. Triggered objects have no `payloadUserId`, so no user is updated.
+- Cancelling in the Billing Portal sets `cancel_at` instead of `cancel_at_period_end`. The webhook maps a future `cancel_at` to `membershipCancelAtPeriodEnd: true`.
+- If checkout returns 409 `multiple_matching_customers`, the sandbox has several customers with the user's email and none has a matching `payloadUserId`. Delete the stale ones in the sandbox.
+
 ## Change Checklist
 - If adding new membership statuses, update:
   - webhook status mapping
