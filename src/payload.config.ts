@@ -30,6 +30,7 @@ export default buildConfig({
     components: {
       actions: ['@/components/BeforeDashboard'],
       afterLogin: ['@/components/BeforeDashboard'],
+      beforeDashboard: ['@/components/MembershipFunnel'],
     },
     importMap: {
       baseDir: path.resolve(dirname),
