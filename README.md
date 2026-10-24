@@ -259,6 +259,8 @@ pnpm run db:clone:remote-to-local
 
 This exports the first `database_name` from `wrangler.jsonc`, resets `.wrangler/state/v3/d1`, initializes Wrangler's local D1 file, then imports the full export directly into that SQLite file.
 
+It then copies the R2 objects the cloned data references (media uploads and board TTS audio) from the first `bucket_name` in `wrangler.jsonc` into Wrangler's local R2 state. The OpenNext cache under `opennext-cache/` is not copied. Objects missing from the remote bucket are reported as warnings and skipped. Set `SKIP_R2_SYNC=1` to clone only D1, or `R2_REMOTE_BUCKET=<name>` to use a different bucket.
+
 If you want the app to actually run against that cloned local D1, do not leave the D1 bindings in `wrangler.jsonc` set to `"remote": true`.
 
 #### D1 migrations
