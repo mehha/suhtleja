@@ -23,6 +23,7 @@ tags: [suhtleja, homepage, payload, media]
   - communication board feature
   - connect-dots puzzle feature
   - home, kindergarten, school, and therapy usage context
+- The hero image uses `object-contain` so device mockups are never cropped; other media frames use `object-cover`. The hero should show a real product screenshot with correct Estonian, not a generated mockup.
 - Media fields are optional. When missing, the component must render a polished product-style mockup instead of an empty frame.
 - The video section should show a poster/placeholder with a play button and open the uploaded video or embed URL inside a Dialog.
 - Use `DialogTrigger`'s native button for the video poster. Passing a server-rendered button through `asChild` can omit the trigger from server HTML and cause a hydration mismatch. Verify the trigger is present before hydration and the dialog opens/closes after a full reload.

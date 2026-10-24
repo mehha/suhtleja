@@ -147,11 +147,13 @@ function MediaFrame({
   label,
   className,
   children,
+  imageFit = 'cover',
 }: {
   resource?: MediaResource
   label: string
   className?: string
   children?: ReactNode
+  imageFit?: 'cover' | 'contain'
 }) {
   return (
     <div
@@ -165,7 +167,7 @@ function MediaFrame({
           resource={resource}
           fill
           pictureClassName="block h-full w-full"
-          imgClassName="object-cover"
+          imgClassName={imageFit === 'contain' ? 'object-contain' : 'object-cover'}
           videoClassName="h-full w-full object-cover"
         />
       ) : (
@@ -407,7 +409,13 @@ export const SuhtlejaHomepageBlock: React.FC<Props> = ({ className, hero, video,
             )}
           </div>
 
-          <MediaFrame resource={hero?.image} label="Hero Product Image" className="min-h-[440px]">
+          {/* Contain so device mockups are never cropped at the frame edges. */}
+          <MediaFrame
+            resource={hero?.image}
+            label="Hero Product Image"
+            className="min-h-[440px]"
+            imageFit="contain"
+          >
             <HeroMockup />
           </MediaFrame>
         </div>
