@@ -13,6 +13,7 @@ import { UsageContextsBlock } from '@/blocks/UsageContexts/config'
 import { SuhtlejaHomepage } from '@/blocks/SuhtlejaHomepage/config'
 import { hero } from '@/heros/config'
 import { slugField } from 'payload'
+import { slugifyField } from '@/utilities/slugify'
 import { populatePublishedAt } from '../../hooks/populatePublishedAt'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
 import { revalidateDelete, revalidatePage } from './hooks/revalidatePage'
@@ -131,7 +132,7 @@ export const Pages: CollectionConfig<'pages'> = {
         position: 'sidebar',
       },
     },
-    slugField(),
+    slugField({ slugify: slugifyField }),
   ],
   hooks: {
     afterChange: [revalidatePage],
