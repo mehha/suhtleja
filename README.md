@@ -75,22 +75,20 @@ for missing configuration before building. Local deployments need the same
 `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, and `R2_SECRET_ACCESS_KEY` environment values.
 The existing `CLOUDFLARE_API_TOKEN` is still needed for Worker deployment.
 
-`pnpm deploy` removes generated `__fetch` cache files before upload; they are
-recreated at runtime. Use `pnpm deploy:app:full` only when intentionally uploading
-the complete generated cache. Both commands deploy the app without migrations.
+GitHub Actions deploys on pushes to `main`/`master`, or through
+**Actions → Deploy to Cloudflare → Run workflow**, by running `pnpm deploy`.
+`pnpm deploy` first runs `deploy:database` (pending Payload migrations on
+production D1, then `PRAGMA optimize`) and then `deploy:app:full`, which uploads
+the complete generated cache. `pnpm deploy:app` deploys only the app, without
+migrations, and removes generated `__fetch` cache files before upload; they are
+recreated at runtime. Deploy runs are queued, not cancelled, so a migration is
+never interrupted.
 
-#### Payload 3.90.0 upgrade deployment prerequisite
+#### Payload 3.90.0 upgrade
 
-GitHub Actions deploys the application on pushes to `main`/`master`, or through
-**Actions → Deploy to Cloudflare → Run workflow**. Neither path runs migrations.
-The owner must apply required production D1 migrations manually before pushing
-an application change that depends on them.
-
-The dependency update requires a reviewed D1 migration before deployment.
 Generated types now include `users.resetPasswordRequestedAt` and
-`media._objectKey`; migration `20261001_135529` adds these fields. The owner must
-apply it to production before deploying the upgraded application.
-Keep `push: false`. Existing sessions may require users to sign in again.
+`media._objectKey`; migration `20261001_135529` adds these fields and is applied
+by the deploy. Keep `push: false`. Existing sessions may require users to sign in again.
 
 Reference: [Payload 3.90.0 release notes](https://github.com/payloadcms/payload/releases/tag/v3.90.0).
 
@@ -265,7 +263,7 @@ If you want the app to actually run against that cloned local D1, do not leave t
 
 #### D1 migrations
 
-[Migrations](https://payloadcms.com/docs/database/migrations) are SQL-backed schema versions. With D1, keep schema changes in Payload migrations. Production migrations are manual owner actions, separate from application deployment.
+[Migrations](https://payloadcms.com/docs/database/migrations) are SQL-backed schema versions. With D1, keep schema changes in Payload migrations. `push` is `false`, so the schema changes only through migrations, both locally and in production.
 
 Locally create a migration
 
@@ -283,17 +281,14 @@ pnpm payload migrate
 
 This command will check for any migrations that have not yet been run and try to run them and it will keep a record of migrations that have been run in the database.
 
-Check and apply committed migrations to production D1 manually, with Cloudflare
-credentials available, before deploying a schema-dependent application change:
+Production D1 migrations run automatically in `pnpm deploy` and in the GitHub
+Actions deploy, before the app is uploaded. To check or apply them by hand, with
+Cloudflare credentials available:
 
 ```bash
 pnpm migrate:status:remote
 pnpm migrate:remote
 ```
-
-`pnpm deploy` and GitHub Actions deploy only the application. They never run
-migrations or database optimization. `deploy:database` remains an explicit manual
-alias for `migrate:remote`.
 
 ### Docker
 

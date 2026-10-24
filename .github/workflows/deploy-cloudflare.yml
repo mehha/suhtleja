@@ -9,7 +9,8 @@ on:
 
 concurrency:
   group: cloudflare-production
-  cancel-in-progress: true
+  # Deploy runs D1 migrations; never cancel a run halfway through them.
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -53,7 +54,7 @@ jobs:
           done
           exit "$missing"
 
-      - name: Deploy app
+      - name: Migrate database and deploy app
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

@@ -51,7 +51,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - For Local API operations acting on behalf of a user, enforce access control explicitly (see `docs/rules/payload-official/security-critical.mdc`).
 - In hooks, pass `req` to nested Payload operations to preserve transaction context.
 - Keep `dynamic = 'force-dynamic'` on auth/cookie-dependent routes unless you intentionally redesign caching.
-- Production D1 migrations are manual owner actions. Keep application deployment and CI free of migration execution; document required migrations for the owner to apply before schema-dependent deployment. Agents must not run remote migrations unless explicitly authorized.
+- Production D1 migrations run in deploy: `pnpm deploy` (and the GitHub Actions deploy on push to `master`) runs `deploy:database` (`payload migrate` + `PRAGMA optimize`) before deploying the app. Commit every schema change as a reviewed Payload migration (`pnpm payload migrate:create`); `push: false` stays. Locally, apply migrations with `pnpm migrate`. Agents must not run remote migrations or deploys unless explicitly authorized.
 
 ## Build and Test Commands
 - `pnpm install` (Node 22.23.4+ or 24.22.1+, pnpm 9 or 10).

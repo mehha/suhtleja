@@ -43,4 +43,4 @@ tags: [suhtleja, frontend, auth, profile, users]
 ## Change Checklist
 - Server actions must resolve the user via `getCurrentUser()` and update only that user's document.
 - Keep user-facing copy in Estonian.
-- If user fields change, run `pnpm generate:types` and note required D1 migrations for the owner.
+- If user fields change, run `pnpm generate:types` and add a Payload migration (`pnpm payload migrate:create`); the deploy applies it to production D1.

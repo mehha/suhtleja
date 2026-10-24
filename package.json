@@ -7,10 +7,10 @@
   "scripts": {
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build --webpack",
     "db:clone:remote-to-local": "bash ./scripts/db/clone-d1-remote-to-local.sh",
-    "deploy": "pnpm run deploy:app:full",
+    "deploy": "pnpm run deploy:database && pnpm run deploy:app:full",
     "deploy:app": "opennextjs-cloudflare build && rm -rf .open-next/cache/__fetch && opennextjs-cloudflare deploy --rclone --cacheChunkSize 10",
     "deploy:app:full": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --rclone --cacheChunkSize 10",
-    "deploy:database": "pnpm run migrate:remote",
+    "deploy:database": "pnpm run migrate:remote && wrangler d1 execute D1 --command 'PRAGMA optimize' --remote",
     "postbuild": "next-sitemap --config next-sitemap.config.cjs",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --webpack",
     "dev:suhtleja": "cross-env NODE_OPTIONS=--no-deprecation NEXT_PUBLIC_SERVER_URL=http://suhtleja.test:3000 next dev --webpack -H suhtleja.test -p 3000",
