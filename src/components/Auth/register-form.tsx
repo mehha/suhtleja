@@ -209,6 +209,29 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
               {loading ? 'Loon kontot…' : 'Loo konto'}
             </Button>
 
+            {/* New tab, so the half-filled form isn't lost. */}
+            <p className="text-center text-xs text-muted-foreground">
+              Konto luues nõustud{' '}
+              <Link
+                href="/kasutustingimused"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4"
+              >
+                kasutustingimustega
+              </Link>{' '}
+              ja kinnitad, et oled tutvunud{' '}
+              <Link
+                href="/privaatsus"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4"
+              >
+                privaatsuspoliitikaga
+              </Link>
+              .
+            </p>
+
             <div className="mt-2 text-center text-sm text-muted-foreground">
               Juba konto olemas?{' '}
               <Link href="/login" className="underline underline-offset-4">

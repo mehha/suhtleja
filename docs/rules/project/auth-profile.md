@@ -24,6 +24,7 @@ tags: [suhtleja, frontend, auth, profile, users]
   - Register posts to `POST /api/users`, then logs in via `/api/users/login`, then goes to `/kodu`.
   - If account creation fails, read the message from Payload's `errors[]` response (field error first). A duplicate email shows an Estonian "account already exists, log in" message; other errors fall back to Payload's message or "Registreerimine ebaõnnestus".
   - If account creation succeeds but the follow-up login fails, show a message asking the user to log in manually.
+  - Under the "Loo konto" button, the form links the terms (`/kasutustingimused`) and privacy policy (`/privaatsus`) pages in a new tab. Those Payload pages must exist with these slugs.
   - Logged-in users who open `/register` are redirected to `/kodu`. The page keeps `dynamic = 'force-dynamic'` because it reads the auth cookie.
 - `/profile` requires a logged-in user. Unauthenticated requests redirect to `/admin`.
 - `/profile` keeps `dynamic = 'force-dynamic'` because it depends on cookies.
