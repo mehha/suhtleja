@@ -43,6 +43,7 @@ tags: [suhtleja, tts, audio, frontend, nextjs]
 - Escape text for SSML.
 - Live `POST /next/tts-ms` responses remain uncached (`Cache-Control: no-store`).
 - Cached board speech is stored in R2 under deterministic keys derived from normalized text plus voice.
+- Cached playback URLs are same-origin paths (`/next/tts-cache/<boardId>/<hash>`) derived from board id and hash when the manifest is read. Never rely on a stored absolute origin: databases are cloned between environments.
 - Board cache generation should happen when saved grid text or saved compounds change.
 - Revoke `URL.createObjectURL` URLs after playback to avoid leaks.
 

@@ -1,6 +1,5 @@
 import type { Board } from '@/payload-types'
 import { DEFAULT_TTS_VOICE } from '@/utilities/azureTTS'
-import { getServerSideURL } from '@/utilities/getURL'
 
 export type BoardTTSCacheEntry = {
   contentType: string
@@ -29,8 +28,9 @@ function toEntrySource(value: unknown): BoardTTSCacheEntry['source'] {
   return value === 'compound' ? 'compound' : 'cell'
 }
 
+// Same-origin path, so cached audio plays on whichever host serves the board (prod, stage, local).
 export function buildBoardTTSCacheURL(boardId: string | number, hash: string): string {
-  return `${getServerSideURL()}/next/tts-cache/${encodeURIComponent(String(boardId))}/${hash}`
+  return `/next/tts-cache/${encodeURIComponent(String(boardId))}/${hash}`
 }
 
 export function getBoardTTSCacheManifest(board: BoardLike | null | undefined): BoardTTSCacheManifest {
@@ -40,16 +40,22 @@ export function getBoardTTSCacheManifest(board: BoardLike | null | undefined): B
   const entries = rawEntries
     .map((entry) => toObjectValue(entry))
     .filter((entry): entry is Record<string, unknown> => entry !== null)
-    .map((entry) => ({
-      contentType:
-        typeof entry.contentType === 'string' ? entry.contentType : 'audio/mpeg',
-      hash: typeof entry.hash === 'string' ? entry.hash : '',
-      key: typeof entry.key === 'string' ? entry.key : '',
-      source: toEntrySource(entry.source),
-      text: typeof entry.text === 'string' ? entry.text : '',
-      url: typeof entry.url === 'string' ? entry.url : '',
-      voice: typeof entry.voice === 'string' ? entry.voice : DEFAULT_TTS_VOICE,
-    }))
+    .map((entry) => {
+      const hash = typeof entry.hash === 'string' ? entry.hash : ''
+
+      return {
+        contentType:
+          typeof entry.contentType === 'string' ? entry.contentType : 'audio/mpeg',
+        hash,
+        key: typeof entry.key === 'string' ? entry.key : '',
+        source: toEntrySource(entry.source),
+        text: typeof entry.text === 'string' ? entry.text : '',
+        // Stored URLs may carry the origin of the environment that generated them
+        // (e.g. a DB cloned from production), so always derive the URL here.
+        url: board?.id && hash ? buildBoardTTSCacheURL(board.id, hash) : '',
+        voice: typeof entry.voice === 'string' ? entry.voice : DEFAULT_TTS_VOICE,
+      }
+    })
     .filter((entry) => entry.hash && entry.key && entry.text && entry.url)
 
   return {
