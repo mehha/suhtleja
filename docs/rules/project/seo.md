@@ -32,6 +32,8 @@ tags: [suhtleja, frontend, seo, metadata]
   - concise meta description
   - canonical URL
   - Open Graph title/description/url
+- The home page title is `HOME_TITLE` from `src/utilities/seo.ts` unless the page's SEO meta title is set in Payload. Never fall back to the CMS page title ("Home").
+- The default Open Graph image is `public/og-image.jpg` (1200×630, `DEFAULT_OG_IMAGE_PATH`). It's used when a page has no SEO meta image. It shows the logo, the home title and the real iPad screenshot (`suhtleja-ipad.webp`); regenerate it if branding, the home title or the trial offer changes.
 - Internal utility routes (`/search`, auth pages, 404) should stay `noindex`.
 - Dynamic page/post metadata generation must pass route path so canonical and Open Graph URL are correct.
 

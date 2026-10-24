@@ -4,7 +4,7 @@ import type { Media, Page, Post, Config } from '../payload-types'
 
 import { mergeOpenGraph } from './mergeOpenGraph'
 import { getServerSideURL } from './getURL'
-import { DEFAULT_META_DESCRIPTION, SITE_NAME } from './seo'
+import { DEFAULT_META_DESCRIPTION, DEFAULT_OG_IMAGE_PATH, HOME_TITLE, SITE_NAME } from './seo'
 
 type MediaWithSizes = Media & {
   sizes?: {
@@ -17,7 +17,7 @@ type MediaWithSizes = Media & {
 const getImageURL = (image?: Media | Config['db']['defaultIDType'] | null) => {
   const serverUrl = getServerSideURL()
 
-  let url = serverUrl + '/website-template-OG.webp'
+  let url = serverUrl + DEFAULT_OG_IMAGE_PATH
 
   if (image && typeof image === 'object' && 'url' in image) {
     const ogUrl = (image as MediaWithSizes).sizes?.og?.url
@@ -47,7 +47,9 @@ export const generateMeta = async (args: {
 
   const metaTitle = doc?.meta?.title?.trim()
   const docTitle = typeof doc?.title === 'string' ? doc.title.trim() : ''
-  const title = metaTitle || docTitle || SITE_NAME
+  // The CMS title of the home page is just "Home", so it gets a descriptive default.
+  const isHome = canonicalPath === '/'
+  const title = metaTitle || (isHome ? HOME_TITLE : docTitle) || SITE_NAME
   const description = doc?.meta?.description || DEFAULT_META_DESCRIPTION
 
   return {
@@ -67,7 +69,8 @@ export const generateMeta = async (args: {
       title,
       url: canonicalPath,
     }),
-    title,
+    // Absolute so the home title never gets the layout's "%s | Suhtleja" template.
+    title: isHome ? { absolute: title } : title,
     twitter: {
       card: 'summary_large_image',
       description,
