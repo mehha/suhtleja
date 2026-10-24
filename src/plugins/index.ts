@@ -15,6 +15,7 @@ import path from 'path'
 
 import { Page, Post } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
+import { isAdmin } from '@/access/IsAdmin'
 
 const cloudflare = await getPayloadCloudflareContext()
 const MEDIA_BASE_URL = (process.env.NEXT_PUBLIC_MEDIA_BASE_URL || 'https://media.suhtleja.ee').replace(
@@ -36,6 +37,7 @@ export const plugins: Plugin[] = [
   redirectsPlugin({
     collections: ['pages', 'posts'],
     overrides: {
+      access: { create: isAdmin, delete: isAdmin, update: isAdmin },
       // @ts-expect-error - This is a valid override, mapped fields don't resolve to the same type
       fields: ({ defaultFields }) => {
         return defaultFields.map((field) => {
@@ -67,7 +69,12 @@ export const plugins: Plugin[] = [
     fields: {
       payment: false,
     },
+    // The plugin lets any logged-in user read submissions; customers can log in too.
+    formSubmissionOverrides: {
+      access: { delete: isAdmin, read: isAdmin },
+    },
     formOverrides: {
+      access: { create: isAdmin, delete: isAdmin, update: isAdmin },
       fields: ({ defaultFields }) => {
         return defaultFields.map((field) => {
           if ('name' in field && field.name === 'confirmationMessage') {
@@ -93,6 +100,7 @@ export const plugins: Plugin[] = [
     collections: ['posts'],
     beforeSync: beforeSyncWithSearch,
     searchOverrides: {
+      access: { delete: isAdmin, update: isAdmin },
       fields: ({ defaultFields }) => {
         return [...defaultFields, ...searchFields]
       },

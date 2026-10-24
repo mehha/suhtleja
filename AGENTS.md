@@ -49,6 +49,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 
 ## Security and Data Integrity Baseline
 - For Local API operations acting on behalf of a user, enforce access control explicitly (see `docs/rules/payload-official/security-critical.mdc`).
+- Customers can register, so every customer is a logged-in Payload user. Never use `authenticated` or default access for content writes or for reading other users; see `docs/rules/project/access-control.md`.
 - In hooks, pass `req` to nested Payload operations to preserve transaction context.
 - Keep `dynamic = 'force-dynamic'` on auth/cookie-dependent routes unless you intentionally redesign caching.
 - Production D1 migrations run in deploy: `pnpm deploy` (and the GitHub Actions deploy on push to `master`) runs `deploy:database` (`payload migrate` + `PRAGMA optimize`) before deploying the app. `push: false` stays, so every schema change needs a committed Payload migration.

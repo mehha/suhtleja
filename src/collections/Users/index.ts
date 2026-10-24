@@ -1,19 +1,25 @@
 import type { CollectionConfig } from 'payload'
 
-import { authenticated } from '../../access/authenticated'
 import { isAdmin } from '@/access/IsAdmin'
+import { isAdminFieldLevel } from '@/access/isAdminFieldLevel'
+import { isAdminOrSelf } from '@/access/isAdminOrSelf'
 import bcrypt from 'bcryptjs'
 
 const DEFAULT_PARENT_PIN = process.env.DEFAULT_PARENT_PIN || '0000'
+
+// Only admins may set these through the API. Server code uses the Local API, which skips
+// access checks, so the Stripe webhook and profile actions can still write them.
+const adminOnlyField = { create: isAdminFieldLevel, update: isAdminFieldLevel }
 
 export const Users: CollectionConfig = {
   slug: 'users',
   access: {
     admin: isAdmin,
+    // Public sign-up stays open; adminOnlyField keeps new accounts as plain users.
     create: () => true,
-    delete: authenticated,
-    read: authenticated,
-    update: authenticated,
+    delete: isAdmin,
+    read: isAdminOrSelf,
+    update: isAdminOrSelf,
   },
   admin: {
     defaultColumns: ['name', 'email'],
@@ -42,6 +48,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'role',
+      access: adminOnlyField,
       type: 'select',
       defaultValue: 'user',
       options: ['admin', 'user'],
@@ -49,6 +56,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'parentPinHash',
+      access: adminOnlyField,
       type: 'text',
       admin: {
         readOnly: true,
@@ -57,6 +65,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'pinUpdatedAt',
+      access: adminOnlyField,
       type: 'date',
       admin: {
         readOnly: true,
@@ -64,6 +73,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'stripeCustomerId',
+      access: adminOnlyField,
       label: 'Stripe Customer ID',
       type: 'text',
       admin: {
@@ -73,6 +83,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'stripeSubscriptionId',
+      access: adminOnlyField,
       label: 'Stripe Subscription ID',
       type: 'text',
       admin: {
@@ -82,6 +93,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'membershipStatus',
+      access: adminOnlyField,
       label: 'Liikmelisuse staatus',
       type: 'select',
       defaultValue: 'none',
@@ -99,6 +111,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'trialEndsAt',
+      access: adminOnlyField,
       label: 'Trial lõpeb',
       type: 'date',
       admin: {
@@ -108,6 +121,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'currentPeriodEndsAt',
+      access: adminOnlyField,
       label: 'Periood lõpeb',
       type: 'date',
       admin: {
@@ -117,6 +131,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'membershipCancelAtPeriodEnd',
+      access: adminOnlyField,
       label: 'Lõpetamine perioodi lõpus',
       type: 'checkbox',
       defaultValue: false,
