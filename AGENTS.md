@@ -37,11 +37,11 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - New block:
   - Add block config/component in `src/blocks/<BlockName>`.
   - Register in `src/collections/Pages/index.ts` and `src/blocks/RenderBlocks.tsx`.
-  - Run `pnpm generate:types`.
+  - Run `pnpm generate:types`, then `pnpm payload migrate:create <name>` and `pnpm migrate`.
 - New collection:
   - Add `src/collections/<Name>/index.ts`.
   - Register in `src/payload.config.ts`.
-  - Run `pnpm generate:types`.
+  - Run `pnpm generate:types`, then `pnpm payload migrate:create <name>` and `pnpm migrate`.
 - New frontend feature route:
   - Add route under `src/app/(frontend)/<feature>`.
   - Add/update project rule doc under `docs/rules/project/`.
@@ -51,7 +51,8 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - For Local API operations acting on behalf of a user, enforce access control explicitly (see `docs/rules/payload-official/security-critical.mdc`).
 - In hooks, pass `req` to nested Payload operations to preserve transaction context.
 - Keep `dynamic = 'force-dynamic'` on auth/cookie-dependent routes unless you intentionally redesign caching.
-- Production D1 migrations run in deploy: `pnpm deploy` (and the GitHub Actions deploy on push to `master`) runs `deploy:database` (`payload migrate` + `PRAGMA optimize`) before deploying the app. Commit every schema change as a reviewed Payload migration (`pnpm payload migrate:create`); `push: false` stays. Locally, apply migrations with `pnpm migrate`. Agents must not run remote migrations or deploys unless explicitly authorized.
+- Production D1 migrations run in deploy: `pnpm deploy` (and the GitHub Actions deploy on push to `master`) runs `deploy:database` (`payload migrate` + `PRAGMA optimize`) before deploying the app. `push: false` stays, so every schema change needs a committed Payload migration.
+- Local migrations: after a schema change (collection, field or block config), agents run `pnpm payload migrate:create <name>` and then `pnpm migrate` themselves, without asking. Review the generated migration before committing it; it must contain only the intended changes. These commands use the local D1. Agents must not run `migrate:remote`, `deploy:database`, `pnpm deploy` or any command with `NODE_ENV=production` unless explicitly authorized.
 
 ## Build and Test Commands
 - `pnpm install` (Node 22.23.4+ or 24.22.1+, pnpm 9 or 10).
