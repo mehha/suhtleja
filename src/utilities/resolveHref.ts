@@ -13,14 +13,13 @@ type LinkLike = {
 export function resolveHref(link?: LinkLike): string | null {
   if (!link) return null
 
-  if (
-    link.type === 'reference' &&
-    link.reference &&
-    typeof link.reference.value === 'object' &&
-    (link.reference.value as any).slug
-  ) {
-    const base = link.reference.relationTo !== 'pages' ? `/${link.reference.relationTo}` : ''
-    return `${base}/${(link.reference.value as any).slug}`
+  const value = link.type === 'reference' ? link.reference?.value : undefined
+  if (link.reference && typeof value === 'object' && value.slug) {
+    const { relationTo } = link.reference
+    // The home page is served at "/"; "/home" redirects logged-out visitors to the login page.
+    if (relationTo === 'pages' && value.slug === 'home') return '/'
+    const base = relationTo !== 'pages' ? `/${relationTo}` : ''
+    return `${base}/${value.slug}`
   }
   return link.url ?? null
 }
