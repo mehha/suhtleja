@@ -1,6 +1,7 @@
 // src/app/(frontend)/profile/page.tsx
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
+import { MEMBERSHIP_TRIAL_DAYS } from '@/utilities/membershipCheckout'
 import type { User } from '@/payload-types'
 import { ProfilePageClient } from '@/app/(frontend)/profile/ProfilePageClient'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +19,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
 
   const hasPin = Boolean(u.parentPinHash)
   const membershipRequired = query.membership === 'required'
+  const isTrialEligible = !u.membershipStatus || u.membershipStatus === 'none'
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -31,8 +33,14 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
       {membershipRequired && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-medium">Liikmelisus on vajalik</CardTitle>
-            <CardDescription>Selle funktsiooni kasutamiseks aktiveeri liikmelisus.</CardDescription>
+            <CardTitle className="text-lg font-medium">
+              {isTrialEligible ? 'Alusta tasuta prooviperioodi' : 'Liikmelisus on vajalik'}
+            </CardTitle>
+            <CardDescription>
+              {isTrialEligible
+                ? `Suhtleja kasutamiseks käivita ${MEMBERSHIP_TRIAL_DAYS}-päevane tasuta prooviperiood. Makseviisi pole vaja lisada.`
+                : 'Selle funktsiooni kasutamiseks aktiveeri liikmelisus.'}
+            </CardDescription>
           </CardHeader>
         </Card>
       )}

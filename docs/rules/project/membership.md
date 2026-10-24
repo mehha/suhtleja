@@ -15,7 +15,15 @@ tags: [suhtleja, stripe, membership, profile]
 
 ## Core Rules
 - Membership state source of truth is Stripe webhooks, not redirect query params.
-- Checkout should always create subscription with `trial_period_days: 14`.
+- Checkout options come from `src/utilities/membershipCheckout.ts`.
+- A customer's first subscription gets a 14-day trial without a card:
+  - `payment_method_collection: 'if_required'`
+  - `trial_settings.end_behavior.missing_payment_method: 'cancel'`, so Stripe cancels the subscription if no payment method is added before the trial ends. The webhook then sets `membershipStatus` to `canceled`.
+  - Trial users add a payment method through the Billing Portal ("Halda liikmelisust"); the profile page tells them so.
+- Customers with any previous Stripe subscription (checked with `subscriptions.list`, `status: 'all'`) get no new trial, and Checkout collects a card up front. This stops repeated free trials.
+- Stripe Dashboard setup (owner action, live account):
+  - Billing Portal must allow payment method updates.
+  - Enable trial reminder emails with a link to the Stripe-hosted page under Settings → Billing → Subscriptions and emails → Manage free trial messaging.
 - Checkout should treat `stripeCustomerId` as the primary Stripe identity and only use email lookup as a fallback.
 - Checkout and portal routes must treat deleted or missing Stripe customers as stale local state, not as unrecoverable server errors.
 - If checkout falls back to email lookup, it should:

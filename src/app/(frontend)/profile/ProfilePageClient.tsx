@@ -8,6 +8,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/utilities/ui'
+import { MEMBERSHIP_TRIAL_DAYS } from '@/utilities/membershipCheckout'
 import { Loader2, ShieldCheck, CircleSlash } from 'lucide-react'
 
 const initialState = {
@@ -35,7 +36,7 @@ type Props = {
 
 const MEMBERSHIP_LABELS: Record<NonNullable<Props['membershipStatus']>, string> = {
   none: 'Puudub',
-  trialing: 'Trial',
+  trialing: 'Prooviperiood',
   active: 'Aktiivne',
   past_due: 'Makseraskus',
   canceled: 'Lõpetatud',
@@ -82,6 +83,9 @@ export function ProfilePageClient({
     Boolean(periodEndsAtDate && periodEndsAtDate.getTime() > Date.now())
   const hasMembershipAccess = isMembershipActive || isPendingCancellation
   const canManageMembership = membership !== 'none'
+  // Checkout only offers the trial to customers without a previous subscription.
+  const isTrialEligible = membership === 'none'
+  const isTrialWithoutCancellation = membership === 'trialing' && !isPendingCancellation
   const trialEndsLabel = formatDate(trialEndsAt)
   const periodEndsLabel = formatDate(currentPeriodEndsAt)
 
@@ -160,7 +164,9 @@ export function ProfilePageClient({
           <div>
             <CardTitle className="text-lg font-medium">Liikmelisus</CardTitle>
             <CardDescription>
-              Alusta liikmelisust Stripe Checkoutiga. Esimesed 14 päeva on tasuta.
+              {isTrialEligible
+                ? `Esimesed ${MEMBERSHIP_TRIAL_DAYS} päeva on tasuta ja makseviisi pole vaja lisada.`
+                : 'Halda oma Suhtleja liikmelisust.'}
             </CardDescription>
           </div>
         </CardHeader>
@@ -187,7 +193,13 @@ export function ProfilePageClient({
               </p>
             )}
             {trialEndsLabel && (
-              <p className="text-xs text-muted-foreground">Trial lõpeb: {trialEndsLabel}</p>
+              <p className="text-xs text-muted-foreground">Prooviperiood lõpeb: {trialEndsLabel}</p>
+            )}
+            {isTrialWithoutCancellation && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Kui soovid pärast prooviperioodi jätkata, lisa makseviis „Halda liikmelisust“ alt.
+                Ilma makseviisita lõpeb liikmelisus automaatselt ja tasu ei võeta.
+              </p>
             )}
             {periodEndsLabel && (
               <p className="text-xs text-muted-foreground">Periood lõpeb: {periodEndsLabel}</p>
@@ -216,8 +228,10 @@ export function ProfilePageClient({
                 <ShieldCheck className="h-4 w-4" />
                 Liikmelisus aktiivne
               </>
+            ) : isTrialEligible ? (
+              `Alusta tasuta prooviperioodi (${MEMBERSHIP_TRIAL_DAYS} päeva)`
             ) : (
-              'Alusta liikmelisust (14 päeva tasuta)'
+              'Alusta liikmelisust'
             )}
           </Button>
           {canManageMembership && (

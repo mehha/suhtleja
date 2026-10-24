@@ -3,6 +3,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Stripe from 'stripe'
 import { createStripeClient } from '@/utilities/stripe'
+import { getMembershipCheckoutOptions } from '@/utilities/membershipCheckout'
 
 export const runtime = 'nodejs'
 
@@ -22,6 +23,16 @@ const isMissingStripeResource = (err: unknown): boolean => {
     (stripeErr?.code === 'resource_missing' ||
       stripeErr?.message?.toLowerCase().includes('no such customer'))
   )
+}
+
+const hasAnySubscription = async (stripe: Stripe, customerId: string): Promise<boolean> => {
+  const subscriptions = await stripe.subscriptions.list({
+    customer: customerId,
+    status: 'all',
+    limit: 1,
+  })
+
+  return subscriptions.data.length > 0
 }
 
 export async function POST(req: Request) {
@@ -47,6 +58,7 @@ export async function POST(req: Request) {
 
   try {
     let customerId = (user as { stripeCustomerId?: string | null }).stripeCustomerId || undefined
+    let isNewCustomer = false
 
     if (customerId) {
       try {
@@ -101,6 +113,7 @@ export async function POST(req: Request) {
         },
       })
       customerId = customer.id
+      isNewCustomer = true
     }
 
     if (customerId !== (user as { stripeCustomerId?: string | null }).stripeCustomerId) {
@@ -119,6 +132,7 @@ export async function POST(req: Request) {
     }
 
     const baseURL = getBaseURL(req)
+    const hadSubscription = isNewCustomer ? false : await hasAnySubscription(stripe, customerId)
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -133,12 +147,7 @@ export async function POST(req: Request) {
       metadata: {
         payloadUserId: String(user.id),
       },
-      subscription_data: {
-        trial_period_days: 14,
-        metadata: {
-          payloadUserId: String(user.id),
-        },
-      },
+      ...getMembershipCheckoutOptions({ hadSubscription, userId: String(user.id) }),
       success_url: `${baseURL}/profile?membership=success`,
       cancel_url: `${baseURL}/profile?membership=cancel`,
     })
