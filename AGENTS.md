@@ -54,7 +54,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - Production D1 migrations are manual owner actions. Keep application deployment and CI free of migration execution; document required migrations for the owner to apply before schema-dependent deployment. Agents must not run remote migrations unless explicitly authorized.
 
 ## Build and Test Commands
-- `pnpm install` (Node 22.12+, pnpm 9 or 10).
+- `pnpm install` (Node 22.23.4+ or 24.22.1+, pnpm 9 or 10).
 - `pnpm dev` for local development.
 - `pnpm lint` / `pnpm lint:fix`.
 - `pnpm test:int`, `pnpm test:e2e`, `pnpm test`.

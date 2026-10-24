@@ -31,6 +31,8 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
+          # The runner cache can lag behind Payload's minimum Node 24 patch release.
+          check-latest: true
           cache: pnpm
 
       - name: Install dependencies
