@@ -39,6 +39,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Checks run before the database migrations, so a failing check never leaves production
+      # migrated without the app that goes with it. The integration tests include a guard that
+      # rejects migrations which rebuild a table (that cascade-deletes child rows on D1).
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      # The Payload-backed tests use a throwaway local D1 on the runner (no Cloudflare credentials in
+      # this step), so migrate it first. The secret only has to exist; it never touches production.
+      - name: Integration tests
+        env:
+          PAYLOAD_SECRET: ci-test-secret
+        run: |
+          pnpm payload migrate
+          pnpm test:int
+
       - name: Check R2 cache upload configuration
         env:
           CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

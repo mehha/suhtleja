@@ -8,5 +8,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     include: ['tests/int/**/*.int.spec.ts'],
+    // Payload-backed tests each start a local Workers runtime (Miniflare); starting two at once
+    // fails intermittently, so test files run one after another.
+    fileParallelism: false,
   },
 })
