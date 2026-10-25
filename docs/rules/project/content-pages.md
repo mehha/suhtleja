@@ -21,7 +21,9 @@ tags: [suhtleja, pages, blocks, payload]
 ## Steps block (`howItWorks`)
 - Use it first on "Kuidas see töötab", with the page title as its title, so it becomes the page's h1.
 - Each step has a title, a description and optionally a screenshot or a short video from the real app, with an aspect ratio (4:3 default). Videos show controls and don't autoplay.
-- Steps without media show a small decorative board on large screens and no media frame on phones. Replace them with real screenshots, not generated mockups.
+- Steps without media show only the number and text; there is no placeholder frame (an outlined placeholder read as broken, empty boxes). Add real screenshots, not generated mockups.
+- Screenshots and videos sit in a navy device frame (the same look as the "Kuula ise" board). Upload screenshots at the frame's aspect ratio (1:1, 4:3 or 16:9) so nothing is letterboxed.
+- The current step screenshots (`suhtleja-samm-*.webp`) were taken from the app with a local test account and generic boards, never with real families' boards.
 - Numbers sit in their own column with a dashed line between them; each step plays a one-time `Reveal` entrance.
 - The optional closing panel (`cta`) renders only when the button text and link are set.
 - New steps blocks start with six default steps in Estonian; keep claims factual (trial length comes from `MEMBERSHIP_TRIAL_DAYS`).

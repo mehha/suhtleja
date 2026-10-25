@@ -40,7 +40,8 @@
     {
       "binding": "R2",
       "bucket_name": "suhtleja",
-      "preview_bucket_name": "suhtleja"
+      "preview_bucket_name": "suhtleja",
+      "remote": true
     },
     {
       "binding": "NEXT_INC_CACHE_R2_BUCKET",

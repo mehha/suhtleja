@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { ButtonLink, LogoTile, SectionIntro, toneAt } from '@/components/Brand'
+import { ButtonLink, LogoTile, SectionIntro } from '@/components/Brand'
 import { Reveal } from '@/components/Brand/Reveal'
 import { Media } from '@/components/Media'
 import type { HowItWorksBlock as HowItWorksProps } from '@/payload-types'
@@ -18,21 +18,7 @@ const aspectClass: Record<AspectRatio, string> = {
   '16/9': 'aspect-video',
   '4/3': 'aspect-[4/3]',
   '1/1': 'aspect-square',
-  '9/16': 'mx-auto aspect-[9/16] w-full max-w-sm',
-}
-
-// Shown on large screens until a step has its own screenshot: a small board in the logo colours.
-function BoardPlaceholder({ index }: { index: number }) {
-  return (
-    <div className="grid h-full grid-cols-3 content-center gap-3 p-8">
-      {Array.from({ length: 6 }, (_, cell) => (
-        <span
-          key={cell}
-          className={cn('aspect-[4/3] rounded-[14px] border-[3px] bg-white opacity-70', toneAt(index + cell).border)}
-        />
-      ))}
-    </div>
-  )
+  '9/16': 'aspect-[9/16]',
 }
 
 export const HowItWorksBlock: React.FC<Props> = ({
@@ -66,7 +52,13 @@ export const HowItWorksBlock: React.FC<Props> = ({
                   />
                 ) : null}
 
-                <Reveal className="grid items-start gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-14">
+                {/* Steps without a screenshot show only the number and text. */}
+                <Reveal
+                  className={cn(
+                    'grid items-start gap-8 lg:gap-14',
+                    media && 'lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]',
+                  )}
+                >
                   {/* The number sits in its own column, so the dashed line below it never crosses the text. */}
                   <div className="flex gap-5 group-data-[reveal=pending]/reveal:opacity-0 group-data-[reveal=in]/reveal:animate-pop-in sm:gap-6">
                     <LogoTile index={index} size="lg">
@@ -78,28 +70,33 @@ export const HowItWorksBlock: React.FC<Props> = ({
                     </div>
                   </div>
 
-                  <div
-                    className={cn(
-                      'relative overflow-hidden rounded-[28px] bg-[#f4f7fb] ring-1 ring-[#e6ebf3] group-data-[reveal=pending]/reveal:opacity-0 group-data-[reveal=in]/reveal:animate-fade-up',
-                      aspectClass[step.mediaAspectRatio || '4/3'],
-                      !media && 'hidden lg:block',
-                    )}
-                    style={{ animationDelay: '150ms' }}
-                  >
-                    {media ? (
-                      <Media
-                        resource={media}
-                        fill={!isVideo}
-                        pictureClassName="block h-full w-full"
-                        imgClassName="object-contain"
-                        videoClassName="h-full w-full bg-black object-contain"
-                        videoAutoPlay={false}
-                        videoControls
-                      />
-                    ) : (
-                      <BoardPlaceholder index={index} />
-                    )}
-                  </div>
+                  {/* Screenshots sit in a device frame, like the board on the homepage. */}
+                  {media ? (
+                    <div
+                      className={cn(
+                        'rounded-[26px] bg-[#22314c] p-2 shadow-[0_24px_60px_rgba(34,49,76,0.22)] group-data-[reveal=pending]/reveal:opacity-0 group-data-[reveal=in]/reveal:animate-fade-up sm:p-2.5',
+                        step.mediaAspectRatio === '9/16' && 'mx-auto w-full max-w-sm',
+                      )}
+                      style={{ animationDelay: '150ms' }}
+                    >
+                      <div
+                        className={cn(
+                          'relative overflow-hidden rounded-[18px] bg-white',
+                          aspectClass[step.mediaAspectRatio || '4/3'],
+                        )}
+                      >
+                        <Media
+                          resource={media}
+                          fill={!isVideo}
+                          pictureClassName="block h-full w-full"
+                          imgClassName="object-contain"
+                          videoClassName="h-full w-full bg-black object-contain"
+                          videoAutoPlay={false}
+                          videoControls
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                 </Reveal>
               </li>
             )
