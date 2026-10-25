@@ -26,8 +26,10 @@ const blockComponents = {
 
 export const RenderBlocks: React.FC<{
   blocks: Page['layout'][0][]
+  /** The first block opens with the page title; it renders that heading as the h1. */
+  promoteFirstHeading?: boolean
 }> = (props) => {
-  const { blocks } = props
+  const { blocks, promoteFirstHeading = false } = props
 
   const hasBlocks = blocks && Array.isArray(blocks) && blocks.length > 0
 
@@ -45,7 +47,7 @@ export const RenderBlocks: React.FC<{
               return (
                 <div className="mb-16 last:mb-0" key={index}>
                   {/* @ts-expect-error there may be some mismatch between the expected types here */}
-                  <Block {...block} disableInnerContainer />
+                  <Block {...block} disableInnerContainer {...(promoteFirstHeading && index === 0 ? { promoteHeading: true } : {})} />
                 </div>
               )
             }

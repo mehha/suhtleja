@@ -38,6 +38,11 @@ tags: [suhtleja, frontend, seo, metadata]
 - When a public slug changes, add a permanent redirect from the old path in `redirects.js`. CMS redirects are cached until a rebuild.
 - Internal utility routes (`/search`, auth pages, 404) should stay `noindex`.
 - Dynamic page/post metadata generation must pass route path so canonical and Open Graph URL are correct.
+- Every CMS page has exactly one h1. `getPageTitleMode` (`src/utilities/pageTitle.ts`) decides how, in `src/app/(frontend)/[slug]/page.tsx`:
+  - a hero other than `none`, or the homepage block, already renders the h1, so nothing is added;
+  - when the first block opens with a heading that repeats the page title (the first node of a content block's first column, or a features block title; compared ignoring case and a trailing colon), that heading is rendered as the h1;
+  - otherwise the page title is shown as an h1 above the content.
+  Editors don't need to add a title heading; if they do add one that matches the page title, it becomes the h1 instead of a duplicate.
 
 ## Change Checklist
 - If changing route structure, re-check canonical path generation in `generateMeta`.

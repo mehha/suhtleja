@@ -1,10 +1,9 @@
-import Link from 'next/link'
-import type { ReactNode } from 'react'
 import {
-  ArrowRight,
   Check,
   Grid3X3,
   Home,
+  Image as ImageIcon,
+  Lock,
   MessageCircle,
   MousePointer2,
   Play,
@@ -14,17 +13,27 @@ import {
   X,
 } from 'lucide-react'
 
-import { Media } from '@/components/Media'
+import { Eyebrow, LogoTile, SectionIntro, toneAt } from '@/components/Brand'
 import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import type { Media as PayloadMedia, SuhtlejaHomepageBlock as SuhtlejaHomepageProps } from '@/payload-types'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { SuhtlejaHomepageBlock as SuhtlejaHomepageProps } from '@/payload-types'
 import { getMediaUrl } from '@/utilities/getMediaUrl'
 import { cn } from '@/utilities/ui'
+
+import { homepageDefaults, rowsOr, textOr } from './defaults'
+import { AboutSection } from './sections/AboutSection'
+import { AudienceSection } from './sections/AudienceSection'
+import { ClosingSection } from './sections/ClosingSection'
+import { FaqSection } from './sections/FaqSection'
+import { ListenSection } from './sections/ListenSection'
+import { PricingSection } from './sections/PricingSection'
+import { StepsSection } from './sections/StepsSection'
+import { ButtonLink, isMediaObject, MediaFrame } from './ui'
 
 type Props = SuhtlejaHomepageProps & {
   className?: string
 }
 
-type MediaResource = PayloadMedia | number | null | undefined
 type ImageAspectRatio = NonNullable<
   NonNullable<NonNullable<SuhtlejaHomepageProps['features']>['items']>[number]['imageAspectRatio']
 >
@@ -36,10 +45,6 @@ const featureImageAspectClass: Record<ImageAspectRatio, string> = {
   '1/1': 'aspect-square',
   '2/3': 'aspect-[2/3]',
   '9/16': 'aspect-[9/16]',
-}
-
-function isMediaObject(resource: MediaResource): resource is PayloadMedia {
-  return Boolean(resource && typeof resource === 'object')
 }
 
 function appendSearchParams(url: URL, params: Record<string, string>) {
@@ -100,85 +105,6 @@ function getVideoEmbedUrl(rawUrl?: string | null) {
   } catch {
     return rawUrl
   }
-}
-
-function ButtonLink({
-  href,
-  label,
-  variant = 'primary',
-}: {
-  href?: string | null
-  label?: string | null
-  variant?: 'primary' | 'secondary'
-}) {
-  if (!href || !label) return null
-
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-        variant === 'primary'
-          ? 'bg-[#22314c] text-white shadow-[0_14px_32px_rgba(34,49,76,0.22)] hover:bg-[#172238] focus-visible:ring-[#22314c]'
-          : 'border border-[#d8dde8] bg-white text-[#22314c] hover:border-[#22314c]/35 hover:bg-[#f8fafc] focus-visible:ring-[#1c79dd]',
-      )}
-    >
-      {label}
-      {variant === 'primary' ? <ArrowRight className="h-4 w-4" /> : null}
-    </Link>
-  )
-}
-
-function Eyebrow({ children, tone = 'blue' }: { children?: string | null; tone?: 'orange' | 'red' | 'blue' }) {
-  if (!children) return null
-
-  const color = tone === 'orange' ? 'bg-[#ff980d]' : tone === 'red' ? 'bg-[#ef4035]' : 'bg-[#1c79dd]'
-
-  return (
-    <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#657189]">
-      <span className={cn('h-2.5 w-2.5 rounded-full', color)} />
-      {children}
-    </p>
-  )
-}
-
-function MediaFrame({
-  resource,
-  label,
-  className,
-  children,
-  imageFit = 'cover',
-}: {
-  resource?: MediaResource
-  label: string
-  className?: string
-  children?: ReactNode
-  imageFit?: 'cover' | 'contain'
-}) {
-  return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-[28px]',
-        className,
-      )}
-    >
-      {isMediaObject(resource) ? (
-        <Media
-          resource={resource}
-          fill
-          pictureClassName="block h-full w-full"
-          imgClassName={imageFit === 'contain' ? 'object-contain' : 'object-cover'}
-          videoClassName="h-full w-full object-cover"
-        />
-      ) : (
-        children ?? (
-          <div className="flex h-full min-h-64 items-center justify-center bg-[#f6f8fb] p-8 text-center text-sm font-semibold text-[#657189]">
-            {label}
-          </div>
-        )
-      )}
-    </div>
-  )
 }
 
 function VideoDialog({ video }: { video?: SuhtlejaHomepageProps['video'] }) {
@@ -370,24 +296,50 @@ function DotsMockup() {
   )
 }
 
-export const SuhtlejaHomepageBlock: React.FC<Props> = ({ className, hero, video, features, audience }) => {
-  const featureItems = features?.items ?? []
-  const audienceItems = audience?.items ?? []
-  const showHero = hero?.enabled !== false
-  const showVideo = video?.enabled !== false
-  const showFeatures = features?.enabled !== false
-  const showAudience = audience?.enabled !== false
+const heroBadgeIcons = [Volume2, Lock, ImageIcon]
 
+// Where each floating label sits around the hero image on large screens: on the device
+// edges, clear of the middle of the screenshot.
+const heroBadgePositions = [
+  'lg:absolute lg:-left-6 lg:top-6',
+  'lg:absolute lg:-right-2 lg:bottom-8',
+  'lg:absolute lg:-bottom-5 lg:left-10',
+]
+
+const featureIcons = [Grid3X3, Puzzle, ShieldCheck, Home]
+
+export const SuhtlejaHomepageBlock: React.FC<Props> = ({
+  className,
+  hero,
+  video,
+  audience,
+  listen,
+  steps,
+  features,
+  about,
+  pricing,
+  faq,
+  closing,
+}) => {
+  const featureItems = features?.items ?? []
+  // Highlights have no fallback: the floating labels already carry the short selling points.
+  const highlights = hero?.highlights?.map((item) => item.text) ?? []
+  const badges = rowsOr(
+    hero?.badges?.map((item) => item.text),
+    homepageDefaults.hero.badges,
+  )
+
+  // Negative margins cancel FrontendShell's padding, so sections run edge to edge and the
+  // closing band meets the footer.
   return (
-    <section className={cn('not-prose overflow-hidden bg-white text-[#22314c] -mx-4 -mt-[167px]', className)}>
-      {showHero && <div className="relative isolate border-b border-[#e6ebf3] bg-[#f8fafc] pt-[167px]">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_18%,rgba(28,121,221,0.14),transparent_32%),radial-gradient(circle_at_18%_28%,rgba(255,152,13,0.16),transparent_28%)]" />
+    <section className={cn('not-prose overflow-hidden bg-white text-[#22314c] -mx-4 -mt-[167px] -mb-10', className)}>
+      {hero?.enabled !== false && <div className="relative isolate border-b border-[#e6ebf3] bg-[#f8fafc] pt-[167px]">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 pt-14 pb-24 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div className="max-w-2xl">
             <div className="mt-8">
               <Eyebrow tone="orange">{hero?.eyebrow}</Eyebrow>
             </div>
-            <h1 className="mt-5 text-balance text-4xl font-black leading-[1.02] tracking-normal text-[#22314c] sm:text-5xl lg:text-6xl">
+            <h1 className="mt-5 text-balance font-display text-[2.6rem] font-black leading-[1.02] tracking-[-0.015em] text-[#22314c] sm:text-6xl lg:text-[4.1rem]">
               {hero?.title}
             </h1>
             <p className="mt-6 max-w-xl text-pretty text-base leading-7 text-[#56627a] sm:text-lg">
@@ -397,131 +349,149 @@ export const SuhtlejaHomepageBlock: React.FC<Props> = ({ className, hero, video,
               <ButtonLink href={hero?.primaryCta?.href} label={hero?.primaryCta?.label} />
               <ButtonLink href={hero?.secondaryCta?.href} label={hero?.secondaryCta?.label} variant="secondary" />
             </div>
-            {!!hero?.highlights?.length && (
-              <div className="mt-8 grid gap-3 text-sm font-semibold text-[#344259] sm:grid-cols-3">
-                {hero.highlights.map((item) => (
-                  <div key={item.id ?? item.text} className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 flex-none text-[#1c79dd]" />
-                    <span>{item.text}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <p className="mt-4 text-sm font-semibold text-[#56627a]">{textOr(hero?.note, homepageDefaults.hero.note)}</p>
+            {!!highlights.length && <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-[#344259]">
+              {highlights.map((text, index) => (
+                <li key={`${index}-${text}`} className="flex items-center gap-2">
+                  <Check aria-hidden="true" className="h-4 w-4 flex-none text-[#1c79dd]" />
+                  {text}
+                </li>
+              ))}
+            </ul>}
           </div>
 
-          {/* Contain so device mockups are never cropped at the frame edges. */}
-          <MediaFrame
-            resource={hero?.image}
-            label="Hero Product Image"
-            className="min-h-[440px]"
-            imageFit="contain"
-          >
-            <HeroMockup />
-          </MediaFrame>
+          <div className="relative isolate">
+            {/* The logo's three tiles, enlarged and set behind the product image. */}
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 hidden lg:block">
+              <span className="absolute -left-8 top-2 h-44 w-44 -rotate-6 rounded-[40px] bg-[#ffe2bd]" />
+              <span className="absolute -top-6 right-16 h-28 w-28 rotate-6 rounded-[28px] bg-[#fdd5d1]" />
+              <span className="absolute -bottom-8 -right-8 h-64 w-64 -rotate-3 rounded-[56px] bg-[#d5e8fc]" />
+            </div>
+            {/* Contain so device mockups are never cropped at the frame edges. */}
+            <MediaFrame
+              resource={hero?.image}
+              label="Hero Product Image"
+              // The fallback mockup needs its full height; a real screenshot gets a 4:3 frame on
+              // small screens so the device isn't surrounded by empty space.
+              className={
+                isMediaObject(hero?.image) ? 'aspect-[4/3] w-full lg:aspect-auto lg:min-h-[440px]' : 'min-h-[440px]'
+              }
+              imageFit="contain"
+            >
+              <HeroMockup />
+            </MediaFrame>
+            {/* lg:contents lets each label position itself against the image frame. */}
+            <ul className="mt-4 flex flex-wrap gap-2 lg:contents">
+              {badges.map((text, index) => {
+                const Icon = heroBadgeIcons[index % heroBadgeIcons.length]
+                return (
+                  <li
+                    key={`${index}-${text}`}
+                    className={cn(
+                      'inline-flex items-center gap-2.5 rounded-full bg-white py-2 pl-2.5 pr-4 text-sm font-bold text-[#22314c] shadow-[0_12px_30px_rgba(34,49,76,0.16)] ring-1 ring-[#e6ebf3]',
+                      heroBadgePositions[index % heroBadgePositions.length],
+                    )}
+                  >
+                    <LogoTile index={index} size="sm">
+                      <Icon />
+                    </LogoTile>
+                    {text}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         </div>
       </div>}
 
-      {showVideo && <div className="mx-auto max-w-7xl px-4 py-20" id="video">
+      {video?.enabled !== false && <div className="mx-auto max-w-7xl px-4 py-20 sm:py-24" id="video">
         <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div>
             <Eyebrow tone="red">{video?.eyebrow}</Eyebrow>
-            <h2 className="mt-4 max-w-2xl text-balance text-3xl font-black leading-tight tracking-normal sm:text-4xl">
+            <h2 className="mt-3 max-w-2xl text-balance font-display text-[2rem] font-black leading-[1.08] tracking-[-0.01em] sm:text-[2.6rem]">
               {video?.title}
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-7 text-[#56627a]">{video?.description}</p>
+            <p className="mt-5 max-w-xl text-pretty text-lg leading-8 text-[#56627a]">{video?.description}</p>
           </div>
 
           <VideoDialog video={video} />
         </div>
       </div>}
 
-      {showFeatures && <div className="bg-[#f8fafc] py-20" id="voimalused">
+      {audience?.enabled !== false && <AudienceSection audience={audience} />}
+
+      {listen?.enabled !== false && <ListenSection listen={listen} />}
+
+      {steps?.enabled !== false && <StepsSection steps={steps} />}
+
+      {features?.enabled !== false && <div className="bg-[#f8fafc] py-20 sm:py-24" id="voimalused">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="max-w-3xl">
-            <Eyebrow>{features?.eyebrow}</Eyebrow>
-            <h2 className="mt-4 text-balance text-3xl font-black leading-tight tracking-normal sm:text-4xl">
-              {features?.title}
-            </h2>
-            <p className="mt-5 text-base leading-7 text-[#56627a]">{features?.description}</p>
-          </div>
+          <SectionIntro eyebrow={features?.eyebrow} title={features?.title} description={features?.description} />
 
-          <div className="mt-12 grid gap-10">
-            {featureItems.map((item, index) => (
-              <article
-                key={item.id ?? item.title}
-                className={cn(
-                  'grid items-center gap-8 lg:grid-cols-2',
-                  index % 2 === 1 && 'lg:[&>*:first-child]:order-2',
-                )}
-              >
-                <div className="max-w-xl">
-                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#1c79dd] shadow-sm ring-1 ring-[#dfe5f0]">
-                    {index === 0 ? <Grid3X3 className="h-6 w-6" /> : index === 1 ? <Puzzle className="h-6 w-6" /> : <ShieldCheck className="h-6 w-6" />}
-                  </div>
-                  <h3 className="text-2xl font-black tracking-normal sm:text-3xl">{item.title}</h3>
-                  <p className="mt-4 text-base leading-7 text-[#56627a]">{item.description}</p>
-                </div>
+          {!!featureItems.length && (
+            <Tabs defaultValue="feature-0" className="mt-10">
+              <TabsList className="flex h-auto flex-wrap justify-start gap-2 bg-transparent p-0">
+                {featureItems.map((item, index) => (
+                  <TabsTrigger
+                    key={item.id ?? item.title}
+                    value={`feature-${index}`}
+                    className={cn(
+                      'gap-2.5 rounded-[14px] border-[3px] border-[#e1e6ef] bg-white px-4 py-2.5 font-display text-base font-extrabold text-[#22314c] data-[state=active]:text-[#22314c] data-[state=active]:shadow-none',
+                      toneAt(index).activeTab,
+                    )}
+                  >
+                    <span aria-hidden="true" className={cn('h-3 w-3 -rotate-6 rounded-[3px]', toneAt(index).solid)} />
+                    {item.title}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-                <MediaFrame
-                  resource={item.image}
-                  label={item.imageLabel || item.title}
-                  className={cn(
-                    'min-h-72',
-                    featureImageAspectClass[item.imageAspectRatio || '16/9'],
-                  )}
-                >
-                  {index === 1 ? <DotsMockup /> : <BoardMockup />}
-                </MediaFrame>
-              </article>
-            ))}
-          </div>
-        </div>
-      </div>}
+              {featureItems.map((item, index) => {
+                const Icon = featureIcons[index % featureIcons.length]
 
-      {showAudience && <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
-        <div>
-          <h2 className="text-balance text-3xl font-black leading-tight tracking-normal sm:text-4xl">{audience?.title}</h2>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-[#56627a]">{audience?.description}</p>
-          {!!audienceItems.length && (
-            <div className="mt-8 grid gap-4">
-              {audienceItems.map((item) => (
-                <div key={item.id ?? item.text} className="flex items-start gap-3 text-sm font-semibold text-[#344259]">
-                  <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#eaf5ff] text-[#1c79dd]">
-                    <Check className="h-4 w-4" />
-                  </span>
-                  <span>{item.text}</span>
-                </div>
-              ))}
-            </div>
+                return (
+                  // forceMount keeps every feature in the server HTML; inactive panels are hidden with CSS.
+                  <TabsContent
+                    key={item.id ?? item.title}
+                    value={`feature-${index}`}
+                    forceMount
+                    className="mt-8 data-[state=inactive]:hidden"
+                  >
+                    <div className="grid items-center gap-8 rounded-[32px] bg-white p-5 shadow-[0_20px_50px_rgba(34,49,76,0.08)] sm:p-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+                      <div className="max-w-xl">
+                        <LogoTile index={index}>
+                          <Icon />
+                        </LogoTile>
+                        <h3 className="mt-6 font-display text-2xl font-black sm:text-3xl">{item.title}</h3>
+                        <p className="mt-4 text-base leading-7 text-[#56627a]">{item.description}</p>
+                      </div>
+
+                      <MediaFrame
+                        resource={item.image}
+                        label={item.imageLabel || item.title}
+                        className={cn(
+                          'min-h-72 bg-[#f8fafc]',
+                          featureImageAspectClass[item.imageAspectRatio || '16/9'],
+                        )}
+                      >
+                        {index === 1 ? <DotsMockup /> : <BoardMockup />}
+                      </MediaFrame>
+                    </div>
+                  </TabsContent>
+                )
+              })}
+            </Tabs>
           )}
-          <div className="mt-9">
-            <ButtonLink href={audience?.cta?.href} label={audience?.cta?.label} />
-          </div>
         </div>
-
-        <MediaFrame resource={audience?.image} label="Kodus, lasteaias, koolis ja teraapias" className="min-h-[420px]">
-          <div className="flex h-full min-h-[420px] flex-col justify-between bg-[#f7f9fd] p-6">
-            <div className="flex items-center justify-between">
-              <span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-[#22314c] shadow-sm">Koduvaade</span>
-              <span className="rounded-full bg-[#eaf5ff] px-4 py-2 text-sm font-bold text-[#1c79dd]">Vanemavaade</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-[#dfe5f0]">
-                <MessageCircle className="h-10 w-10 text-[#ff980d]" />
-                <p className="mt-8 text-xl font-black">Tahvlid</p>
-              </div>
-              <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-[#dfe5f0]">
-                <Puzzle className="h-10 w-10 text-[#1c79dd]" />
-                <p className="mt-8 text-xl font-black">Mängud</p>
-              </div>
-            </div>
-            <div className="rounded-[24px] bg-[#22314c] p-5 text-white">
-              <p className="text-sm font-bold uppercase tracking-[0.16em] text-white/50">Rahulik ekraan</p>
-              <p className="mt-2 text-2xl font-black">Sisu lapse tempos</p>
-            </div>
-          </div>
-        </MediaFrame>
       </div>}
+
+      {about?.enabled !== false && <AboutSection about={about} />}
+
+      {pricing?.enabled !== false && <PricingSection pricing={pricing} />}
+
+      {faq?.enabled !== false && <FaqSection faq={faq} />}
+
+      {closing?.enabled !== false && <ClosingSection closing={closing} />}
     </section>
   )
 }

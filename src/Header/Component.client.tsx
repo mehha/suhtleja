@@ -163,23 +163,31 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
               />
             </>
           ) : (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    aria-label="Logi sisse"
-                    onClick={() => router.push('/login')}
-                  >
-                    <LogIn />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Logi sisse</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <>
+              <Link
+                href="/register"
+                className="hidden h-10 shrink-0 items-center whitespace-nowrap rounded-full bg-[#22314c] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#172238] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22314c] focus-visible:ring-offset-2 sm:inline-flex"
+              >
+                Proovi tasuta
+              </Link>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="xs"
+                      aria-label="Logi sisse"
+                      onClick={() => router.push('/login')}
+                    >
+                      <LogIn />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Logi sisse</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </>
           )}
 
           <NavMobile data={data} />

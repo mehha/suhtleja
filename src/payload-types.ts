@@ -894,7 +894,20 @@ export interface SuhtlejaHomepageBlock {
       label?: string | null;
       href?: string | null;
     };
+    note?: string | null;
+    /**
+     * Kuvatakse nuppude all ainult siis, kui lisad vähemalt ühe rea.
+     */
     highlights?:
+      | {
+          text: string;
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Kui loend on tühi, kuvatakse vaikimisi sisu.
+     */
+    badges?:
       | {
           text: string;
           id?: string | null;
@@ -930,12 +943,115 @@ export interface SuhtlejaHomepageBlock {
         }[]
       | null;
   };
+  /**
+   * Tühjad väljad kuvavad vaikimisi teksti, mida näed väljade kohatäitena.
+   */
   audience: {
     enabled?: boolean | null;
+    eyebrow?: string | null;
     title: string;
     description: string;
-    image?: (number | null) | Media;
+    /**
+     * Kui loend on tühi, kuvatakse vaikimisi sisu.
+     */
+    cards?:
+      | {
+          title: string;
+          description: string;
+          link?: {
+            label?: string | null;
+            href?: string | null;
+          };
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Tühjad väljad kuvavad vaikimisi teksti, mida näed väljade kohatäitena.
+   */
+  listen?: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Iga pilt ütleb oma sildi eestikeelse kõnesünteesiga. Kui loend on tühi, kuvatakse vaikimisi sisu.
+     */
+    tiles?:
+      | {
+          label: string;
+          image?: (number | null) | Media;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Tühjad väljad kuvavad vaikimisi teksti, mida näed väljade kohatäitena.
+   */
+  steps?: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title?: string | null;
+    /**
+     * Kui loend on tühi, kuvatakse vaikimisi sisu.
+     */
     items?:
+      | {
+          title: string;
+          description: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Tühjad väljad kuvavad vaikimisi teksti, mida näed väljade kohatäitena.
+   */
+  about?: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Kui loend on tühi, kuvatakse vaikimisi sisu.
+     */
+    points?:
+      | {
+          title: string;
+          description: string;
+          id?: string | null;
+        }[]
+      | null;
+    link?: {
+      label?: string | null;
+      href?: string | null;
+    };
+    /**
+     * Kuvatakse ainult siis, kui lisad vähemalt ühe tsitaadi.
+     */
+    testimonials?:
+      | {
+          quote: string;
+          name: string;
+          role?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Tühjad väljad kuvavad vaikimisi teksti, mida näed väljade kohatäitena.
+   */
+  pricing?: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title?: string | null;
+    description?: string | null;
+    planName?: string | null;
+    price?: string | null;
+    period?: string | null;
+    /**
+     * Kui loend on tühi, kuvatakse vaikimisi sisu.
+     */
+    includes?:
       | {
           text: string;
           id?: string | null;
@@ -945,6 +1061,43 @@ export interface SuhtlejaHomepageBlock {
       label?: string | null;
       href?: string | null;
     };
+    note?: string | null;
+    institutions?: {
+      text?: string | null;
+      label?: string | null;
+      href?: string | null;
+    };
+  };
+  /**
+   * Tühjad väljad kuvavad vaikimisi teksti, mida näed väljade kohatäitena.
+   */
+  faq?: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title?: string | null;
+    /**
+     * Kui loend on tühi, kuvatakse vaikimisi sisu.
+     */
+    items?:
+      | {
+          question: string;
+          answer: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Tühjad väljad kuvavad vaikimisi teksti, mida näed väljade kohatäitena.
+   */
+  closing?: {
+    enabled?: boolean | null;
+    title?: string | null;
+    description?: string | null;
+    cta?: {
+      label?: string | null;
+      href?: string | null;
+    };
+    note?: string | null;
   };
   id?: string | null;
   blockName?: string | null;
@@ -1608,7 +1761,14 @@ export interface SuhtlejaHomepageBlockSelect<T extends boolean = true> {
               label?: T;
               href?: T;
             };
+        note?: T;
         highlights?:
+          | T
+          | {
+              text?: T;
+              id?: T;
+            };
+        badges?:
           | T
           | {
               text?: T;
@@ -1649,10 +1809,92 @@ export interface SuhtlejaHomepageBlockSelect<T extends boolean = true> {
     | T
     | {
         enabled?: T;
+        eyebrow?: T;
         title?: T;
         description?: T;
-        image?: T;
+        cards?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              link?:
+                | T
+                | {
+                    label?: T;
+                    href?: T;
+                  };
+              id?: T;
+            };
+      };
+  listen?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        tiles?:
+          | T
+          | {
+              label?: T;
+              image?: T;
+              id?: T;
+            };
+      };
+  steps?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
         items?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              id?: T;
+            };
+      };
+  about?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        points?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              id?: T;
+            };
+        link?:
+          | T
+          | {
+              label?: T;
+              href?: T;
+            };
+        testimonials?:
+          | T
+          | {
+              quote?: T;
+              name?: T;
+              role?: T;
+              id?: T;
+            };
+      };
+  pricing?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        planName?: T;
+        price?: T;
+        period?: T;
+        includes?:
           | T
           | {
               text?: T;
@@ -1664,6 +1906,42 @@ export interface SuhtlejaHomepageBlockSelect<T extends boolean = true> {
               label?: T;
               href?: T;
             };
+        note?: T;
+        institutions?:
+          | T
+          | {
+              text?: T;
+              label?: T;
+              href?: T;
+            };
+      };
+  faq?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        items?:
+          | T
+          | {
+              question?: T;
+              answer?: T;
+              id?: T;
+            };
+      };
+  closing?:
+    | T
+    | {
+        enabled?: T;
+        title?: T;
+        description?: T;
+        cta?:
+          | T
+          | {
+              label?: T;
+              href?: T;
+            };
+        note?: T;
       };
   id?: T;
   blockName?: T;

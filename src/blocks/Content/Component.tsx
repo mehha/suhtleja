@@ -6,8 +6,13 @@ import type { ContentBlock as ContentBlockProps } from '@/payload-types'
 
 import { CMSLink } from '../../components/Link'
 
-export const ContentBlock: React.FC<ContentBlockProps> = (props) => {
-  const { columns } = props
+type Props = ContentBlockProps & {
+  /** Render the first column's opening heading as the page's h1 (see `getPageTitleMode`). */
+  promoteHeading?: boolean
+}
+
+export const ContentBlock: React.FC<Props> = (props) => {
+  const { columns, promoteHeading } = props
 
   const colsSpanClasses = {
     full: '12',
@@ -31,7 +36,13 @@ export const ContentBlock: React.FC<ContentBlockProps> = (props) => {
                 })}
                 key={index}
               >
-                {richText && <RichText data={richText} enableGutter={false} />}
+                {richText && (
+                  <RichText
+                    data={richText}
+                    enableGutter={false}
+                    promoteFirstHeading={promoteHeading && index === 0}
+                  />
+                )}
 
                 {enableLink && <CMSLink {...link} />}
               </div>

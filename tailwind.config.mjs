@@ -97,6 +97,7 @@ const config = {
         warning: 'hsl(var(--warning))',
       },
       fontFamily: {
+        display: ['var(--font-display)', 'var(--font-geist-sans)', 'sans-serif'],
         mono: ['var(--font-geist-mono)'],
         sans: ['var(--font-geist-sans)'],
       },
@@ -114,11 +115,30 @@ const config = {
         DEFAULT: {
           css: [
             {
-              '--tw-prose-body': 'var(--text)',
-              '--tw-prose-headings': 'var(--text)',
+              // Brand navy text and the rounded display face for headings, matching the homepage.
+              '--tw-prose-body': '#344259',
+              '--tw-prose-headings': '#22314c',
+              '--tw-prose-bold': '#22314c',
+              '--tw-prose-links': '#1359b7',
+              '--tw-prose-bullets': '#8a94a8',
+              '--tw-prose-counters': '#56627a',
+              'h1, h2, h3, h4': {
+                fontFamily: 'var(--font-display), var(--font-geist-sans), sans-serif',
+                letterSpacing: '-0.01em',
+              },
               h1: {
-                fontWeight: 'normal',
+                fontWeight: 900,
                 marginBottom: '0.25em',
+              },
+              h2: {
+                fontWeight: 900,
+              },
+              h3: {
+                fontWeight: 800,
+              },
+              a: {
+                fontWeight: 600,
+                textUnderlineOffset: '4px',
               },
             },
           ],
@@ -130,8 +150,11 @@ const config = {
                 fontSize: '2.5rem',
               },
               h2: {
+                fontSize: '1.75rem',
+                lineHeight: 1.15,
+              },
+              h3: {
                 fontSize: '1.25rem',
-                fontWeight: 600,
               },
             },
           ],
@@ -143,7 +166,10 @@ const config = {
                 fontSize: '3.5rem',
               },
               h2: {
-                fontSize: '1.5rem',
+                fontSize: '2.25rem',
+              },
+              h3: {
+                fontSize: '1.35rem',
               },
             },
           ],

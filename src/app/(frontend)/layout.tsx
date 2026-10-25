@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { cn } from '@/utilities/ui'
 import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
+import { Nunito } from 'next/font/google'
 import React from 'react'
 
 import { AdminBar } from '@/components/AdminBar'
@@ -22,6 +23,13 @@ import { DEFAULT_META_DESCRIPTION, SITE_NAME } from '@/utilities/seo'
 import { getUiMode } from '@/utilities/uiMode'
 import { FrontendShell } from './FrontendShell'
 
+// Rounded display face for marketing headings; its soft corners echo the logo tiles.
+const displayFont = Nunito({
+  subsets: ['latin', 'latin-ext'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { isEnabled } = await draftMode()
   const payload = await getPayload({ config: configPromise })
@@ -32,7 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const uiMode = await getUiMode()
 
   return (
-    <html className={cn(GeistSans.variable, GeistMono.variable)} lang="et" suppressHydrationWarning>
+    <html className={cn(GeistSans.variable, GeistMono.variable, displayFont.variable)} lang="et" suppressHydrationWarning>
       <head>
         <InitTheme />
         <link href="/favicon.ico" rel="icon" sizes="32x32" />

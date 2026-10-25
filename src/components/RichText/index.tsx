@@ -59,13 +59,34 @@ type Props = {
   data: DefaultTypedEditorState
   enableGutter?: boolean
   enableProse?: boolean
+  /** Render the heading the text opens with as the page's h1 (see `getPageTitleMode`). */
+  promoteFirstHeading?: boolean
 } & React.HTMLAttributes<HTMLDivElement>
 
 export default function RichText(props: Props) {
-  const { className, enableProse = true, enableGutter = true, ...rest } = props
+  const { className, enableProse = true, enableGutter = true, promoteFirstHeading = false, ...rest } = props
+  const firstNode = props.data?.root?.children?.[0]
+  const promotedHeading = promoteFirstHeading && firstNode?.type === 'heading' ? firstNode : null
+
+  const converters: JSXConvertersFunction<NodeTypes> = promotedHeading
+    ? (args) => {
+        const base = jsxConverters(args)
+        return {
+          ...base,
+          heading: (headingArgs) => {
+            if (headingArgs.node === promotedHeading) {
+              return <h1>{headingArgs.nodesToJSX({ nodes: headingArgs.node.children })}</h1>
+            }
+            const fallback = args.defaultConverters.heading
+            return typeof fallback === 'function' ? fallback(headingArgs) : fallback
+          },
+        }
+      }
+    : jsxConverters
+
   return (
     <ConvertRichText
-      converters={jsxConverters}
+      converters={converters}
       className={cn(
         'payload-richtext',
         {

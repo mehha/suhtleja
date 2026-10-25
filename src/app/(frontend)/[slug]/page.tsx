@@ -9,6 +9,7 @@ import React, { cache } from 'react'
 import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
+import { getPageTitleMode } from '@/utilities/pageTitle'
 import PageClient from './page.client'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 
@@ -57,6 +58,7 @@ export default async function Page({ params: paramsPromise }: Args) {
   }
 
   const { hero, layout } = page
+  const titleMode = getPageTitleMode(page)
 
   return (
     <article className="">
@@ -67,7 +69,14 @@ export default async function Page({ params: paramsPromise }: Args) {
       {draft && <LivePreviewListener />}
 
       <RenderHero {...hero} />
-      <RenderBlocks blocks={layout} />
+      {titleMode === 'render' && (
+        <header className="xl:container">
+          <h1 className="mt-6 text-balance font-display text-4xl font-black leading-[1.1] tracking-[-0.01em] text-[#22314c] md:text-[3.5rem]">
+            {page.title}
+          </h1>
+        </header>
+      )}
+      <RenderBlocks blocks={layout} promoteFirstHeading={titleMode === 'promote'} />
     </article>
   )
 }

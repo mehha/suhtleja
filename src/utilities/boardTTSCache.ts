@@ -21,6 +21,11 @@ function sanitizeVoiceForKey(voice: string): string {
   return voice.replace(/[^a-zA-Z0-9._-]+/g, '-')
 }
 
+// R2 key for synthesized speech. Boards and the homepage share it, so a word is synthesized once.
+export function getTTSObjectKey(voice: string, hash: string, extension = 'mp3'): string {
+  return `tts/ms/${sanitizeVoiceForKey(voice)}/${hash}.${extension}`
+}
+
 export function collectBoardTTSInputs(board: Pick<Board, 'compounds' | 'grid'>): Array<{
   source: 'cell' | 'compound'
   text: string
@@ -81,13 +86,12 @@ export async function ensureBoardTTSManifest({
     let objectKey = ''
     let contentType = 'audio/mpeg'
     const existingEntry = existingManifest.entries.find((entry) => entry.hash === hash)
-    const voiceKey = sanitizeVoiceForKey(voice)
 
     if (existingEntry?.key) {
       objectKey = existingEntry.key
       contentType = existingEntry.contentType
     } else {
-      objectKey = `tts/ms/${voiceKey}/${hash}.mp3`
+      objectKey = getTTSObjectKey(voice, hash)
     }
 
     const existingObject = await bucket.head(objectKey)
@@ -97,7 +101,7 @@ export async function ensureBoardTTSManifest({
         speaker: voice,
       })
 
-      objectKey = `tts/ms/${voiceKey}/${hash}.${synthesized.extension}`
+      objectKey = getTTSObjectKey(voice, hash, synthesized.extension)
       contentType = synthesized.contentType
       const audioBuffer = synthesized.audio.buffer.slice(
         synthesized.audio.byteOffset,

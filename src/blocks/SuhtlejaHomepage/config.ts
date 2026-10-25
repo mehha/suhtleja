@@ -1,5 +1,7 @@
 import type { Block, Field } from 'payload'
 
+import { homepageDefaults as d } from './defaults'
+
 const mediaField = (name: string, label: string): Field => ({
   name,
   label,
@@ -7,6 +9,34 @@ const mediaField = (name: string, label: string): Field => ({
   relationTo: 'media',
   required: false,
 })
+
+const enabledField: Field = {
+  name: 'enabled',
+  label: 'Kuva sektsioon',
+  type: 'checkbox',
+  defaultValue: true,
+}
+
+// Fields below fall back to `homepageDefaults` when empty; the placeholder shows that text.
+const fallbackText = (
+  name: string,
+  placeholder: string,
+  options: { label?: string; type?: 'text' | 'textarea' } = {},
+): Field =>
+  options.type === 'textarea'
+    ? { name, label: options.label, type: 'textarea', admin: { placeholder } }
+    : { name, label: options.label, type: 'text', admin: { placeholder } }
+
+const fallbackLink = (name: string, label: string, fallback: { label: string; href: string }): Field => ({
+  name,
+  label,
+  type: 'group',
+  fields: [fallbackText('label', fallback.label), fallbackText('href', fallback.href)],
+})
+
+const fallbackGroupDescription =
+  'Tühjad väljad kuvavad vaikimisi teksti, mida näed väljade kohatäitena.'
+const fallbackListDescription = 'Kui loend on tühi, kuvatakse vaikimisi sisu.'
 
 const textPairFields: Field[] = [
   {
@@ -64,7 +94,7 @@ export const SuhtlejaHomepage: Block = {
           label: 'Põhinupp',
           type: 'group',
           fields: [
-            { name: 'label', type: 'text', defaultValue: 'Alusta kasutamist' },
+            { name: 'label', type: 'text', defaultValue: 'Proovi tasuta' },
             { name: 'href', type: 'text', defaultValue: '/register' },
           ],
         },
@@ -77,17 +107,21 @@ export const SuhtlejaHomepage: Block = {
             { name: 'href', type: 'text', defaultValue: '#voimalused' },
           ],
         },
+        fallbackText('note', d.hero.note, { label: 'Märkus nuppude all' }),
         {
           name: 'highlights',
           label: 'Lühiväärtused',
           type: 'array',
-          minRows: 1,
           maxRows: 4,
-          defaultValue: [
-            { text: 'Suhtlustahvlid igapäevasteks olukordadeks' },
-            { text: 'Ühenda punktid mängud harjutamiseks' },
-            { text: 'Lapsevaade ja vanemavaade eraldi' },
-          ],
+          admin: { description: 'Kuvatakse nuppude all ainult siis, kui lisad vähemalt ühe rea.' },
+          fields: [{ name: 'text', type: 'text', required: true }],
+        },
+        {
+          name: 'badges',
+          label: 'Sildid pildi kohal',
+          type: 'array',
+          maxRows: 3,
+          admin: { description: fallbackListDescription },
           fields: [{ name: 'text', type: 'text', required: true }],
         },
       ],
@@ -229,15 +263,12 @@ export const SuhtlejaHomepage: Block = {
     },
     {
       name: 'audience',
-      label: 'Kellele sobib',
+      label: 'Kellele',
       type: 'group',
+      admin: { description: fallbackGroupDescription },
       fields: [
-        {
-          name: 'enabled',
-          label: 'Kuva sektsioon',
-          type: 'checkbox',
-          defaultValue: true,
-        },
+        enabledField,
+        fallbackText('eyebrow', d.audience.eyebrow),
         {
           name: 'title',
           type: 'text',
@@ -251,30 +282,171 @@ export const SuhtlejaHomepage: Block = {
           defaultValue:
             'Suhtleja sobib lapsele, kes vajab suhtlemisel visuaalset tuge, lihtsat valikute tegemist või korduvat harjutamist. Keskkond aitab täiskasvanul valmistada ette selgeid tegevusi ja hoida lapse ekraani rahulikuna.',
         },
-        mediaField('image', 'Kasutuskonteksti pilt'),
+        {
+          name: 'cards',
+          label: 'Kaardid',
+          type: 'array',
+          maxRows: 3,
+          admin: { description: fallbackListDescription },
+          fields: [
+            ...textPairFields,
+            {
+              name: 'link',
+              type: 'group',
+              fields: [
+                { name: 'label', type: 'text' },
+                { name: 'href', type: 'text' },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'listen',
+      label: 'Kuula ise',
+      type: 'group',
+      admin: { description: fallbackGroupDescription },
+      fields: [
+        enabledField,
+        fallbackText('eyebrow', d.listen.eyebrow),
+        fallbackText('title', d.listen.title),
+        fallbackText('description', d.listen.description, { type: 'textarea' }),
+        {
+          name: 'tiles',
+          label: 'Pildid',
+          type: 'array',
+          maxRows: 8,
+          admin: {
+            description: `Iga pilt ütleb oma sildi eestikeelse kõnesünteesiga. ${fallbackListDescription}`,
+          },
+          fields: [
+            { name: 'label', label: 'Sõna', type: 'text', required: true },
+            mediaField('image', 'Pilt'),
+          ],
+        },
+      ],
+    },
+    {
+      name: 'steps',
+      label: 'Kuidas alustada',
+      type: 'group',
+      admin: { description: fallbackGroupDescription },
+      fields: [
+        enabledField,
+        fallbackText('eyebrow', d.steps.eyebrow),
+        fallbackText('title', d.steps.title),
         {
           name: 'items',
-          label: 'Kasutajad',
+          label: 'Sammud',
           type: 'array',
-          minRows: 1,
+          maxRows: 4,
+          admin: { description: fallbackListDescription },
+          fields: textPairFields,
+        },
+      ],
+    },
+    {
+      name: 'about',
+      label: 'Miks Suhtleja',
+      type: 'group',
+      admin: { description: fallbackGroupDescription },
+      fields: [
+        enabledField,
+        fallbackText('eyebrow', d.about.eyebrow),
+        fallbackText('title', d.about.title),
+        fallbackText('description', d.about.description, { type: 'textarea' }),
+        {
+          name: 'points',
+          label: 'Põhjused',
+          type: 'array',
+          maxRows: 4,
+          admin: { description: fallbackListDescription },
+          fields: textPairFields,
+        },
+        fallbackLink('link', 'Link', d.about.link),
+        {
+          name: 'testimonials',
+          label: 'Tagasiside',
+          type: 'array',
           maxRows: 6,
-          defaultValue: [
-            { text: 'lapsevanemale, kes soovib kodus lihtsaid suhtlustahvleid kasutada' },
-            { text: 'õpetajale või tugispetsialistile, kes vajab korduskasutatavaid tegevusi' },
-            { text: 'logopeedile või terapeudile, kes tahab luua lapsele tähenduslikke harjutusi' },
-            { text: 'lapsele, kelle jaoks pilt, heli ja kordus teevad tegutsemise arusaadavamaks' },
+          admin: { description: 'Kuvatakse ainult siis, kui lisad vähemalt ühe tsitaadi.' },
+          fields: [
+            { name: 'quote', label: 'Tsitaat', type: 'textarea', required: true },
+            { name: 'name', label: 'Nimi', type: 'text', required: true },
+            { name: 'role', label: 'Roll', type: 'text', admin: { placeholder: 'Lapsevanem' } },
           ],
+        },
+      ],
+    },
+    {
+      name: 'pricing',
+      label: 'Hind',
+      type: 'group',
+      admin: { description: fallbackGroupDescription },
+      fields: [
+        enabledField,
+        fallbackText('eyebrow', d.pricing.eyebrow),
+        fallbackText('title', d.pricing.title),
+        fallbackText('description', d.pricing.description, { type: 'textarea' }),
+        fallbackText('planName', d.pricing.planName, { label: 'Paketi nimi' }),
+        fallbackText('price', d.pricing.price, { label: 'Hind' }),
+        fallbackText('period', d.pricing.period, { label: 'Periood' }),
+        {
+          name: 'includes',
+          label: 'Hinna sees',
+          type: 'array',
+          maxRows: 8,
+          admin: { description: fallbackListDescription },
           fields: [{ name: 'text', type: 'text', required: true }],
         },
+        fallbackLink('cta', 'Nupp', d.pricing.cta),
+        fallbackText('note', d.pricing.note, { label: 'Märkus nupu all', type: 'textarea' }),
         {
-          name: 'cta',
-          label: 'Lõpunupp',
+          name: 'institutions',
+          label: 'Asutustele',
           type: 'group',
           fields: [
-            { name: 'label', type: 'text', defaultValue: 'Loo lapsele esimene koduvaade' },
-            { name: 'href', type: 'text', defaultValue: '/register' },
+            fallbackText('text', d.pricing.institutions.text),
+            fallbackText('label', d.pricing.institutions.label),
+            fallbackText('href', d.pricing.institutions.href),
           ],
         },
+      ],
+    },
+    {
+      name: 'faq',
+      label: 'KKK',
+      type: 'group',
+      admin: { description: fallbackGroupDescription },
+      fields: [
+        enabledField,
+        fallbackText('eyebrow', d.faq.eyebrow),
+        fallbackText('title', d.faq.title),
+        {
+          name: 'items',
+          label: 'Küsimused',
+          type: 'array',
+          maxRows: 12,
+          admin: { description: fallbackListDescription },
+          fields: [
+            { name: 'question', label: 'Küsimus', type: 'text', required: true },
+            { name: 'answer', label: 'Vastus', type: 'textarea', required: true },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'closing',
+      label: 'Lõpp-üleskutse',
+      type: 'group',
+      admin: { description: fallbackGroupDescription },
+      fields: [
+        enabledField,
+        fallbackText('title', d.closing.title),
+        fallbackText('description', d.closing.description, { type: 'textarea' }),
+        fallbackLink('cta', 'Nupp', d.closing.cta),
+        fallbackText('note', d.closing.note, { label: 'Märkus nupu all' }),
       ],
     },
   ],
