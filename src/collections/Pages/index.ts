@@ -11,6 +11,8 @@ import { HeroPaws } from '../../blocks/HeroPaws/config'
 import { AacFeatures } from '../../blocks/AacFeatures/config'
 import { UsageContextsBlock } from '@/blocks/UsageContexts/config'
 import { SuhtlejaHomepage } from '@/blocks/SuhtlejaHomepage/config'
+import { HowItWorks } from '@/blocks/HowItWorks/config'
+import { Contact } from '@/blocks/Contact/config'
 import { hero } from '@/heros/config'
 import { slugField } from 'payload'
 import { slugifyField } from '@/utilities/slugify'
@@ -87,6 +89,8 @@ export const Pages: CollectionConfig<'pages'> = {
                 AacFeatures,
                 UsageContextsBlock,
                 SuhtlejaHomepage,
+                HowItWorks,
+                Contact,
               ],
               required: true,
               admin: {

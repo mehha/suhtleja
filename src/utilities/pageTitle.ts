@@ -22,12 +22,12 @@ function normalize(text: string): string {
 }
 
 // Text of the heading the page content opens with: the first node of the first content
-// column, or the title of a features block placed first.
+// column, or the title of a features or steps block placed first.
 export function getLeadingHeading(layout: Page['layout'] | null | undefined): string | null {
   const first = layout?.[0]
   if (!first) return null
 
-  if (first.blockType === 'aac-features') return first.title ?? null
+  if (first.blockType === 'aac-features' || first.blockType === 'howItWorks') return first.title ?? null
 
   if (first.blockType === 'content') {
     const node = first.columns?.[0]?.richText?.root?.children?.[0] as HeadingLikeNode | undefined

@@ -43,7 +43,7 @@ export function ListenSection({ listen }: { listen: SuhtlejaHomepageBlock['liste
         />
 
         <div className="mx-auto w-full max-w-2xl">
-          <SpeechBoard>
+          <SpeechBoard firstTileId={tiles[0]?.id}>
             <ul className={cn('grid grid-cols-3 gap-2 sm:gap-3', tiles.length > 6 && 'sm:grid-cols-4')}>
               {tiles.map((tile, index) => {
                 const tone = toneAt(index)
@@ -57,6 +57,7 @@ export function ListenSection({ listen }: { listen: SuhtlejaHomepageBlock['liste
                       label={tile.label}
                       borderClassName={tone.border}
                       playingClassName={tone.soft}
+                      barsClassName={tone.text}
                     >
                       {tile.image && typeof tile.image === 'object' ? (
                         <MediaFrame

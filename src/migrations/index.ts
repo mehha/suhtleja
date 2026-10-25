@@ -10,6 +10,7 @@ import * as migration_20260426_095216_homepage_section_toggles from './20260426_
 import * as migration_20260426_104206_media_owner_access from './20260426_104206_media_owner_access';
 import * as migration_20261001_135529 from './20261001_135529';
 import * as migration_20261025_094741_homepage_sections from './20261025_094741_homepage_sections';
+import * as migration_20261025_142826_how_it_works_and_contact_blocks from './20261025_142826_how_it_works_and_contact_blocks';
 
 export const migrations = [
   {
@@ -71,5 +72,10 @@ export const migrations = [
     up: migration_20261025_094741_homepage_sections.up,
     down: migration_20261025_094741_homepage_sections.down,
     name: '20261025_094741_homepage_sections',
+  },
+  {
+    up: migration_20261025_142826_how_it_works_and_contact_blocks.up,
+    down: migration_20261025_142826_how_it_works_and_contact_blocks.down,
+    name: '20261025_142826_how_it_works_and_contact_blocks'
   },
 ];

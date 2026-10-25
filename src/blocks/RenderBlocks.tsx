@@ -11,6 +11,8 @@ import { HeroPawsBlock } from '@/blocks/HeroPaws/Component'
 import { AacFeaturesBlock } from '@/blocks/AacFeatures/Component'
 import { UsageContextsBlockComponent } from '@/blocks/UsageContexts/Component'
 import { SuhtlejaHomepageBlock } from '@/blocks/SuhtlejaHomepage/Component'
+import { HowItWorksBlock } from '@/blocks/HowItWorks/Component'
+import { ContactBlock } from '@/blocks/Contact/Component'
 
 const blockComponents = {
   archive: ArchiveBlock,
@@ -22,6 +24,8 @@ const blockComponents = {
   'aac-features': AacFeaturesBlock,
   usageContexts: UsageContextsBlockComponent,
   suhtlejaHomepage: SuhtlejaHomepageBlock,
+  howItWorks: HowItWorksBlock,
+  contact: ContactBlock,
 }
 
 export const RenderBlocks: React.FC<{

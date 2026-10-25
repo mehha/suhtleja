@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react'
 
-import { Eyebrow, LogoTile, SectionIntro, toneAt } from '@/components/Brand'
+import { ButtonLink, Eyebrow, LogoTile, SectionIntro, toneAt } from '@/components/Brand'
 import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { SuhtlejaHomepageBlock as SuhtlejaHomepageProps } from '@/payload-types'
@@ -28,7 +28,7 @@ import { FaqSection } from './sections/FaqSection'
 import { ListenSection } from './sections/ListenSection'
 import { PricingSection } from './sections/PricingSection'
 import { StepsSection } from './sections/StepsSection'
-import { ButtonLink, isMediaObject, MediaFrame } from './ui'
+import { isMediaObject, MediaFrame } from './ui'
 
 type Props = SuhtlejaHomepageProps & {
   className?: string
@@ -363,9 +363,10 @@ export const SuhtlejaHomepageBlock: React.FC<Props> = ({
           <div className="relative isolate">
             {/* The logo's three tiles, enlarged and set behind the product image. */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 hidden lg:block">
-              <span className="absolute -left-8 top-2 h-44 w-44 -rotate-6 rounded-[40px] bg-[#ffe2bd]" />
-              <span className="absolute -top-6 right-16 h-28 w-28 rotate-6 rounded-[28px] bg-[#fdd5d1]" />
-              <span className="absolute -bottom-8 -right-8 h-64 w-64 -rotate-3 rounded-[56px] bg-[#d5e8fc]" />
+              {/* On load the tiles drop into place one after another, like tiles set on a board. */}
+              <span className="absolute -left-8 top-2 h-44 w-44 -rotate-6 rounded-[40px] bg-[#ffe2bd] motion-safe:animate-tile-drop" />
+              <span className="absolute -top-6 right-16 h-28 w-28 rotate-6 rounded-[28px] bg-[#fdd5d1] motion-safe:animate-tile-drop [animation-delay:120ms]" />
+              <span className="absolute -bottom-8 -right-8 h-64 w-64 -rotate-3 rounded-[56px] bg-[#d5e8fc] motion-safe:animate-tile-drop [animation-delay:240ms]" />
             </div>
             {/* Contain so device mockups are never cropped at the frame edges. */}
             <MediaFrame
@@ -390,7 +391,10 @@ export const SuhtlejaHomepageBlock: React.FC<Props> = ({
                     className={cn(
                       'inline-flex items-center gap-2.5 rounded-full bg-white py-2 pl-2.5 pr-4 text-sm font-bold text-[#22314c] shadow-[0_12px_30px_rgba(34,49,76,0.16)] ring-1 ring-[#e6ebf3]',
                       heroBadgePositions[index % heroBadgePositions.length],
+                      'motion-safe:animate-pop-in',
                     )}
+                    // Labels pop in after the tiles have landed.
+                    style={{ animationDelay: `${450 + index * 140}ms` }}
                   >
                     <LogoTile index={index} size="sm">
                       <Icon />
@@ -455,7 +459,7 @@ export const SuhtlejaHomepageBlock: React.FC<Props> = ({
                     key={item.id ?? item.title}
                     value={`feature-${index}`}
                     forceMount
-                    className="mt-8 data-[state=inactive]:hidden"
+                    className="mt-8 data-[state=inactive]:hidden motion-safe:data-[state=active]:animate-fade-up"
                   >
                     <div className="grid items-center gap-8 rounded-[32px] bg-white p-5 shadow-[0_20px_50px_rgba(34,49,76,0.08)] sm:p-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
                       <div className="max-w-xl">

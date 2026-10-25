@@ -271,6 +271,8 @@ export interface Page {
         blockType: 'usageContexts';
       }
     | SuhtlejaHomepageBlock
+    | HowItWorksBlock
+    | ContactBlock
   )[];
   meta?: {
     title?: string | null;
@@ -1105,6 +1107,75 @@ export interface SuhtlejaHomepageBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HowItWorksBlock".
+ */
+export interface HowItWorksBlock {
+  eyebrow?: string | null;
+  /**
+   * Kui pealkiri kordab lehe nime ja plokk on lehel esimene, saab sellest lehe peapealkiri (h1).
+   */
+  title: string;
+  intro?: string | null;
+  /**
+   * Lisa igale sammule päris ekraanipilt või lühike video rakendusest.
+   */
+  steps?:
+    | {
+        title: string;
+        description: string;
+        media?: (number | null) | Media;
+        mediaAspectRatio?: ('16/9' | '4/3' | '1/1' | '9/16') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Jäta nupu tekst tühjaks, kui lõpunuppu pole vaja.
+   */
+  cta?: {
+    title?: string | null;
+    label?: string | null;
+    href?: string | null;
+    note?: string | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'howItWorks';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContactBlock".
+ */
+export interface ContactBlock {
+  intro?: string | null;
+  email: string;
+  phone?: string | null;
+  /**
+   * Kuvatakse e-posti all. Jäta tühjaks, kui te ei taha vastamise aega lubada.
+   */
+  responseNote?: string | null;
+  /**
+   * Iga teema nupp avab kirja, mille teema on juba täidetud.
+   */
+  topics?:
+    | {
+        title: string;
+        description: string;
+        subject?: string | null;
+        buttonLabel?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  company?: {
+    name?: string | null;
+    regCode?: string | null;
+    address?: string | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'contact';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "boards".
  */
 export interface Board {
@@ -1613,6 +1684,8 @@ export interface PagesSelect<T extends boolean = true> {
               blockName?: T;
             };
         suhtlejaHomepage?: T | SuhtlejaHomepageBlockSelect<T>;
+        howItWorks?: T | HowItWorksBlockSelect<T>;
+        contact?: T | ContactBlockSelect<T>;
       };
   meta?:
     | T
@@ -1942,6 +2015,62 @@ export interface SuhtlejaHomepageBlockSelect<T extends boolean = true> {
               href?: T;
             };
         note?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HowItWorksBlock_select".
+ */
+export interface HowItWorksBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
+  title?: T;
+  intro?: T;
+  steps?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        media?: T;
+        mediaAspectRatio?: T;
+        id?: T;
+      };
+  cta?:
+    | T
+    | {
+        title?: T;
+        label?: T;
+        href?: T;
+        note?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContactBlock_select".
+ */
+export interface ContactBlockSelect<T extends boolean = true> {
+  intro?: T;
+  email?: T;
+  phone?: T;
+  responseNote?: T;
+  topics?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        subject?: T;
+        buttonLabel?: T;
+        id?: T;
+      };
+  company?:
+    | T
+    | {
+        name?: T;
+        regCode?: T;
+        address?: T;
       };
   id?: T;
   blockName?: T;

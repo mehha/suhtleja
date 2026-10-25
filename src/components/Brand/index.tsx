@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { cn } from '@/utilities/ui'
@@ -120,5 +121,31 @@ export function SectionIntro({
       ) : null}
       {description ? <p className="mt-5 text-pretty text-lg leading-8 text-[#56627a]">{description}</p> : null}
     </div>
+  )
+}
+
+export function ButtonLink({
+  href,
+  label,
+  variant = 'primary',
+}: {
+  href?: string | null
+  label?: string | null
+  variant?: 'primary' | 'secondary'
+}) {
+  if (!href || !label) return null
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'inline-flex min-h-12 items-center justify-center rounded-full px-6 text-base font-semibold transition active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 motion-reduce:active:scale-100',
+        variant === 'primary'
+          ? 'bg-[#22314c] text-white shadow-[0_14px_32px_rgba(34,49,76,0.22)] hover:bg-[#172238] focus-visible:ring-[#22314c]'
+          : 'border-2 border-[#d8dde8] bg-white text-[#22314c] hover:border-[#22314c]/40 focus-visible:ring-[#1c79dd]',
+      )}
+    >
+      {label}
+    </Link>
   )
 }

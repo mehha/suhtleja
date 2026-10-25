@@ -28,6 +28,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - `symbols/AI helpers`: `src/app/(frontend)/next/{symbols,symbol-image,groq}`, rule `docs/rules/project/symbols-ai.md`.
 - `search`: `src/app/(frontend)/search`, `src/search`, rule `docs/rules/project/search.md`.
 - `homepage`: block `src/blocks/SuhtlejaHomepage`, rule `docs/rules/project/homepage.md`.
+- `content pages`: page route `src/app/(frontend)/[slug]`, blocks `src/blocks/HowItWorks`, `src/blocks/Contact`, rule `docs/rules/project/content-pages.md`.
 - `media`: collection `src/collections/Media.ts`, rule `docs/rules/project/media.md`.
 - `preview`: `src/app/(frontend)/next/preview`, `exit-preview`, `src/utilities/generatePreviewPath.ts`, rule `docs/rules/project/preview.md`.
 - `seo`: metadata utilities `src/utilities/seo.ts`, `generateMeta.ts`, rule `docs/rules/project/seo.md`.

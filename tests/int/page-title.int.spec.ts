@@ -31,6 +31,10 @@ describe('page title', () => {
     expect(
       getPageTitleMode(page('Kuidas see töötab', [{ blockType: 'aac-features', title: 'Kuidas see töötab' } as Block])),
     ).toBe('promote')
+    expect(
+      getPageTitleMode(page('Kuidas see töötab', [{ blockType: 'howItWorks', title: 'Kuidas see töötab' } as Block])),
+    ).toBe('promote')
+    expect(getPageTitleMode(page('Kontakt', [{ blockType: 'contact', email: 'info@mehh.ee' } as Block]))).toBe('render')
   })
 
   it('leaves pages alone when a hero or the homepage block already has an h1', () => {

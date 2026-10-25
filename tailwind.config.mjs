@@ -49,6 +49,14 @@ const config = {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        // Brand motion: springy, like pressing or placing a physical tile. Use with `motion-safe:`.
+        'tile-drop': 'tile-drop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'pop-in': 'pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'chip-in': 'chip-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'tile-hint': 'tile-hint 1.6s ease-out 0.4s 3',
+        'sound-bar': 'sound-bar 0.6s ease-in-out infinite alternate',
+        'draw-x': 'draw-x 0.5s ease-out both',
+        'fade-up': 'fade-up 0.3s ease-out both',
       },
       screens: {
         xs: '440px',
@@ -109,6 +117,41 @@ const config = {
         'accordion-up': {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
+        },
+        // These use the individual `translate`/`scale` properties, so they don't override a
+        // Tailwind `rotate-*` transform on the same element.
+        'tile-drop': {
+          from: { opacity: '0', translate: '0 -32px', scale: '0.85' },
+          '60%': { opacity: '1', translate: '0 4px', scale: '1.03' },
+          to: { opacity: '1', translate: '0 0', scale: '1' },
+        },
+        'pop-in': {
+          from: { opacity: '0', translate: '0 10px', scale: '0.6' },
+          '70%': { opacity: '1', scale: '1.06' },
+          to: { opacity: '1', translate: '0 0', scale: '1' },
+        },
+        'chip-in': {
+          from: { opacity: '0', translate: '0 6px', scale: '0.5' },
+          '70%': { opacity: '1', scale: '1.1' },
+          to: { opacity: '1', translate: '0 0', scale: '1' },
+        },
+        'tile-hint': {
+          '0%': { scale: '1', boxShadow: '0 0 0 0 rgba(255, 152, 13, 0.5)' },
+          '15%': { scale: '1.04' },
+          '30%': { scale: '1' },
+          '100%': { scale: '1', boxShadow: '0 0 0 18px rgba(255, 152, 13, 0)' },
+        },
+        'sound-bar': {
+          from: { scale: '1 0.35' },
+          to: { scale: '1 1' },
+        },
+        'draw-x': {
+          from: { scale: '0 1' },
+          to: { scale: '1 1' },
+        },
+        'fade-up': {
+          from: { opacity: '0', translate: '0 8px' },
+          to: { opacity: '1', translate: '0 0' },
         },
       },
       typography: () => ({

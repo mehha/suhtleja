@@ -27,7 +27,16 @@ const redirects = async () => {
     },
   ]
 
-  const redirects = [internetExplorerRedirect, ...oldSlugRedirects]
+  // The Demo page was a single screen recording; the video now lives on "Kuidas see töötab".
+  const removedPageRedirects = [
+    {
+      destination: '/kuidas-see-tootab',
+      permanent: true,
+      source: '/demo',
+    },
+  ]
+
+  const redirects = [internetExplorerRedirect, ...oldSlugRedirects, ...removedPageRedirects]
 
   return redirects
 }

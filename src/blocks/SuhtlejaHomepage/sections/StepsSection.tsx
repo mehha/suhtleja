@@ -1,4 +1,5 @@
 import { LogoTile, SectionIntro } from '@/components/Brand'
+import { Reveal } from '@/components/Brand/Reveal'
 import type { SuhtlejaHomepageBlock } from '@/payload-types'
 import { cn } from '@/utilities/ui'
 
@@ -15,26 +16,38 @@ export function StepsSection({ steps }: { steps: SuhtlejaHomepageBlock['steps'] 
           title={textOr(steps?.title, homepageDefaults.steps.title)}
         />
 
-        {/* A dashed line joins the numbered tiles, so the steps read as one path. */}
-        <ol
-          className={cn(
-            'mt-14 grid gap-10 md:gap-8',
-            items.length === 4 ? 'md:grid-cols-4' : items.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3',
-          )}
-        >
-          {items.map((item, index) => (
-            <li
-              key={`${index}-${item.title}`}
-              className="relative md:after:absolute md:after:-right-6 md:after:left-[5.5rem] md:after:top-8 md:after:border-t-[3px] md:after:border-dashed md:after:border-[#cfd7e4] md:last:after:hidden"
-            >
-              <LogoTile index={index} size="lg">
-                {index + 1}
-              </LogoTile>
-              <h3 className="mt-6 font-display text-2xl font-extrabold">{item.title}</h3>
-              <p className="mt-3 text-base leading-7 text-[#56627a]">{item.description}</p>
-            </li>
-          ))}
-        </ol>
+        {/* A dashed line joins the numbered tiles, so the steps read as one path. When the steps
+            scroll into view, they appear in order and each line draws on to the next step. */}
+        <Reveal className="mt-14">
+          <ol
+            className={cn(
+              'grid gap-10 md:gap-8',
+              items.length === 4 ? 'md:grid-cols-4' : items.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3',
+            )}
+          >
+            {items.map((item, index) => (
+              <li key={`${index}-${item.title}`} className="relative">
+                {index < items.length - 1 ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -right-6 left-[5.5rem] top-8 hidden origin-left border-t-[3px] border-dashed border-[#cfd7e4] group-data-[reveal=pending]/reveal:scale-x-0 group-data-[reveal=in]/reveal:animate-draw-x md:block"
+                    style={{ animationDelay: `${index * 220 + 260}ms` }}
+                  />
+                ) : null}
+                <div
+                  className="group-data-[reveal=pending]/reveal:opacity-0 group-data-[reveal=in]/reveal:animate-pop-in"
+                  style={{ animationDelay: `${index * 220}ms` }}
+                >
+                  <LogoTile index={index} size="lg">
+                    {index + 1}
+                  </LogoTile>
+                  <h3 className="mt-6 font-display text-2xl font-extrabold">{item.title}</h3>
+                  <p className="mt-3 text-base leading-7 text-[#56627a]">{item.description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Reveal>
       </div>
     </div>
   )

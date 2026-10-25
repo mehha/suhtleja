@@ -58,7 +58,13 @@ Header nav items are content in the Header global; link new sections with anchor
 - Use cards only for real objects: the pricing card, the "Kuula ise" device and quotes. Audience cards, steps, reasons and FAQ are open layouts on the section background.
 - "Kuula ise" is the page's one bold element: a device frame with AAC-style tiles (coloured borders), where each tap says the word and adds it to a sentence bar. The bar mirrors the app's bottom bar: green button says the sentence, undo removes the last word, red button clears.
 - Section labels are short sentence-case text with a small tilted colour square, not tracked capitals. Buttons and links don't get arrow icons.
-- Keep the page calm: two coloured bands at most (the orange-tinted "Kuula ise" section and the orange closing band), no autoplay, and motion only in response to a tap.
+- Keep the page calm: two coloured bands at most (the orange-tinted "Kuula ise" section and the orange closing band) and no autoplay.
+- Motion has a job and plays once; don't add entrance animations to every section. The moments are:
+  - hero load: the backdrop tiles drop into place, then the floating labels pop in;
+  - "Kuula ise": the first tile pulses three times when the board scrolls into view (until the first tap), the speaking tile shows sound bars, words pop onto the sentence bar, and the word being said is highlighted there;
+  - steps: they appear in order and the dashed line draws on to the next step when the list scrolls into view (`Reveal` in `src/components/Brand/Reveal.tsx`);
+  - feature tabs: the selected panel fades up.
+- Every animation uses `motion-safe:` or checks `prefers-reduced-motion`, and content is visible without JavaScript: `Reveal` hides only content that is still below the fold after hydration.
 - Keep copy in Estonian and avoid overclaiming clinical outcomes.
 
 ## Removed fields

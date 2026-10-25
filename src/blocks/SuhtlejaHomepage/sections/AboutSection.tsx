@@ -1,10 +1,9 @@
 import { Languages, MonitorSmartphone, Quote, ShieldCheck, Sparkles } from 'lucide-react'
 
-import { LogoTile, SectionIntro } from '@/components/Brand'
+import { ButtonLink, LogoTile, SectionIntro } from '@/components/Brand'
 import type { SuhtlejaHomepageBlock } from '@/payload-types'
 
 import { homepageDefaults, rowsOr, textOr } from '../defaults'
-import { ButtonLink } from '../ui'
 
 const pointIcons = [Languages, ShieldCheck, MonitorSmartphone, Sparkles]
 

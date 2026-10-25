@@ -1,7 +1,7 @@
+import { ButtonLink } from '@/components/Brand'
 import type { SuhtlejaHomepageBlock } from '@/payload-types'
 
 import { homepageDefaults, textOr } from '../defaults'
-import { ButtonLink } from '../ui'
 
 export function ClosingSection({ closing }: { closing: SuhtlejaHomepageBlock['closing'] }) {
   const d = homepageDefaults.closing
