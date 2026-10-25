@@ -1,5 +1,5 @@
 import { createHmac, randomUUID } from 'crypto'
-import { expect, test, type Page } from '@playwright/test'
+import { expect as baseExpect, test, type Page } from '@playwright/test'
 
 import { testAccountEmail } from './testAccounts'
 
@@ -8,6 +8,10 @@ import { testAccountEmail } from './testAccounts'
 // against a local server; Playwright's global teardown deletes the account afterwards.
 
 test.skip(!!process.env.SMOKE_BASE_URL, 'Creates an account, so it never runs against a deployed site.')
+
+// The dev server compiles each route on its first request, which takes more than the default 5s on
+// CI runners (a click that opens a new page, the first word that loads its speech).
+const expect = baseExpect.configure({ timeout: 30_000 })
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
@@ -62,7 +66,6 @@ async function countPlayedAudio(page: Page) {
 
 test('a new customer registers, unlocks the parent view and hears a board speak', async ({ page }) => {
   test.skip(!webhookSecret, 'Needs STRIPE_WEBHOOK_SECRET, the same one the local server uses.')
-  // The dev server compiles each route on its first visit.
   test.setTimeout(240_000)
 
   const run = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
