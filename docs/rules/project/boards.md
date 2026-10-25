@@ -37,7 +37,7 @@ tags: [suhtleja, frontend, boards, payload]
   - In `/boards/[id]/edit`, if there are unsaved changes, leaving the page must require explicit confirmation.
   - The unsaved-changes guard must apply to both anchor navigation and forms marked with `data-navigation-form` (e.g. parent/child mode switch flows).
   - `Lisa plokk` text-based bulk add must support both one-line-per-card input and sentence paste with an editable split preview.
-  - In bulk add, if a matching image already exists in local `media`, prefer that image before falling back to ARASAAC.
+  - In bulk add, if the media library (media in a folder) has an image whose alt text or file name is exactly the word, prefer it before falling back to ARASAAC (see `symbols-ai.md`).
   - In bulk add, if the direct local/ARASAAC lookup finds no image, use `/next/groq` to generate a small ordered set of English ARASAAC search terms and try each term until the first image is found.
   - When bulk add finds images through Groq-generated ARASAAC terms, show a Sonner info toast listing the original text and matched English search term.
   - The `Lisa plokk` dialog must stay within the viewport and scroll internally when the form or sentence preview is long.

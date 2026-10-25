@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import type { User } from '@/payload-types'
+import { findLibraryMedia } from '@/utilities/findLibraryMedia'
 import { hasActiveMembership } from '@/utilities/membershipStatus'
 
 export const runtime = 'nodejs'
@@ -26,47 +27,6 @@ type OpenMojiEntry = {
   annotation: string
   hexcode: string
   tags?: string[]
-}
-
-async function findPreferredLocalMedia(payload: Awaited<ReturnType<typeof getPayload>>, q: string) {
-  const exactAlt = await payload.find({
-    collection: 'media',
-    depth: 0,
-    limit: 1,
-    pagination: false,
-    where: {
-      alt: {
-        equals: q,
-      },
-    },
-  })
-
-  if (exactAlt.docs[0]?.id && exactAlt.docs[0]?.url) {
-    return exactAlt.docs[0]
-  }
-
-  const looseMatch = await payload.find({
-    collection: 'media',
-    depth: 0,
-    limit: 1,
-    pagination: false,
-    where: {
-      or: [
-        {
-          alt: {
-            like: q,
-          },
-        },
-        {
-          filename: {
-            like: q,
-          },
-        },
-      ],
-    },
-  })
-
-  return looseMatch.docs[0]?.id && looseMatch.docs[0]?.url ? looseMatch.docs[0] : null
 }
 
 async function fetchArasaac(locale: string, q: string, limit: number) {
@@ -156,7 +116,7 @@ export async function GET(req: Request) {
     }
 
     if (preferLocal) {
-      const localMedia = await findPreferredLocalMedia(payload, q)
+      const localMedia = await findLibraryMedia(payload, q)
       if (localMedia?.id && localMedia.url) {
         return NextResponse.json({
           items: [

@@ -27,7 +27,7 @@ tags: [suhtleja, frontend, symbols, groq, api]
 - Sources:
   - ARASAAC (external API). Without `locale`, searches `et` and `en` and de-duplicates. With `locale`, falls back to `en` when empty.
   - OpenMoji (fetched from unpkg, filtered by annotation/tags).
-  - Local `media` collection when `preferLocal=true` and an `alt`/filename matches.
+  - Local `media` collection when `preferLocal=true`: only media library files (in a folder), and only when `alt` or the file name without its extension is exactly `q` (`src/utilities/findLibraryMedia.ts`). Never match loosely or outside the library: that picked homepage screenshots for "mina" and "ema", and would show one customer's uploads on another customer's board.
 - Every item carries `license` and `attribution`. Keep them; ARASAAC is CC BY-NC-SA and attribution is a license requirement.
 - Upstream failures return `{ items: [] }`, never a 5xx.
 
