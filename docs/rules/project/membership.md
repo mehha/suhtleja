@@ -21,6 +21,10 @@ tags: [suhtleja, stripe, membership, profile]
   - `trial_settings.end_behavior.missing_payment_method: 'cancel'`, so Stripe cancels the subscription if no payment method is added before the trial ends. The webhook then sets `membershipStatus` to `canceled`.
   - Trial users add a payment method through the Billing Portal ("Halda liikmelisust"); the profile page tells them so.
 - Customers with any previous Stripe subscription (checked with `subscriptions.list`, `status: 'all'`) get no new trial, and Checkout collects a card up front. This stops repeated free trials.
+- Checkout offers these returning customers their saved card again: `saved_payment_method_options.allow_redisplay_filters` is `['always', 'limited', 'unspecified']`.
+  - Stripe's default shows only cards with `allow_redisplay: 'always'`. Cards saved by a subscription Checkout get `limited`, and cards saved without a redisplay setting (for example through the API) are `unspecified`, so by default none of them would be shown.
+  - Checkout shows a saved card only if its `billing_details` include email, name and `address.country` (with `billing_address_collection: auto`). Cards saved by Checkout have them. A card without them stays hidden whatever the filter.
+  - Stripe sets these defaults to help with card network rules and data protection consent. Showing `limited`/`unspecified` cards was a deliberate owner decision; revisit it if legal/privacy review says customers must opt in (`saved_payment_method_options.payment_method_save: 'enabled'` with the default filter).
 - Stripe Dashboard setup (owner action, live account):
   - Billing Portal must allow payment method updates.
   - Enable trial reminder emails with a link to the Stripe-hosted page under Settings → Billing → Subscriptions and emails → Manage free trial messaging.

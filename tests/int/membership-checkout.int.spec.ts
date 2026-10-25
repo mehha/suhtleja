@@ -9,6 +9,7 @@ describe('membership checkout options', () => {
     const options = getMembershipCheckoutOptions({ hadSubscription: false, userId: '42' })
 
     expect(options.payment_method_collection).toBe('if_required')
+    expect(options.saved_payment_method_options).toBeUndefined()
     expect(options.subscription_data).toEqual({
       metadata: { payloadUserId: '42' },
       trial_period_days: MEMBERSHIP_TRIAL_DAYS,
@@ -23,5 +24,13 @@ describe('membership checkout options', () => {
 
     expect(options.payment_method_collection).toBeUndefined()
     expect(options.subscription_data).toEqual({ metadata: { payloadUserId: '42' } })
+  })
+
+  it('offers returning customers their saved card', () => {
+    const options = getMembershipCheckoutOptions({ hadSubscription: true, userId: '42' })
+
+    expect(options.saved_payment_method_options).toEqual({
+      allow_redisplay_filters: ['always', 'limited', 'unspecified'],
+    })
   })
 })

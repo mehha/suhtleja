@@ -4,12 +4,14 @@ export const MEMBERSHIP_TRIAL_DAYS = 14
 
 type MembershipCheckoutOptions = Pick<
   Stripe.Checkout.SessionCreateParams,
-  'payment_method_collection' | 'subscription_data'
+  'payment_method_collection' | 'saved_payment_method_options' | 'subscription_data'
 >
 
 // First-time members get a free trial without entering a card; Stripe cancels the
 // subscription if no payment method is added before the trial ends. Customers who
 // already had a subscription used their trial, so Checkout collects a card up front.
+// Their saved card is offered again: cards saved by a subscription (`limited`) or
+// without a redisplay setting (`unspecified`) are hidden by Checkout's default filter.
 export const getMembershipCheckoutOptions = ({
   hadSubscription,
   userId,
@@ -20,7 +22,12 @@ export const getMembershipCheckoutOptions = ({
   const metadata = { payloadUserId: userId }
 
   if (hadSubscription) {
-    return { subscription_data: { metadata } }
+    return {
+      saved_payment_method_options: {
+        allow_redisplay_filters: ['always', 'limited', 'unspecified'],
+      },
+      subscription_data: { metadata },
+    }
   }
 
   return {
