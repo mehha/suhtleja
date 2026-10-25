@@ -39,8 +39,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isAdmin = user?.role === 'admin'
   const uiMode = await getUiMode()
 
+  // scroll-pt: anchor links (/#hind) stop below the sticky header.
   return (
-    <html className={cn(GeistSans.variable, GeistMono.variable, displayFont.variable)} lang="et" suppressHydrationWarning>
+    <html
+      className={cn(GeistSans.variable, GeistMono.variable, displayFont.variable, 'scroll-pt-[6.5rem] sm:scroll-pt-[7.5rem]')}
+      lang="et"
+      suppressHydrationWarning
+    >
       <head>
         <InitTheme />
         <link href="/favicon.ico" rel="icon" sizes="32x32" />

@@ -52,6 +52,11 @@ Header nav items are content in the Header global; link new sections with anchor
 - Feature tabs and FAQ answers use `forceMount`, so every feature description and answer is in the server HTML. Inactive tabs and closed answers are hidden with CSS.
 - "Kuula ise" tiles get their audio from `GET /next/homepage-tts/<hash>`, which is public. It only speaks words shown by a published homepage block (stored tiles, or the default words when the list is empty), so it can't be used as a general speech service. Audio is cached in R2 under the same keys as board speech. See `docs/rules/project/audio-tts.md`.
 - Logged-out visitors see a "Proovi tasuta" button to `/register` in the header from the `sm` breakpoint. On phones the hero button does that job, because the header row is full.
+- The header sticks to the top of the page (`sticky top-3`) and gets a deeper shadow once the page scrolls; its height stays the same, so the content doesn't jump.
+  - Header height: 80px on phones (the logo's `-my-1.5` drops the empty space its `scale-[0.82]` leaves), about 100px from `sm` up.
+  - Two values depend on that height; change them with it:
+    - the hero's pull-up under the header in `SuhtlejaHomepage/Component.tsx`: `-mt-[144px]`/`pt-[144px]` on phones, `167px` from `sm` up (header top margin + height + page padding);
+    - `scroll-pt-[6.5rem] sm:scroll-pt-[7.5rem]` on `<html>`, so anchor links such as `/#hind` stop below the header.
 - Visual direction follows the logo: its three slightly tilted tiles (orange, red, blue) are the brand's material. Sections cycle through the logo colours in logo order (`toneAt` in `src/components/Brand`), so items in the same position share a colour.
 - Headings use the rounded display face (`font-display`, Nunito, loaded in `src/app/(frontend)/layout.tsx`); body text stays Geist. Check õ, ä, ö, ü, š and ž when changing the face.
 - Icons and step numbers sit in `LogoTile`, a small copy of a logo tile with the same gradient and tilt. The hero shows enlarged pale logo tiles behind the product image instead of a gradient wash.

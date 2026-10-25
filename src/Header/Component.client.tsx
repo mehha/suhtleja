@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { House, LogIn } from 'lucide-react'
 import { ParentModeToggle } from '@/Header/Nav/ParentModeToggle'
+import { cn } from '@/utilities/ui'
 
 interface HeaderClientProps {
   data: Header
@@ -39,6 +40,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
   const pathname = usePathname()
   const router = useRouter()
   const [clientUser, setClientUser] = useState<User | null>(currentUser)
+  const [scrolled, setScrolled] = useState(false)
 
   async function handleSignOut() {
     try {
@@ -68,6 +70,14 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
   useEffect(() => {
     setClientUser(currentUser)
   }, [currentUser])
+
+  // The header sticks to the top; once the page scrolls, a deeper shadow lifts it off the content.
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 8)
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -115,12 +125,18 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
   const effectiveHasPin = Boolean(clientUser?.parentPinHash || hasPin)
 
   return (
-    <header className="container mt-6 relative z-20" {...(theme ? { 'data-theme': theme } : {})}>
-      <div className="flex items-center justify-between gap-4 rounded-full bg-white p-4 shadow-sm ring-1 ring-gray-900/5 dark:bg-black sm:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center">
+    <header className="container sticky top-3 z-30 mt-6" {...(theme ? { 'data-theme': theme } : {})}>
+      <div
+        className={cn(
+          'flex items-center justify-between gap-4 rounded-full bg-white px-4 py-3 ring-1 ring-gray-900/5 transition-shadow duration-200 dark:bg-black sm:p-4 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center',
+          scrolled ? 'shadow-lg shadow-slate-900/10' : 'shadow-sm',
+        )}
+      >
         <div className="flex items-center lg:justify-self-start">
           <Link href="/" className="flex items-center" aria-label="Suhtleja">
+            {/* -my-1.5 drops the space the phone-size scale leaves empty (68px box, 56px logo). */}
             <Logo
-              className="origin-left scale-[0.82] sm:scale-90 lg:scale-100"
+              className="-my-1.5 origin-left scale-[0.82] sm:my-0 sm:scale-90 lg:scale-100"
               loading="eager"
               priority="high"
             />

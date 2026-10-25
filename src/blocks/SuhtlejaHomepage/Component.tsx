@@ -332,8 +332,8 @@ export const SuhtlejaHomepageBlock: React.FC<Props> = ({
   // Negative margins cancel FrontendShell's padding, so sections run edge to edge and the
   // closing band meets the footer.
   return (
-    <section className={cn('not-prose overflow-hidden bg-white text-[#22314c] -mx-4 -mt-[167px] -mb-10', className)}>
-      {hero?.enabled !== false && <div className="relative isolate border-b border-[#e6ebf3] bg-[#f8fafc] pt-[167px]">
+    <section className={cn('not-prose overflow-hidden bg-white text-[#22314c] -mx-4 -mt-[144px] -mb-10 sm:-mt-[167px]', className)}>
+      {hero?.enabled !== false && <div className="relative isolate border-b border-[#e6ebf3] bg-[#f8fafc] pt-[144px] sm:pt-[167px]">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 pt-14 pb-24 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div className="max-w-2xl">
             <div className="mt-8">
