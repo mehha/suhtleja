@@ -41,6 +41,8 @@ export const ContentBlock: React.FC<Props> = (props) => {
                     data={richText}
                     enableGutter={false}
                     promoteFirstHeading={promoteHeading && index === 0}
+                    // Full-width text keeps a readable line length, aligned left with the page title.
+                    className={size === 'full' ? 'mx-0 max-w-[70ch]' : undefined}
                   />
                 )}
 

@@ -18,6 +18,10 @@ tags: [suhtleja, pages, blocks, payload]
 - The footer links "Meist" and "KKK" (`/#kkk`) as well as the legal pages.
 - `/demo` redirects permanently to `/kuidas-see-tootab` (`redirects.js`). The board-making video belongs in the steps block there.
 
+## Rich text pages
+- Full-width content columns keep a readable line length (about 70 characters) and align left with the page title (`src/blocks/Content/Component.tsx`).
+- "Meist" sticks to facts the team has confirmed: the mission, the team description, the company details and what the product does. Don't add a founder story, partners or numbers without the team's input.
+
 ## Steps block (`howItWorks`)
 - Use it first on "Kuidas see töötab", with the page title as its title, so it becomes the page's h1.
 - Each step has a title, a description and optionally a screenshot or a short video from the real app, with an aspect ratio (4:3 default). Videos show controls and don't autoplay.
