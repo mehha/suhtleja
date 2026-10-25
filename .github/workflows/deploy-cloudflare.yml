@@ -47,12 +47,15 @@ jobs:
 
       # The Payload-backed tests use a throwaway local D1 on the runner (no Cloudflare credentials in
       # this step), so migrate it first. The secret only has to exist; it never touches production.
+      # Remove the local state afterwards: the build starts several workers that would all open it
+      # and fail with "database is locked".
       - name: Integration tests
         env:
           PAYLOAD_SECRET: ci-test-secret
         run: |
           pnpm payload migrate
           pnpm test:int
+          rm -rf .wrangler/state
 
       - name: Check R2 cache upload configuration
         env:
