@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 
 import { cn } from '@/utilities/ui'
-import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
 import { Nunito } from 'next/font/google'
 import React from 'react'
@@ -10,7 +9,7 @@ import { AdminBar } from '@/components/AdminBar'
 import { Footer } from '@/Footer/Component'
 import { Header } from '@/Header/Component'
 import { Providers } from '@/providers'
-import { InitTheme } from '@/providers/Theme/InitTheme'
+import { defaultTheme } from '@/providers/Theme/shared'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 import { draftMode, headers } from 'next/headers'
 
@@ -24,8 +23,9 @@ import { getUiMode } from '@/utilities/uiMode'
 import { FrontendShell } from './FrontendShell'
 
 // Rounded display face for marketing headings; its soft corners echo the logo tiles.
+// Only the latin subset is preloaded; the others (latin-ext for š and ž) still load when a page uses them.
 const displayFont = Nunito({
-  subsets: ['latin', 'latin-ext'],
+  subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
 })
@@ -39,15 +39,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isAdmin = user?.role === 'admin'
   const uiMode = await getUiMode()
 
-  // scroll-pt: anchor links (/#hind) stop below the sticky header.
+  // scroll-pt: anchor links (/#hind) stop below the sticky header. The theme is always light, so it
+  // is set here rather than by a script that would only run once Next.js's JavaScript has loaded.
   return (
     <html
-      className={cn(GeistSans.variable, GeistMono.variable, displayFont.variable, 'scroll-pt-[6.5rem] sm:scroll-pt-[7.5rem]')}
+      className={cn(GeistSans.variable, displayFont.variable, 'scroll-pt-[6.5rem] sm:scroll-pt-[7.5rem]')}
+      data-theme={defaultTheme}
       lang="et"
       suppressHydrationWarning
     >
       <head>
-        <InitTheme />
         <link href="/favicon.ico" rel="icon" sizes="32x32" />
         <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
       </head>

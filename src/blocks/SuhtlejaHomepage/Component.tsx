@@ -378,6 +378,7 @@ export const SuhtlejaHomepageBlock: React.FC<Props> = ({
                 isMediaObject(hero?.image) ? 'aspect-[4/3] w-full lg:aspect-auto lg:min-h-[440px]' : 'min-h-[440px]'
               }
               imageFit="contain"
+              priority
             >
               <HeroMockup />
             </MediaFrame>

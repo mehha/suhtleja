@@ -31,6 +31,13 @@ tags: [suhtleja, ui, shadcn]
 - Brand motion lives in `tailwind.config.mjs` (`tile-drop`, `pop-in`, `chip-in`, `tile-hint`, `sound-bar`, `draw-x`, `fade-up`): springy, short, and always behind `motion-safe:`. The keyframes use the `translate`/`scale` properties so they don't override a tile's `rotate-*`. For a one-time entrance below the fold, wrap content in `Reveal` and style children with `group-data-[reveal=pending]/reveal:` and `group-data-[reveal=in]/reveal:`.
 - After changing `tailwind.config.mjs`, restart the dev server; a running server keeps the old config.
 
+## Page Speed
+- The theme is always light and is set as `data-theme` on `<html>` in `src/app/(frontend)/layout.tsx`. Don't hide the page until a script runs: the old `html { opacity: 0 }` guard waited for Next.js's JavaScript, so a slow phone saw nothing for 4.2s although the HTML had arrived after 1.6s.
+- Only Geist Sans and Nunito's `latin` subset are preloaded. Nunito's other subsets (`latin-ext` for š and ž) load when a page uses them. `font-mono` is the system monospace font.
+- An image in the first screen gets `priority` (`MediaFrame` passes it on), so it loads at once with a preload link. Other images stay lazy.
+- `public/_headers` gives `/_next/static/*` a one-year `immutable` cache; those file names change with every build.
+- Public pages are rendered on every request (`cache-control: private, no-store`), because the root layout reads the login and the `uiMode` cookie. The R2 incremental cache only holds data cached with `unstable_cache`, such as the header and footer globals.
+
 ## Error Page
 - `src/app/(frontend)/error.tsx` catches errors from pages and their Server Actions, so a failure shows a message instead of a blank page; the header stays.
 - A Server Action sent from a page loaded before a deploy fails with `UnrecognizedActionError` (action ids change every build). The error page reloads once by itself (guarded in `sessionStorage` against loops) and otherwise offers a reload button.

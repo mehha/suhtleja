@@ -16,12 +16,15 @@ export function MediaFrame({
   className,
   children,
   imageFit = 'cover',
+  priority,
 }: {
   resource?: MediaResource
   label: string
   className?: string
   children?: ReactNode
   imageFit?: 'cover' | 'contain'
+  // For an image in the first screen: loads right away instead of lazily.
+  priority?: boolean
 }) {
   return (
     <div
@@ -34,6 +37,7 @@ export function MediaFrame({
         <Media
           resource={resource}
           fill
+          priority={priority}
           pictureClassName="block h-full w-full"
           imgClassName={imageFit === 'contain' ? 'object-contain' : 'object-cover'}
           videoClassName="h-full w-full object-cover"

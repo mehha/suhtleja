@@ -106,7 +106,7 @@ const config = {
       },
       fontFamily: {
         display: ['var(--font-display)', 'var(--font-geist-sans)', 'sans-serif'],
-        mono: ['var(--font-geist-mono)'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
         sans: ['var(--font-geist-sans)'],
       },
       keyframes: {
