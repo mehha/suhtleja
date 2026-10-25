@@ -95,3 +95,14 @@ jobs:
           STRIPE_KEYRING: ${{ secrets.STRIPE_KEYRING }}
           STRIPE_BILLING_PORTAL_CONFIGURATION_ID: ${{ vars.STRIPE_BILLING_PORTAL_CONFIGURATION_ID }}
         run: pnpm run deploy
+
+      # Read-only smoke tests against the site that was just deployed: every public page has one h1,
+      # images load, /demo redirects, the homepage speech works. A failure here means production
+      # is live but broken, so look at it right away.
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Smoke test the deployed site
+        env:
+          SMOKE_BASE_URL: ${{ vars.NEXT_PUBLIC_SERVER_URL }}
+        run: pnpm test:e2e

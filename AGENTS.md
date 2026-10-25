@@ -65,6 +65,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - `pnpm dev` for local development.
 - `pnpm lint` / `pnpm lint:fix`.
 - `pnpm test:int`, `pnpm test:e2e`, `pnpm test`.
+- `pnpm test:e2e` runs read-only smoke tests (`tests/e2e/smoke.e2e.spec.ts`) against `pnpm dev` by default, or against a deployed site with `SMOKE_BASE_URL=https://suhtleja.ee pnpm test:e2e`. CI runs them against production after every deploy.
 - `pnpm generate:types`, `pnpm generate:importmap`.
 
 ## Coding and PR Conventions

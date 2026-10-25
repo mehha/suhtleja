@@ -6,6 +6,11 @@ import { defineConfig, devices } from '@playwright/test'
  */
 import 'dotenv/config'
 
+// Smoke tests only read public pages, so they can run against a local dev server (default) or a
+// deployed site: `SMOKE_BASE_URL=https://suhtleja.ee pnpm test:e2e`.
+const baseURL = process.env.SMOKE_BASE_URL ?? 'http://localhost:3000'
+const testsLocalServer = !process.env.SMOKE_BASE_URL
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -18,24 +23,29 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: process.env.CI ? 'list' : [['list'], ['html', { open: 'never' }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    // baseURL: 'http://localhost:3000',
-
+    baseURL,
+    locale: 'et-EE',
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'desktop',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'mobile',
+      use: { ...devices['Pixel 7'] },
+    },
   ],
-  webServer: {
-    command: 'pnpm dev',
-    reuseExistingServer: true,
-    url: 'http://localhost:3000',
-  },
+  webServer: testsLocalServer
+    ? {
+        command: 'pnpm dev',
+        reuseExistingServer: true,
+        url: baseURL,
+      }
+    : undefined,
 })
