@@ -149,6 +149,8 @@ export function BoardsList({
                     ? (board.owner as any)
                     : null
                 const canEditBoard = board.isOwnedByCurrentUser
+                // Admins also see other users' private boards; their home pin belongs to the owner.
+                const canTogglePinned = board.isOwnedByCurrentUser || !!board.visibleToAllUsers
 
                 return (
                   <TableRow
@@ -204,42 +206,44 @@ export function BoardsList({
                           {isPinned ? 'Koduvaates' : 'Peidetud'}
                         </Badge>
 
-                        <form action={togglePinned}>
-                          <input type="hidden" name="boardId" value={String(board.id)} />
-                          <input
-                            type="hidden"
-                            name="isOwnedByCurrentUser"
-                            value={board.isOwnedByCurrentUser ? 'true' : 'false'}
-                          />
-                          <input
-                            type="hidden"
-                            name="pinned"
-                            value={(!isPinned).toString()}
-                          />
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="submit"
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7"
-                              >
-                                {isPinned ? (
-                                  <PinOff className="h-4 w-4" />
-                                ) : (
-                                  <Pin className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                {isPinned
-                                  ? 'Eemalda koduvaatest'
-                                  : 'Lisa koduvaatesse'}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </form>
+                        {canTogglePinned ? (
+                          <form action={togglePinned}>
+                            <input type="hidden" name="boardId" value={String(board.id)} />
+                            <input
+                              type="hidden"
+                              name="isOwnedByCurrentUser"
+                              value={board.isOwnedByCurrentUser ? 'true' : 'false'}
+                            />
+                            <input
+                              type="hidden"
+                              name="pinned"
+                              value={(!isPinned).toString()}
+                            />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="submit"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                >
+                                  {isPinned ? (
+                                    <PinOff className="h-4 w-4" />
+                                  ) : (
+                                    <Pin className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  {isPinned
+                                    ? 'Eemalda koduvaatest'
+                                    : 'Lisa koduvaatesse'}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </form>
+                        ) : null}
                       </div>
                     </TableCell>
 

@@ -156,15 +156,21 @@ export default async function ActivitiesPage() {
       collection: 'boards',
       id: boardId,
       depth: 0,
+      overrideAccess: false,
+      user,
     })
 
-    if (isOwnedByUser(doc, user.id) || !doc.visibleToAllUsers) {
+    // Owners pin the board itself; shared boards keep a per-user hidden list. Another
+    // user's private board (only admins can see one) stays untouched.
+    if (isOwnedByUser(doc, user.id)) {
       await payload.update({
         collection: 'boards',
         id: boardId,
         data: { pinned },
+        overrideAccess: false,
+        user,
       })
-    } else {
+    } else if (doc.visibleToAllUsers) {
       const prefs = getUserSharedHomePreferences(user)
       const hiddenSharedBoardIds = setHiddenState(
         prefs.hiddenSharedBoardIds,
@@ -226,7 +232,7 @@ export default async function ActivitiesPage() {
     if (!user) redirect('/admin')
     requireActiveMembership(user)
 
-    await payload.delete({ collection: 'boards', id: boardId })
+    await payload.delete({ collection: 'boards', id: boardId, overrideAccess: false, user })
 
     redirect('/koduhaldus')
   }

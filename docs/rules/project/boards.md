@@ -68,6 +68,8 @@ tags: [suhtleja, frontend, boards, payload]
   - Shared rows in `/koduhaldus` must expose personal `Koduvaade` hide/show controls without granting edit/delete rights.
   - Owned rows in `/koduhaldus` must keep document-level home pin/unpin controls.
   - On the boards table, edit/delete actions are owner-only.
+  - Board delete and owner pin/unpin server actions call the Local API with `overrideAccess: false` and the current `user`, so `canManageBoard` (owner with active membership) decides.
+  - Admins see other users' private boards but get no `Koduvaade` toggle for them; that pin belongs to the owner and `togglePinned` leaves such boards untouched.
   - Admin visibility moderation must be available separately from content editing.
 
 ## Change Checklist
