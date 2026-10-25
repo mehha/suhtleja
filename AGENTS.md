@@ -57,7 +57,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - Production D1 migrations run in deploy: `pnpm deploy` (and the GitHub Actions deploy on push to `master`) runs `deploy:database` (`payload migrate` + `PRAGMA optimize`) before deploying the app. `push: false` stays, so every schema change needs a committed Payload migration.
 - Local migrations: after a schema change (collection, field or block config), agents run `pnpm payload migrate:create <name>` and then `pnpm migrate` themselves, without asking. Review the generated migration before committing it; it must contain only the intended changes. These commands use the local D1. Agents must not run `migrate:remote`, `deploy:database`, `pnpm deploy` or any command with `NODE_ENV=production` unless explicitly authorized.
 - Before applying a generated migration, look for table rebuilds: a `__new_<table>` that is filled from the old table, which is then dropped and renamed. Drizzle does this for changes SQLite can't make in place, such as a new column default or dropping a column with a foreign key. On D1, `PRAGMA foreign_keys=OFF` has no effect, so dropping the old table cascade-deletes rows in its child tables (arrays, blocks and their versions), and the copy fills columns new in that migration with their own names as text. Write those migrations by hand with `ALTER TABLE ... ADD` and `CREATE TABLE` instead (example: `src/migrations/20261025_094741_homepage_sections.ts`).
-- The deploy workflow runs `tsc --noEmit` and `pnpm test:int` before any migration. `tests/int/migrations.int.spec.ts` fails when a migration's `up()` rebuilds a table, so a generated rebuild can't reach production unnoticed.
+- The deploy workflow runs `tsc --noEmit`, `pnpm test:int` and the member flow test before any migration. `tests/int/migrations.int.spec.ts` fails when a migration's `up()` rebuilds a table, so a generated rebuild can't reach production unnoticed.
 - `payload` is patched (`patches/payload@3.92.0.patch`, password hashing on Workers). When upgrading Payload, follow the README's Payload 3.90.0 upgrade notes to drop or recreate the patch.
 
 ## Build and Test Commands
@@ -65,7 +65,9 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - `pnpm dev` for local development.
 - `pnpm lint` / `pnpm lint:fix`.
 - `pnpm test:int`, `pnpm test:e2e`, `pnpm test`.
-- `pnpm test:e2e` runs read-only smoke tests (`tests/e2e/smoke.e2e.spec.ts`) against `pnpm dev` by default, or against a deployed site with `SMOKE_BASE_URL=https://suhtleja.ee pnpm test:e2e`. CI runs them against production after every deploy.
+- `pnpm test:e2e` runs against `pnpm dev` by default:
+  - Smoke tests (`tests/e2e/smoke.e2e.spec.ts`) only read public pages. `SMOKE_BASE_URL=https://suhtleja.ee pnpm test:e2e` runs them against a deployed site. CI runs them against production after every deploy.
+  - The member flow test (`tests/e2e/member-flow.e2e.spec.ts`) registers an account, starts a trial with a signed Stripe webhook event, unlocks the parent view with a PIN, puts a board on the child home and checks that it speaks. It needs the server's `STRIPE_WEBHOOK_SECRET` (read from the same `.env*` files) and skips itself against a deployed site. The global teardown deletes the `e2e-*@suhtleja.test` accounts it creates. CI runs it before deploying, on a throwaway local D1.
 - `pnpm generate:types`, `pnpm generate:importmap`.
 
 ## Coding and PR Conventions

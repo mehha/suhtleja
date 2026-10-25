@@ -632,6 +632,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
                   <TooltipTrigger asChild>
                     <Button
                       onClick={handlePlayAll}
+                      aria-label="Esita kogu fraas"
                       roundness="full"
                       size="icon"
                       disabled={!sequence.length || phrasePlaying}
@@ -664,6 +665,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
                       size="icon"
                       disabled={!sequence.length || phrasePlaying}
                       onClick={handleUndoLast}
+                      aria-label="Võta viimane tagasi"
                       roundness="full"
                       className="h-11 w-11 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400"
                     >
@@ -688,6 +690,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
                       size="icon"
                       disabled={!sequence.length || phrasePlaying}
                       onClick={handleClear}
+                      aria-label="Tühjenda fraas"
                       roundness="full"
                       className="h-11 w-11 bg-rose-600 text-white shadow-sm hover:bg-rose-700 disabled:bg-slate-100 disabled:text-slate-400"
                     >

@@ -225,6 +225,7 @@ export function BoardsList({
                                   type="submit"
                                   size="icon"
                                   variant="ghost"
+                                  aria-label={isPinned ? 'Eemalda koduvaatest' : 'Lisa koduvaatesse'}
                                   className="h-7 w-7"
                                 >
                                   {isPinned ? (

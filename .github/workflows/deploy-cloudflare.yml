@@ -57,6 +57,26 @@ jobs:
           pnpm test:int
           rm -rf .wrangler/state
 
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      # A new customer's main path (register, trial, PIN, board speaks) against a local dev server on
+      # a throwaway D1 and R2, like the integration tests. The test signs its own Stripe webhook event,
+      # so the Stripe values are placeholders and nothing calls Stripe. Speech uses the real Azure key.
+      # Remove the dev server's state and output so the build starts clean.
+      - name: Member flow test
+        env:
+          PAYLOAD_SECRET: ci-test-secret
+          STRIPE_SECRET_KEY: sk_test_ci_placeholder
+          STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
+          SPEECH_KEY: ${{ secrets.SPEECH_KEY }}
+          SPEECH_REGION: ${{ vars.SPEECH_REGION }}
+          SPEECH_VOICE: ${{ vars.SPEECH_VOICE }}
+        run: |
+          pnpm payload migrate
+          pnpm test:e2e tests/e2e/member-flow.e2e.spec.ts
+          rm -rf .wrangler/state .next
+
       - name: Check R2 cache upload configuration
         env:
           CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -98,10 +118,7 @@ jobs:
 
       # Read-only smoke tests against the site that was just deployed: every public page has one h1,
       # images load, /demo redirects, the homepage speech works. A failure here means production
-      # is live but broken, so look at it right away.
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
-
+      # is live but broken, so look at it right away. The member flow test skips itself here.
       - name: Smoke test the deployed site
         env:
           SMOKE_BASE_URL: ${{ vars.NEXT_PUBLIC_SERVER_URL }}

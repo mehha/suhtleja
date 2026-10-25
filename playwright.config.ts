@@ -1,13 +1,14 @@
 import { defineConfig, devices } from '@playwright/test'
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-import 'dotenv/config'
+import dotenv from 'dotenv'
+
+// The env files `next dev` reads, in its order, so the member flow test signs Stripe webhooks with
+// the secret the local server checks.
+dotenv.config({ path: ['.env.development.local', '.env.local', '.env.development', '.env'] })
 
 // Smoke tests only read public pages, so they can run against a local dev server (default) or a
-// deployed site: `SMOKE_BASE_URL=https://suhtleja.ee pnpm test:e2e`.
+// deployed site: `SMOKE_BASE_URL=https://suhtleja.ee pnpm test:e2e`. The member flow test creates an
+// account, so it runs only against the local server; the global teardown deletes the account.
 const baseURL = process.env.SMOKE_BASE_URL ?? 'http://localhost:3000'
 const testsLocalServer = !process.env.SMOKE_BASE_URL
 
@@ -41,11 +42,14 @@ export default defineConfig({
       use: { ...devices['Pixel 7'] },
     },
   ],
+  globalTeardown: testsLocalServer ? './tests/e2e/global-teardown.ts' : undefined,
   webServer: testsLocalServer
     ? {
         command: 'pnpm dev',
         reuseExistingServer: true,
-        url: baseURL,
+        // A page that answers 200 even with an empty database (CI). The first compile is slow.
+        url: new URL('/login', baseURL).href,
+        timeout: 180_000,
       }
     : undefined,
 })

@@ -61,8 +61,8 @@ tags: [suhtleja, stripe, membership, profile]
 - Keep these routes available without membership:
   - `/profile` (upgrade/manage when membership exists, otherwise upgrade only)
   - `/login` and `/register`
-  - `/kodu` (navigation shell)
 - Require active membership (`trialing` or `active`) on:
+  - `/kodu`: a new customer lands here after registering and is sent on to the trial offer (`/profile?membership=required`). `tests/e2e/member-flow.e2e.spec.ts` checks this.
   - `/connect-dots`
   - `/koduhaldus`
   - `/boards/[id]`
