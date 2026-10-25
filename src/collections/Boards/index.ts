@@ -1,4 +1,5 @@
 import type { AccessArgs, CollectionConfig, Where } from 'payload'
+import { isAdminFieldLevel } from '@/access/isAdminFieldLevel'
 import type { User } from '@/payload-types'
 import { hasActiveMembership } from '@/utilities/membershipStatus'
 import { ensureBoardTTSManifest } from '@/utilities/boardTTSCache'
@@ -60,6 +61,8 @@ export const Boards: CollectionConfig = {
       relationTo: 'users',
       required: true,
       admin: { readOnly: true },
+      // Only admins may set or change the owner; customers' boards always belong to themselves.
+      access: { create: isAdminFieldLevel, update: isAdminFieldLevel },
       defaultValue: ({ user }) => user?.id,
     },
     {
@@ -77,9 +80,8 @@ export const Boards: CollectionConfig = {
         description: 'Kui väljas, näevad tahvlit ainult omanik ja administraatorid.',
         position: 'sidebar',
       },
-      access: {
-        update: ({ req }) => req.user?.role === 'admin',
-      },
+      // Sharing a board with every user is an admin decision, on create as well as update.
+      access: { create: isAdminFieldLevel, update: isAdminFieldLevel },
     },
     {
       name: 'order',

@@ -1,6 +1,7 @@
 import type { AccessArgs, CollectionConfig, Where } from 'payload'
 import { slugField } from 'payload'
 import { authenticated } from '@/access/authenticated'
+import { isAdminFieldLevel } from '@/access/isAdminFieldLevel'
 import type { User } from '@/payload-types'
 import { normalizeDots, validateConnectDotsDots } from '@/utilities/connectDots'
 
@@ -90,6 +91,8 @@ export const ConnectDotsPuzzles: CollectionConfig = {
       type: 'checkbox',
       defaultValue: false,
       label: 'Visible to all users',
+      // Only admins may share a puzzle with every user (the frontend form already hides the option).
+      access: { create: isAdminFieldLevel, update: isAdminFieldLevel },
       admin: {
         description: 'If disabled, only the owner and admins can see this puzzle.',
         position: 'sidebar',
@@ -121,6 +124,8 @@ export const ConnectDotsPuzzles: CollectionConfig = {
         readOnly: true,
         position: 'sidebar',
       },
+      // Only admins may set or change the owner; customers' puzzles always belong to themselves.
+      access: { create: isAdminFieldLevel, update: isAdminFieldLevel },
       defaultValue: ({ user }) => user?.id,
     },
     {

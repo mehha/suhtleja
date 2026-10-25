@@ -27,8 +27,12 @@ tags: [suhtleja, security, access, payload]
 - Plugin collections set in `src/plugins/index.ts`: redirects, forms and search writes are admin only; form submissions stay publicly creatable but only admins can read or delete them.
 - Payload jobs (`jobs.access.run`): admins or the `CRON_SECRET` bearer token.
 - Owner-based collections (boards, connect-dots puzzles, media) keep their owner checks.
+- Boards and connect-dots puzzles: the `owner` and `visibleToAllUsers` fields are admin-only for create and update (`isAdminFieldLevel`). A customer's value is dropped, so new documents always belong to the customer and stay private. Media blocks owner changes with field access and forces the owner on create in a hook.
+
+## Tests
+- `tests/int/access-control.int.spec.ts` checks these rules through the Local API with `overrideAccess: false`, as a visitor, a customer with and without a membership, and an admin. It creates its own users and documents and deletes them afterwards. Add a case whenever a rule here changes.
 
 ## Change Checklist
 - New collection or global: set every access operation explicitly; don't rely on defaults.
 - New plugin that adds collections: override its write access with `isAdmin`.
-- After access changes, test as a normal customer through the REST API (list users, edit another user, set own `role`, edit a page) and confirm each is refused.
+- After access changes, run `pnpm test:int` and extend `tests/int/access-control.int.spec.ts` for the new rule.
