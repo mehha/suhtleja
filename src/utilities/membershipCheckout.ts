@@ -41,3 +41,27 @@ export const getMembershipCheckoutOptions = ({
     },
   }
 }
+
+// Checkout shows a saved card only if its billing details include an email, a name
+// and a country. Cards added in the Billing Portal have only the country, so fill in
+// the email and name from the account. Without a name on the account the card can't
+// be completed, so it is left as is.
+export const getSavedCardBillingDetailsUpdate = ({
+  billingDetails,
+  email,
+  name,
+}: {
+  billingDetails: Stripe.PaymentMethod.BillingDetails
+  email: string
+  name?: string | null
+}): Stripe.PaymentMethodUpdateParams.BillingDetails | null => {
+  const accountName = name?.trim()
+
+  if (!accountName || !billingDetails.address?.country) return null
+  if (billingDetails.email && billingDetails.name) return null
+
+  return {
+    ...(billingDetails.email ? {} : { email }),
+    ...(billingDetails.name ? {} : { name: accountName }),
+  }
+}

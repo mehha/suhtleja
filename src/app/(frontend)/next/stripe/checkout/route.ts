@@ -3,7 +3,10 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Stripe from 'stripe'
 import { createStripeClient } from '@/utilities/stripe'
-import { getMembershipCheckoutOptions } from '@/utilities/membershipCheckout'
+import {
+  getMembershipCheckoutOptions,
+  getSavedCardBillingDetailsUpdate,
+} from '@/utilities/membershipCheckout'
 
 export const runtime = 'nodejs'
 
@@ -33,6 +36,28 @@ const hasAnySubscription = async (stripe: Stripe, customerId: string): Promise<b
   })
 
   return subscriptions.data.length > 0
+}
+
+const completeSavedCardBillingDetails = async (
+  stripe: Stripe,
+  customerId: string,
+  account: { email: string; name?: string | null },
+): Promise<void> => {
+  const paymentMethods = await stripe.customers.listPaymentMethods(customerId, {
+    type: 'card',
+    limit: 10,
+  })
+
+  for (const paymentMethod of paymentMethods.data) {
+    const billingDetails = getSavedCardBillingDetailsUpdate({
+      billingDetails: paymentMethod.billing_details,
+      ...account,
+    })
+
+    if (billingDetails) {
+      await stripe.paymentMethods.update(paymentMethod.id, { billing_details: billingDetails })
+    }
+  }
 }
 
 export async function POST(req: Request) {
@@ -133,6 +158,21 @@ export async function POST(req: Request) {
 
     const baseURL = getBaseURL(req)
     const hadSubscription = isNewCustomer ? false : await hasAnySubscription(stripe, customerId)
+
+    if (hadSubscription) {
+      // A failure here only means the saved card isn't offered, so Checkout still opens.
+      try {
+        await completeSavedCardBillingDetails(stripe, customerId, {
+          email: user.email,
+          name: user.name,
+        })
+      } catch (err) {
+        console.warn('Stripe saved card billing details update failed', {
+          customerId,
+          message: (err as Stripe.errors.StripeError)?.message ?? null,
+        })
+      }
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
