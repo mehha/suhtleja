@@ -15,6 +15,7 @@ tags: [suhtleja, stripe, membership, profile]
 
 ## Core Rules
 - Membership state source of truth is Stripe webhooks, not redirect query params.
+  - `?membership=success` / `?membership=cancel` only show a toast (`src/components/FlashToast.tsx`). The success text says the membership activates shortly, because the webhook may not have arrived yet.
 - Checkout options come from `src/utilities/membershipCheckout.ts`.
 - A customer's first subscription gets a 14-day trial without a card:
   - `payment_method_collection: 'if_required'`

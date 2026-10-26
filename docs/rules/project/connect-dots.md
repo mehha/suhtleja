@@ -96,6 +96,7 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
   - keep owner/private-vs-shared visibility rules intact
   - keep frontend route gating unchanged unless intentionally redesigned
 - When changing frontend authoring:
+  - `createPuzzle` / `updatePuzzle` return an `ActionResult` on errors, which the editor shows as a toast while keeping the dots; on success they redirect to `/koduhaldus` with the `game-saved` toast (`feedback-toasts.md`).
   - keep parent-mode enforcement on list/create/edit/delete routes
   - keep non-admin users from changing global visibility
   - keep owner assignment server-side on create

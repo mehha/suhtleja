@@ -8,6 +8,7 @@ import { SortableBoards, type HomeBoard } from './SortableBoards'
 import { ArrowRight, MonitorCheck, PlusCircle, Settings2, UserLock } from 'lucide-react'
 import { isParentModeUtil, requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
+import { withToast, type FlashToastKey } from '@/utilities/flashToast'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { CreateBoardForm } from '../boards/CreateBoardForm'
@@ -218,17 +219,27 @@ export default async function HomePage() {
       return
     }
 
-    const createdBoard = await payload.create({
-      collection: 'boards',
-      data: {
-        name,
-        owner: user.id,
-        grid: { cols: 6, rows: 8, cells: [] },
-        pinned: false,
-      },
-    })
+    let createdBoardId: number | string | null = null
+    try {
+      const createdBoard = await payload.create({
+        collection: 'boards',
+        data: {
+          name,
+          owner: user.id,
+          grid: { cols: 6, rows: 8, cells: [] },
+          pinned: false,
+        },
+      })
+      createdBoardId = createdBoard.id
+    } catch (error) {
+      console.error('createBoard failed', error)
+    }
 
-    redirect(`/boards/${createdBoard.id}/edit`)
+    redirect(
+      createdBoardId === null
+        ? withToast('/kodu', 'error')
+        : withToast(`/boards/${createdBoardId}/edit`, 'board-created'),
+    )
   }
 
   async function toggleBoardHomeVisibility(formData: FormData) {
@@ -250,32 +261,38 @@ export default async function HomePage() {
     }
     requireActiveMembership(user)
 
-    const board = (await payload.findByID({
-      collection: 'boards',
-      id: boardId,
-      depth: 0,
-    })) as Board
-
-    if (isOwnedByUser(board, user.id)) {
-      await payload.update({
+    let toastKey: FlashToastKey = visible ? 'board-pinned' : 'board-unpinned'
+    try {
+      const board = (await payload.findByID({
         collection: 'boards',
         id: boardId,
-        data: {
-          pinned: visible,
-        },
-      })
-    } else {
-      const prefs = getUserSharedHomePreferences(user)
-      await payload.update({
-        collection: 'users',
-        id: user.id,
-        data: {
-          hiddenSharedBoardIds: setHiddenState(prefs.hiddenSharedBoardIds, boardId, !visible),
-        },
-      })
+        depth: 0,
+      })) as Board
+
+      if (isOwnedByUser(board, user.id)) {
+        await payload.update({
+          collection: 'boards',
+          id: boardId,
+          data: {
+            pinned: visible,
+          },
+        })
+      } else {
+        const prefs = getUserSharedHomePreferences(user)
+        await payload.update({
+          collection: 'users',
+          id: user.id,
+          data: {
+            hiddenSharedBoardIds: setHiddenState(prefs.hiddenSharedBoardIds, boardId, !visible),
+          },
+        })
+      }
+    } catch (error) {
+      console.error('toggleBoardHomeVisibility failed', error)
+      toastKey = 'error'
     }
 
-    redirect('/kodu')
+    redirect(withToast('/kodu', toastKey))
   }
 
   async function togglePuzzleHomeVisibility(formData: FormData) {
@@ -297,36 +314,42 @@ export default async function HomePage() {
     }
     requireActiveMembership(user)
 
-    const puzzle = (await payload.findByID({
-      collection: 'connect-dots-puzzles',
-      id: puzzleId,
-      depth: 0,
-      overrideAccess: false,
-      user,
-    })) as SharedHomeConnectDotsPuzzleDoc
-
-    if (isOwnedByUser(puzzle, user.id)) {
-      await payload.update({
+    let toastKey: FlashToastKey = visible ? 'game-pinned' : 'game-unpinned'
+    try {
+      const puzzle = (await payload.findByID({
         collection: 'connect-dots-puzzles',
         id: puzzleId,
-        data: {
-          pinned: visible,
-        },
+        depth: 0,
         overrideAccess: false,
         user,
-      })
-    } else {
-      const prefs = getUserSharedHomePreferences(user)
-      await payload.update({
-        collection: 'users',
-        id: user.id,
-        data: {
-          hiddenSharedPuzzleIds: setHiddenState(prefs.hiddenSharedPuzzleIds, puzzleId, !visible),
-        },
-      })
+      })) as SharedHomeConnectDotsPuzzleDoc
+
+      if (isOwnedByUser(puzzle, user.id)) {
+        await payload.update({
+          collection: 'connect-dots-puzzles',
+          id: puzzleId,
+          data: {
+            pinned: visible,
+          },
+          overrideAccess: false,
+          user,
+        })
+      } else {
+        const prefs = getUserSharedHomePreferences(user)
+        await payload.update({
+          collection: 'users',
+          id: user.id,
+          data: {
+            hiddenSharedPuzzleIds: setHiddenState(prefs.hiddenSharedPuzzleIds, puzzleId, !visible),
+          },
+        })
+      }
+    } catch (error) {
+      console.error('togglePuzzleHomeVisibility failed', error)
+      toastKey = 'error'
     }
 
-    redirect('/kodu')
+    redirect(withToast('/kodu', toastKey))
   }
 
   async function reorderMixedBoards(boardIds: string[]) {

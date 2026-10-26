@@ -287,6 +287,14 @@ export function BoardEditorToolbar({
         })
       }
 
+      const withoutImage = results.filter((result) => !result.externalImageURL)
+
+      if (withoutImage.length > 0) {
+        toast.warning(`${withoutImage.length} sõnale ei leitud pilti.`, {
+          description: `${withoutImage.map((result) => result.title).join(', ')}. Lisa pilt kaardi muutmise aknas.`,
+        })
+      }
+
       onAddTextCellsAction(results)
       setDialogOpen(false)
       resetDialog()

@@ -21,10 +21,10 @@ import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { Toaster } from '@/components/ui/sonner'
 import { getClientSideURL } from '@/utilities/getURL'
 import { getSymbolProxyURL } from '@/utilities/symbolProxy'
 import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
+import type { ActionResult } from '@/utilities/flashToast'
 import {
   type ConnectDotsPoint,
   getContainedImageRect,
@@ -70,7 +70,7 @@ type InitialPuzzle = {
 }
 
 type Props = {
-  action: (formData: FormData) => Promise<void>
+  action: (formData: FormData) => Promise<ActionResult>
   cancelHref: string
   canShareGlobally: boolean
   initialPuzzle?: InitialPuzzle
@@ -457,9 +457,14 @@ export function ConnectDotsFrontendEditor({
   const previewEnabled = Boolean(media?.url && dots.length >= 2)
 
   return (
-    <form action={action} className="space-y-6">
-      <Toaster />
-
+    <form
+      action={async (formData) => {
+        // On success the action redirects; an error comes back here.
+        const result = await action(formData)
+        if (!result.ok) toast.error(result.error)
+      }}
+      className="space-y-6"
+    >
       <input name="dots" type="hidden" value={JSON.stringify(dots)} />
       <input name="enabled" type="hidden" value={enabled ? 'true' : 'false'} />
       <input name="externalImageURL" type="hidden" value={externalImageURL} />

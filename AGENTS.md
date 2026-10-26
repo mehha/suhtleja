@@ -32,6 +32,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - `media`: collection `src/collections/Media.ts`, rule `docs/rules/project/media.md`.
 - `preview`: `src/app/(frontend)/next/preview`, `exit-preview`, `src/utilities/generatePreviewPath.ts`, rule `docs/rules/project/preview.md`.
 - `seo`: metadata utilities `src/utilities/seo.ts`, `generateMeta.ts`, rule `docs/rules/project/seo.md`.
+- `feedback toasts`: Sonner Toaster in `src/app/(frontend)/layout.tsx`, redirect toasts `src/utilities/flashToast.ts` + `src/components/FlashToast.tsx`, rule `docs/rules/project/feedback-toasts.md`.
 - `analytics`: Cloudflare Web Analytics (injected by Cloudflare, no repo code), sign-up funnel panel `src/components/MembershipFunnel` (admin dashboard), rule `docs/rules/project/analytics.md`.
 - Route naming is Estonian: `kodu` = child home, `koduhaldus` = parent management, `tegevused` = legacy redirect to `koduhaldus`.
 

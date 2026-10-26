@@ -10,6 +10,7 @@ import { ConnectDotsBoardsList, type ConnectDotsBoardsPuzzle } from '../boards/C
 import { CreateBoardForm } from '../boards/CreateBoardForm'
 import { requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
+import { withToast, type FlashToastKey } from '@/utilities/flashToast'
 import {
   getUserSharedHomePreferences,
   isOwnedByUser,
@@ -127,17 +128,27 @@ export default async function ActivitiesPage() {
       return
     }
 
-    const createdBoard = await payload.create({
-      collection: 'boards',
-      data: {
-        name,
-        owner: user.id,
-        grid: { cols: 6, rows: 8, cells: [] },
-        pinned: false, // vaikimisi mitte koduvaates
-      },
-    })
+    let createdBoardId: number | string | null = null
+    try {
+      const createdBoard = await payload.create({
+        collection: 'boards',
+        data: {
+          name,
+          owner: user.id,
+          grid: { cols: 6, rows: 8, cells: [] },
+          pinned: false, // vaikimisi mitte koduvaates
+        },
+      })
+      createdBoardId = createdBoard.id
+    } catch (error) {
+      console.error('createBoard failed', error)
+    }
 
-    redirect(`/boards/${createdBoard.id}/edit`)
+    redirect(
+      createdBoardId === null
+        ? withToast('/koduhaldus', 'error')
+        : withToast(`/boards/${createdBoardId}/edit`, 'board-created'),
+    )
   }
 
   async function togglePinned(formData: FormData) {
@@ -152,42 +163,48 @@ export default async function ActivitiesPage() {
     if (!user) redirect('/admin')
     requireActiveMembership(user)
 
-    const doc = await payload.findByID({
-      collection: 'boards',
-      id: boardId,
-      depth: 0,
-      overrideAccess: false,
-      user,
-    })
-
-    // Owners pin the board itself; shared boards keep a per-user hidden list. Another
-    // user's private board (only admins can see one) stays untouched.
-    if (isOwnedByUser(doc, user.id)) {
-      await payload.update({
+    let toastKey: FlashToastKey = pinned ? 'board-pinned' : 'board-unpinned'
+    try {
+      const doc = await payload.findByID({
         collection: 'boards',
         id: boardId,
-        data: { pinned },
+        depth: 0,
         overrideAccess: false,
         user,
       })
-    } else if (doc.visibleToAllUsers) {
-      const prefs = getUserSharedHomePreferences(user)
-      const hiddenSharedBoardIds = setHiddenState(
-        prefs.hiddenSharedBoardIds,
-        boardId,
-        pinned !== true,
-      )
 
-      await payload.update({
-        collection: 'users',
-        id: user.id,
-        data: {
-          hiddenSharedBoardIds,
-        },
-      })
+      // Owners pin the board itself; shared boards keep a per-user hidden list. Another
+      // user's private board (only admins can see one) stays untouched.
+      if (isOwnedByUser(doc, user.id)) {
+        await payload.update({
+          collection: 'boards',
+          id: boardId,
+          data: { pinned },
+          overrideAccess: false,
+          user,
+        })
+      } else if (doc.visibleToAllUsers) {
+        const prefs = getUserSharedHomePreferences(user)
+        const hiddenSharedBoardIds = setHiddenState(
+          prefs.hiddenSharedBoardIds,
+          boardId,
+          pinned !== true,
+        )
+
+        await payload.update({
+          collection: 'users',
+          id: user.id,
+          data: {
+            hiddenSharedBoardIds,
+          },
+        })
+      }
+    } catch (error) {
+      console.error('togglePinned failed', error)
+      toastKey = 'error'
     }
 
-    redirect('/koduhaldus')
+    redirect(withToast('/koduhaldus', toastKey))
   }
 
   async function toggleVisibility(formData: FormData) {
@@ -206,14 +223,20 @@ export default async function ActivitiesPage() {
       redirect('/kodu')
     }
 
-    await payload.update({
-      collection: 'boards',
-      id: boardId,
-      data: { visibleToAllUsers },
-      overrideAccess: true,
-    })
+    let toastKey: FlashToastKey = visibleToAllUsers ? 'board-shared' : 'board-unshared'
+    try {
+      await payload.update({
+        collection: 'boards',
+        id: boardId,
+        data: { visibleToAllUsers },
+        overrideAccess: true,
+      })
+    } catch (error) {
+      console.error('toggleVisibility failed', error)
+      toastKey = 'error'
+    }
 
-    redirect('/koduhaldus')
+    redirect(withToast('/koduhaldus', toastKey))
   }
 
   async function deleteBoard(formData: FormData) {
@@ -232,9 +255,15 @@ export default async function ActivitiesPage() {
     if (!user) redirect('/admin')
     requireActiveMembership(user)
 
-    await payload.delete({ collection: 'boards', id: boardId, overrideAccess: false, user })
+    let toastKey: FlashToastKey = 'board-deleted'
+    try {
+      await payload.delete({ collection: 'boards', id: boardId, overrideAccess: false, user })
+    } catch (error) {
+      console.error('deleteBoard failed', error)
+      toastKey = 'error'
+    }
 
-    redirect('/koduhaldus')
+    redirect(withToast('/koduhaldus', toastKey))
   }
 
   async function togglePuzzlePinned(formData: FormData) {
@@ -249,40 +278,46 @@ export default async function ActivitiesPage() {
     if (!user) redirect('/admin')
     requireActiveMembership(user)
 
-    const doc = await payload.findByID({
-      collection: 'connect-dots-puzzles',
-      id: puzzleId,
-      depth: 0,
-      overrideAccess: false,
-      user,
-    })
-
-    if (isOwnedByUser(doc, user.id) || !doc.visibleToAllUsers) {
-      await payload.update({
+    let toastKey: FlashToastKey = pinned ? 'game-pinned' : 'game-unpinned'
+    try {
+      const doc = await payload.findByID({
         collection: 'connect-dots-puzzles',
         id: puzzleId,
-        data: { pinned },
+        depth: 0,
         overrideAccess: false,
         user,
       })
-    } else {
-      const prefs = getUserSharedHomePreferences(user)
-      const hiddenSharedPuzzleIds = setHiddenState(
-        prefs.hiddenSharedPuzzleIds,
-        puzzleId,
-        pinned !== true,
-      )
 
-      await payload.update({
-        collection: 'users',
-        id: user.id,
-        data: {
-          hiddenSharedPuzzleIds,
-        },
-      })
+      if (isOwnedByUser(doc, user.id) || !doc.visibleToAllUsers) {
+        await payload.update({
+          collection: 'connect-dots-puzzles',
+          id: puzzleId,
+          data: { pinned },
+          overrideAccess: false,
+          user,
+        })
+      } else {
+        const prefs = getUserSharedHomePreferences(user)
+        const hiddenSharedPuzzleIds = setHiddenState(
+          prefs.hiddenSharedPuzzleIds,
+          puzzleId,
+          pinned !== true,
+        )
+
+        await payload.update({
+          collection: 'users',
+          id: user.id,
+          data: {
+            hiddenSharedPuzzleIds,
+          },
+        })
+      }
+    } catch (error) {
+      console.error('togglePuzzlePinned failed', error)
+      toastKey = 'error'
     }
 
-    redirect('/koduhaldus')
+    redirect(withToast('/koduhaldus', toastKey))
   }
 
   async function deletePuzzle(formData: FormData) {
@@ -299,14 +334,20 @@ export default async function ActivitiesPage() {
     if (!user) redirect('/admin')
     requireActiveMembership(user)
 
-    await payload.delete({
-      collection: 'connect-dots-puzzles',
-      id: puzzleId,
-      overrideAccess: false,
-      user,
-    })
+    let toastKey: FlashToastKey = 'game-deleted'
+    try {
+      await payload.delete({
+        collection: 'connect-dots-puzzles',
+        id: puzzleId,
+        overrideAccess: false,
+        user,
+      })
+    } catch (error) {
+      console.error('deletePuzzle failed', error)
+      toastKey = 'error'
+    }
 
-    redirect('/koduhaldus')
+    redirect(withToast('/koduhaldus', toastKey))
   }
 
   return (

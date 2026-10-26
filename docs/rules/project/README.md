@@ -16,6 +16,8 @@ Infrastructure baseline:
   - Shared TTS endpoint and playback expectations.
 - `docs/rules/project/ui-components.md`
   - Prefer `@/components/ui` (shadcn/ui) components and install missing ones from the shadcn catalog.
+- `docs/rules/project/feedback-toasts.md`
+  - When user actions toast, and how (redirect toasts, action results, child view).
 - `docs/rules/project/membership.md`
   - Stripe checkout + webhook-based membership flow.
 - `docs/rules/project/seo.md`

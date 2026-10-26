@@ -41,7 +41,7 @@ export function parseConnectDotsPuzzleForm(
   const title = typeof rawTitle === 'string' ? rawTitle.trim() : ''
 
   if (!title) {
-    throw new Error('Puzzle pealkiri on kohustuslik.')
+    throw new Error('Mängu pealkiri on kohustuslik.')
   }
 
   const rawDescription = formData.get('description')
@@ -71,7 +71,7 @@ export function parseConnectDotsPuzzleForm(
     typeof externalImageURLValue === 'string' ? externalImageURLValue.trim() : ''
 
   if (!image && !externalImageURL) {
-    throw new Error('Vali puzzle jaoks pilt või sümbol.')
+    throw new Error('Vali mängu jaoks pilt või sümbol.')
   }
 
   return {

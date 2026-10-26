@@ -5,6 +5,9 @@ import { useCallback, useMemo, useState } from 'react'
 import type { Layout } from 'react-grid-layout'
 import type { Board } from '@/payload-types'
 import { getClientSideURL } from '@/utilities/getURL'
+import { toast } from 'sonner'
+
+const SAVE_FAILED = 'Salvestamine ebaõnnestus. Muudatused on alles, proovi uuesti.'
 
 type Grid = NonNullable<Board['grid']>
 type Cells = NonNullable<Grid['cells']>
@@ -123,11 +126,17 @@ export function useBoardGrid(board: Board) {
       setSaveProgress(82)
 
       if (!response.ok) {
+        console.error('Board save failed', response.status)
+        toast.error(SAVE_FAILED)
         return
       }
 
       setSaveProgress(100)
       setDirty(false)
+      toast.success('Tahvel salvestatud.')
+    } catch (error) {
+      console.error('Board save failed', error)
+      toast.error(SAVE_FAILED)
     } finally {
       window.setTimeout(() => {
         setSaving(false)

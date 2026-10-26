@@ -8,6 +8,7 @@ import { getCurrentUser } from '@/utilities/getCurrentUser'
 import { parseConnectDotsPuzzleForm } from '@/utilities/connectDotsPuzzleForm'
 import { requireActiveMembership } from '@/utilities/membership'
 import { requireParentMode } from '@/utilities/uiMode'
+import { ACTION_ERROR, withToast, type ActionResult } from '@/utilities/flashToast'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +23,7 @@ export default async function ConnectDotsNewPuzzlePage() {
 
   const canShareGlobally = user.role === 'admin'
 
-  async function createPuzzle(formData: FormData) {
+  async function createPuzzle(formData: FormData): Promise<ActionResult> {
     'use server'
 
     await requireParentMode()
@@ -33,25 +34,36 @@ export default async function ConnectDotsNewPuzzlePage() {
     }
     requireActiveMembership(user)
 
-    const parsed = parseConnectDotsPuzzleForm(formData, {
-      allowGlobalVisibility: user.role === 'admin',
-    })
+    // Errors come back to the editor as a toast, so the user's dots stay on the page.
+    let parsed: ReturnType<typeof parseConnectDotsPuzzleForm>
+    try {
+      parsed = parseConnectDotsPuzzleForm(formData, {
+        allowGlobalVisibility: user.role === 'admin',
+      })
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : ACTION_ERROR }
+    }
 
-    await payload.create({
-      collection: 'connect-dots-puzzles',
-      data: {
-        ...parsed,
-        owner: user.id,
-      },
-      draft: false,
-      overrideAccess: false,
-      user,
-    })
+    try {
+      await payload.create({
+        collection: 'connect-dots-puzzles',
+        data: {
+          ...parsed,
+          owner: user.id,
+        },
+        draft: false,
+        overrideAccess: false,
+        user,
+      })
+    } catch (error) {
+      console.error('createPuzzle failed', error)
+      return { ok: false, error: ACTION_ERROR }
+    }
 
     revalidatePath('/connect-dots')
     revalidatePath('/koduhaldus')
     revalidatePath('/kodu')
-    redirect('/koduhaldus')
+    redirect(withToast('/koduhaldus', 'game-saved'))
   }
 
   return (

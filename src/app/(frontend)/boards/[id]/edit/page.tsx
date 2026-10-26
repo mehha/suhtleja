@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/utilities/getCurrentUser'
 import type { Board, User } from '@/payload-types'
 import { requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
+import { ACTION_ERROR, type ActionResult } from '@/utilities/flashToast'
 
 type Params = {
   id: string
@@ -54,7 +55,7 @@ export default async function BoardEditPage({
   }
 
   // --- server action: renameBoard ---
-  async function renameBoard(formData: FormData) {
+  async function renameBoard(formData: FormData): Promise<ActionResult> {
     'use server'
 
     const { payload, user } = await getCurrentUser()
@@ -67,17 +68,23 @@ export default async function BoardEditPage({
     const rawName = (formData.get('name') as string) ?? ''
     const name = rawName.trim() || 'Nimetu tahvel'
 
-    await payload.update({
-      collection: 'boards',
-      id: boardId, // ei kasuta where, meil on id olemas
-      data: { name },
-    })
+    try {
+      await payload.update({
+        collection: 'boards',
+        id: boardId, // ei kasuta where, meil on id olemas
+        data: { name },
+      })
+    } catch (error) {
+      console.error('renameBoard failed', error)
+      return { ok: false, error: ACTION_ERROR }
+    }
 
     revalidatePath(`/boards/${boardId}/edit`)
     revalidatePath('/koduhaldus')
+    return { ok: true }
   }
 
-  async function updateBoardVisibility(formData: FormData) {
+  async function updateBoardVisibility(formData: FormData): Promise<ActionResult> {
     'use server'
 
     const { payload, user } = await getCurrentUser()
@@ -93,19 +100,25 @@ export default async function BoardEditPage({
     const boardId = formData.get('boardId') as string
     const visibleToAllUsers = formData.get('visibleToAllUsers') === 'true'
 
-    await payload.update({
-      collection: 'boards',
-      id: boardId,
-      data: { visibleToAllUsers },
-    })
+    try {
+      await payload.update({
+        collection: 'boards',
+        id: boardId,
+        data: { visibleToAllUsers },
+      })
+    } catch (error) {
+      console.error('updateBoardVisibility failed', error)
+      return { ok: false, error: ACTION_ERROR }
+    }
 
     revalidatePath(`/boards/${boardId}/edit`)
     revalidatePath(`/boards/${boardId}`)
     revalidatePath('/koduhaldus')
     revalidatePath('/kodu')
+    return { ok: true }
   }
 
-  async function updateBoardHomeVisibility(formData: FormData) {
+  async function updateBoardHomeVisibility(formData: FormData): Promise<ActionResult> {
     'use server'
 
     const { payload, user } = await getCurrentUser()
@@ -117,11 +130,17 @@ export default async function BoardEditPage({
     const boardId = formData.get('boardId') as string
     const pinned = formData.get('pinned') === 'true'
 
-    const currentBoard = (await payload.findByID({
-      collection: 'boards',
-      id: boardId,
-      depth: 0,
-    })) as Board
+    const currentBoard = (await payload
+      .findByID({
+        collection: 'boards',
+        id: boardId,
+        depth: 0,
+      })
+      .catch(() => null)) as Board | null
+
+    if (!currentBoard) {
+      return { ok: false, error: ACTION_ERROR }
+    }
 
     const currentOwnerId =
       typeof currentBoard.owner === 'object' && currentBoard.owner !== null
@@ -132,16 +151,22 @@ export default async function BoardEditPage({
       redirect('/kodu')
     }
 
-    await payload.update({
-      collection: 'boards',
-      id: boardId,
-      data: { pinned },
-    })
+    try {
+      await payload.update({
+        collection: 'boards',
+        id: boardId,
+        data: { pinned },
+      })
+    } catch (error) {
+      console.error('updateBoardHomeVisibility failed', error)
+      return { ok: false, error: ACTION_ERROR }
+    }
 
     revalidatePath(`/boards/${boardId}/edit`)
     revalidatePath(`/boards/${boardId}`)
     revalidatePath('/koduhaldus')
     revalidatePath('/kodu')
+    return { ok: true }
   }
 
   return (

@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
 import { pinChangeNeedsPassword } from '@/utilities/parentPin'
 import { isParentModeUtil } from '@/utilities/uiMode'
+import { withToast } from '@/utilities/flashToast'
 import type { User } from '@/payload-types'
 
 type PinState = {
@@ -107,14 +108,24 @@ export async function clearPinAction(_formData: FormData) {
     redirect('/profile')
   }
 
-  await payload.update({
-    collection: 'users',
-    id: user.id,
-    data: {
-      parentPinHash: null,
-      pinUpdatedAt: null,
-    },
-  })
+  let removed = true
+  try {
+    await payload.update({
+      collection: 'users',
+      id: user.id,
+      data: {
+        parentPinHash: null,
+        pinUpdatedAt: null,
+      },
+    })
+  } catch (error) {
+    console.error('clearPinAction failed', error)
+    removed = false
+  }
+
+  if (!removed) {
+    redirect(withToast('/profile', 'error'))
+  }
 
   // uiMode tagasi child'iks
   const cookieStore = await cookies()
@@ -127,5 +138,5 @@ export async function clearPinAction(_formData: FormData) {
   })
 
   // lihtne refresh profiilile
-  redirect('/profile')
+  redirect(withToast('/profile', 'pin-removed'))
 }

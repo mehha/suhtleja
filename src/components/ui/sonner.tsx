@@ -7,17 +7,17 @@ import {
   OctagonX,
   TriangleAlert,
 } from "lucide-react"
-import { useTheme } from "next-themes"
 import { Toaster as Sonner } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
+  // The site is always light (src/providers/Theme, not next-themes), so toasts are too.
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="light"
+      position="bottom-center"
+      richColors
       className="toaster group"
       icons={{
         success: <CircleCheck className="h-4 w-4" />,

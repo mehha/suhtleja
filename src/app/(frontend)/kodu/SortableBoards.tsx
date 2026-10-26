@@ -12,6 +12,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { toast } from 'sonner'
 import {
   CircleArrowRight,
   Edit,
@@ -268,11 +269,19 @@ export function SortableBoards({
 
     if (oldIndex === -1 || newIndex === -1) return
 
+    const previousItems = items
     const newItems = arrayMove(items, oldIndex, newIndex)
     setItems(newItems)
 
     startTransition(async () => {
-      await onReorder(newItems.map((item) => String(item.id)))
+      // Caught here: an error thrown in a transition would otherwise reach the error page.
+      try {
+        await onReorder(newItems.map((item) => String(item.id)))
+      } catch (error) {
+        console.error('Reorder failed', error)
+        setItems(previousItems)
+        toast.error('Järjekorra salvestamine ebaõnnestus.')
+      }
     })
   }
 

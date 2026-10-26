@@ -28,6 +28,8 @@ import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog'
 import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
+import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
+import { toast } from 'sonner'
 
 const ReactGridLayout = WidthProvider(RGL)
 const COMPACT_SWITCH_CLASS =
@@ -86,9 +88,9 @@ const scaleLayoutToColumns = (items: Layout[], fromCols: number, toCols: number)
 type Props = {
   board: Board
   isAdmin: boolean
-  renameBoard: (formData: FormData) => Promise<void>
-  updateBoardHomeVisibility: (formData: FormData) => Promise<void>
-  updateBoardVisibility: (formData: FormData) => Promise<void>
+  renameBoard: (formData: FormData) => Promise<ActionResult>
+  updateBoardHomeVisibility: (formData: FormData) => Promise<ActionResult>
+  updateBoardVisibility: (formData: FormData) => Promise<ActionResult>
 }
 
 type Compound = NonNullable<Board['compounds']>[number]
@@ -226,7 +228,10 @@ export default function BoardEditor({
             <div className="flex items-center gap-2">
               {isEditingTitle ? (
                 <form
-                  action={renameBoard}
+                  action={async (formData) => {
+                    const result = await renameBoard(formData)
+                    if (!result.ok) toast.error(result.error)
+                  }}
                   className="flex items-center gap-2"
                   onSubmit={() => {
                     setIsEditingTitle(false)
@@ -346,7 +351,15 @@ export default function BoardEditor({
               <form
                 ref={homeVisibilityFormRef}
                 id="board-home-visibility-form"
-                action={updateBoardHomeVisibility}
+                action={async (formData) => {
+                  const result = await updateBoardHomeVisibility(formData)
+                  if (!result.ok) {
+                    toast.error(result.error)
+                    return
+                  }
+                  const pinned = formData.get('pinned') === 'true'
+                  toast.success(FLASH_TOASTS[pinned ? 'board-pinned' : 'board-unpinned'].message)
+                }}
                 className={TOGGLE_CARD_CLASS}
               >
                 <input type="hidden" name="boardId" value={String(board.id)} />
@@ -386,7 +399,17 @@ export default function BoardEditor({
                       <form
                         ref={visibilityFormRef}
                         id="board-visibility-form"
-                        action={updateBoardVisibility}
+                        action={async (formData) => {
+                          const result = await updateBoardVisibility(formData)
+                          if (!result.ok) {
+                            toast.error(result.error)
+                            return
+                          }
+                          const shared = formData.get('visibleToAllUsers') === 'true'
+                          toast.success(
+                            FLASH_TOASTS[shared ? 'board-shared' : 'board-unshared'].message,
+                          )
+                        }}
                         className={TOGGLE_CARD_CLASS}
                       >
                         <input type="hidden" name="boardId" value={String(board.id)} />

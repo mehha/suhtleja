@@ -77,6 +77,7 @@ tags: [suhtleja, frontend, boards, payload]
   - Verify board create, edit, pin, unpin, reorder still work.
   - Run `pnpm generate:types`.
 - When changing board server actions:
+  - Report the outcome with a toast as described in `feedback-toasts.md`: the actions on `/kodu` and `/koduhaldus` redirect with `withToast`, the editor's actions return an `ActionResult`, and the editor's Save toasts the result itself.
   - Re-check auth and ownership constraints.
   - Re-check Local API access enforcement when acting on behalf of user.
   - Re-check redirects for unauthenticated users.

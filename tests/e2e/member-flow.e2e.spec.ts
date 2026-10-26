@@ -194,6 +194,9 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     await expect(row.getByText('Peidetud')).toBeVisible()
     await row.getByRole('button', { name: 'Lisa koduvaatesse' }).click()
     await expect(row.getByText('Koduvaates')).toBeVisible()
+    // The action redirects with ?toast=board-pinned; FlashToast shows it and cleans the URL.
+    await expect(page.getByText('Tahvel lisati koduvaatesse.')).toBeVisible()
+    await expect(page).toHaveURL(/\/koduhaldus$/)
 
     await page.getByRole('button', { name: 'Laps', exact: true }).click()
     await expect(page).toHaveURL(/\/kodu$/)

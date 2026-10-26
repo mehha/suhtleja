@@ -32,6 +32,7 @@ import { AnimatedVolumeIcon } from '@/components/Animations/AnimatedVolumeIcon'
 import { getBoardTTSCacheManifest } from '@/utilities/boardTTSCacheManifest'
 import { prepareTextForTTS } from '@/utilities/azureTTS'
 import { ChildModeBar } from '@/app/(frontend)/kodu/ChildModeBar'
+import { toast } from 'sonner'
 
 const ResponsiveGridLayout = WidthProvider(ResponsiveGrid)
 const GRID_MARGIN: [number, number] = [16, 16]
@@ -45,6 +46,17 @@ type SequenceItem = {
 
 type MorphResponse = {
   surface?: string
+}
+
+// play() rejects with AbortError when a newer tap interrupts it; that isn't a failure.
+function isInterruptedPlayback(error: unknown) {
+  return error instanceof DOMException && error.name === 'AbortError'
+}
+
+// The child view shows no other toasts: only this one, so a tap that made no sound isn't silent.
+// The id keeps repeated taps from stacking toasts.
+function notifySpeechFailed() {
+  toast.error('Heli ei õnnestunud. Puuduta uuesti.', { id: 'tts' })
 }
 
 export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerProps) {
@@ -213,7 +225,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     }
   }
 
-  const playAudioURL = async (url: string) => {
+  const playAudioURL = async (url: string): Promise<boolean> => {
     ensureAudioUnlocked()
 
     const audioEl = audioRef.current ?? new Audio()
@@ -223,24 +235,24 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     audioEl.onended = null
     audioEl.onerror = null
 
-    await new Promise<void>((resolve) => {
+    return new Promise<boolean>((resolve) => {
       let done = false
-      const cleanup = () => {
+      const cleanup = (played = true) => {
         if (done) return
         done = true
         audioEl.onended = null
         audioEl.onerror = null
-        resolve()
+        resolve(played)
       }
 
-      audioEl.onended = cleanup
-      audioEl.onerror = cleanup
+      audioEl.onended = () => cleanup()
+      audioEl.onerror = () => cleanup(false)
       audioEl.src = url
       audioEl.currentTime = 0
 
       const started = audioEl.play()
       if (started && typeof started.catch === 'function') {
-        started.catch(() => cleanup())
+        started.catch((error: unknown) => cleanup(isInterruptedPlayback(error)))
       }
 
       if (playbackToken !== playbackTokenRef.current) {
@@ -249,7 +261,8 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     })
   }
 
-  const playSpeech = async (text: string) => {
+  // Resolves to false when no sound came out (speech failed to load or play).
+  const playSpeech = async (text: string): Promise<boolean> => {
     const preparedText = prepareTextForTTS(text)
     const cachedURL = cachedAudioUrlByText.get(preparedText)
 
@@ -260,21 +273,25 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
       }
 
       const readyURL = preloadedAudioUrlBySourceRef.current.get(cachedURL) ?? cachedURL
-      await playAudioURL(readyURL)
-      return
+      return playAudioURL(readyURL)
     }
 
-    const res = await fetch('/next/tts-ms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: preparedText,
-      }),
-    })
+    let blob: Blob
+    try {
+      const res = await fetch('/next/tts-ms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: preparedText,
+        }),
+      })
 
-    if (!res.ok) return
+      if (!res.ok) return false
+      blob = await res.blob()
+    } catch {
+      return false
+    }
 
-    const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const audioEl = audioRef.current ?? new Audio()
     audioRef.current = audioEl
@@ -283,25 +300,25 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     audioEl.onended = null
     audioEl.onerror = null
 
-    await new Promise<void>((resolve) => {
+    return new Promise<boolean>((resolve) => {
       let done = false
-      const cleanup = () => {
+      const cleanup = (played = true) => {
         if (done) return
         done = true
         audioEl.onended = null
         audioEl.onerror = null
         URL.revokeObjectURL(url)
-        resolve()
+        resolve(played)
       }
 
-      audioEl.onended = cleanup
-      audioEl.onerror = cleanup
+      audioEl.onended = () => cleanup()
+      audioEl.onerror = () => cleanup(false)
       audioEl.src = url
       audioEl.currentTime = 0
 
       const started = audioEl.play()
       if (started && typeof started.catch === 'function') {
-        started.catch(() => cleanup())
+        started.catch((error: unknown) => cleanup(isInterruptedPlayback(error)))
       }
 
       if (playbackToken !== playbackTokenRef.current) {
@@ -377,7 +394,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
       setTempLabel({ id: cellId, text: spoken })
 
       // 5) Loeme ainult selle sõna vormi
-      await playSpeech(spoken)
+      if (!(await playSpeech(spoken))) notifySpeechFailed()
     } finally {
       setActiveCellId(null)
     }
@@ -391,7 +408,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     setPhrasePlaying(true)
     try {
       // Sõnaühendite järgi kombineeritud fraas
-      await playSpeech(ttsAll)
+      if (!(await playSpeech(ttsAll))) notifySpeechFailed()
     } finally {
       setPhrasePlaying(false)
     }

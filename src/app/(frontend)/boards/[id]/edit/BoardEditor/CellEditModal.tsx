@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { Copy } from 'lucide-react'
 
 import { getClientSideURL } from '@/utilities/getURL'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -149,26 +150,31 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
         credentials: 'include',
         body: formData,
       })
-      const json = (await res.json()) as MediaUploadResponse
+      const json = res.ok ? ((await res.json()) as MediaUploadResponse) : null
 
-      if (json?.doc?.id) {
-        setUploadedPreview(json.doc.url ?? null)
+      if (!json?.doc?.id) {
+        console.error('Upload failed', res.status)
+        toast.error('Pildi üleslaadimine ebaõnnestus.')
+        return
+      }
 
-        // Enam ei muuda pealkirja automaatselt
-        // const nameCandidate = json?.doc?.alt || json?.doc?.filename || json?.doc?.url
-        // const nextTitle = prettifyName(nameCandidate) || title
-        // setTitle(nextTitle)
+      setUploadedPreview(json.doc.url ?? null)
 
-        if (cell) {
-          onSaveAction(cell.id, {
-            image: { id: json.doc.id, url: json.doc.url ?? undefined },
-            externalImageURL: '',
-            // title: nextTitle,
-          })
-        }
+      // Enam ei muuda pealkirja automaatselt
+      // const nameCandidate = json?.doc?.alt || json?.doc?.filename || json?.doc?.url
+      // const nextTitle = prettifyName(nameCandidate) || title
+      // setTitle(nextTitle)
+
+      if (cell) {
+        onSaveAction(cell.id, {
+          image: { id: json.doc.id, url: json.doc.url ?? undefined },
+          externalImageURL: '',
+          // title: nextTitle,
+        })
       }
     } catch (e) {
       console.error('Upload failed', e)
+      toast.error('Pildi üleslaadimine ebaõnnestus.')
     } finally {
       setUploading(false)
     }

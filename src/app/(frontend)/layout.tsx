@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { cn } from '@/utilities/ui'
 import { GeistSans } from 'geist/font/sans'
 import { Nunito } from 'next/font/google'
-import React from 'react'
+import React, { Suspense } from 'react'
 
 import { AdminBar } from '@/components/AdminBar'
 import { Footer } from '@/Footer/Component'
@@ -16,6 +16,7 @@ import { draftMode } from 'next/headers'
 import './globals.css'
 import { getServerSideURL } from '@/utilities/getURL'
 import { Toaster } from '@/components/ui/sonner'
+import { FlashToast } from '@/components/FlashToast'
 import { DEFAULT_META_DESCRIPTION, SITE_NAME } from '@/utilities/seo'
 import { getUiMode } from '@/utilities/uiMode'
 import { FrontendShell } from './FrontendShell'
@@ -50,6 +51,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="bg-gray-50 dark:bg-gray-900">
         <Providers>
           <Toaster />
+          {/* useSearchParams needs a Suspense boundary, or static pages render on the client. */}
+          <Suspense fallback={null}>
+            <FlashToast />
+          </Suspense>
           <FrontendShell
             adminBar={
               <AdminBar
