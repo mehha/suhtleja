@@ -10,11 +10,9 @@ import type { Props as MediaProps } from '../types'
 
 import { cssVariables } from '@/cssVariables'
 import { getMediaUrl } from '@/utilities/getMediaUrl'
+import { isMediaFileURL } from '@/utilities/mediaURL'
 
 const { breakpoints } = cssVariables
-const PUBLIC_MEDIA_BASE_URL = (
-  process.env.NEXT_PUBLIC_MEDIA_BASE_URL || 'https://media.suhtleja.ee'
-).replace(/\/$/, '')
 
 // A base64 encoded image to use as a placeholder while the image is loading
 const placeholderBlur =
@@ -79,8 +77,7 @@ export const ImageMedia: React.FC<MediaProps> = (props) => {
   }
 
   const loading = loadingFromProps || (!priority ? 'lazy' : undefined)
-  const unoptimized =
-    typeof src === 'string' && (src === PUBLIC_MEDIA_BASE_URL || src.startsWith(`${PUBLIC_MEDIA_BASE_URL}/`))
+  const unoptimized = typeof src === 'string' && isMediaFileURL(src)
 
   // NOTE: this is used by the browser to determine which image to download at different screen sizes
   const sizes = sizeFromProps

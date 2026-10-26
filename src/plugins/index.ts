@@ -12,17 +12,13 @@ import { beforeSyncWithSearch } from '@/search/beforeSync'
 import { r2Storage } from '@payloadcms/storage-r2'
 import { getPayloadCloudflareContext } from '@/utilities/getCloudflareContext'
 import path from 'path'
+import { getMediaFileURL } from '@/utilities/mediaURL'
 
 import { Page, Post } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
 import { isAdmin } from '@/access/IsAdmin'
 
 const cloudflare = await getPayloadCloudflareContext()
-const MEDIA_BASE_URL = (process.env.NEXT_PUBLIC_MEDIA_BASE_URL || 'https://media.suhtleja.ee').replace(
-  /\/$/,
-  '',
-)
-
 const generateTitle: GenerateTitle<Post | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Website Template` : 'Payload Website Template'
 }
@@ -111,8 +107,9 @@ export const plugins: Plugin[] = [
     collections: {
       media: {
         disablePayloadAccessControl: true,
+        // Outside production the files are in the local bucket; see src/utilities/mediaURL.ts.
         generateFileURL: ({ filename, prefix }) =>
-          `${MEDIA_BASE_URL}/${path.posix.join(prefix || '', filename)}`,
+          getMediaFileURL(path.posix.join(prefix || '', filename)),
       },
     },
   }),
