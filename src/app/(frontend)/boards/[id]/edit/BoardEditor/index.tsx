@@ -470,13 +470,14 @@ export default function BoardEditor({
             onLayoutChange={handleEditorLayoutChange}
             isResizable
             isDraggable
+            draggableCancel=".board-cell-actions"
           >
             {cells.map((cell) => (
               <div
                 key={cell.id}
                 className="relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5"
               >
-                <div className="absolute right-1 top-1 z-10 flex gap-1">
+                <div className="board-cell-actions absolute right-1 top-1 z-10 flex gap-1">
                   <Button
                     type="button"
                     size="icon"
@@ -488,7 +489,6 @@ export default function BoardEditor({
                       e.preventDefault()
                       setEditingCellId(cell.id)
                     }}
-                    onMouseDown={(e) => e.stopPropagation()}
                   >
                     <Edit3 className="h-4 w-4" />
                   </Button>
@@ -502,7 +502,6 @@ export default function BoardEditor({
                       e.preventDefault()
                       deleteCell(cell.id)
                     }}
-                    onMouseDown={(e) => e.stopPropagation()}
                   >
                     <Trash width={14} />
                   </Button>

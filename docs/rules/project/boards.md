@@ -80,6 +80,8 @@ tags: [suhtleja, frontend, boards, payload]
   - Re-check auth and ownership constraints.
   - Re-check Local API access enforcement when acting on behalf of user.
   - Re-check redirects for unauthenticated users.
+- When changing the board editor grid (`/boards/[id]/edit`, react-grid-layout):
+  - Put cell buttons inside the `.board-cell-actions` wrapper, which the grid's `draggableCancel` excludes from dragging. react-draggable cancels `touchstart` on the dragged cell, so without it taps on those buttons never reach `onClick` on touch screens.
 - When changing card UI on `/kodu`:
   - Keep keyboard navigation and drag behavior usable.
   - Validate image fallback behavior for missing board visuals.
