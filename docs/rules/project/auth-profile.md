@@ -33,6 +33,7 @@ tags: [suhtleja, frontend, auth, profile, users]
 ## Behavior Rules
 - Account passwords use Payload's local strategy with `patches/payload@3.92.0.patch`: on Workers new hashes use 100,000 PBKDF2 iterations (Workers rejects more), on Node.js 600,000. The parameters are stored in the hash, so both runtimes verify either. See the README's Payload 3.90.0 upgrade notes before upgrading Payload.
 - Profile shows user name, email, parent PIN controls, and membership state (see `membership.md` for Stripe flow).
+- In the parent view the name is editable (`ProfileNameForm`, `updateNameAction`): trimmed, not blank ("Sisesta oma nimi."), then `revalidatePath('/profile')`. The action checks parent mode itself; the child view shows the name read-only with a hint to open the parent view. This lets accounts created before names were required add one (see `membership.md`).
 - `?membership=required` on `/profile` shows a "membership required" notice; premium routes and APIs redirect or respond here when `hasActiveMembership` fails.
 - Parent PIN:
   - Must be exactly 4 digits (`updatePinAction`), stored only as a bcrypt hash in `users.parentPinHash`.

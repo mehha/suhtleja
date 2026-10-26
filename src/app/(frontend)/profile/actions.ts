@@ -1,6 +1,7 @@
 // src/app/(frontend)/profile/actions.ts
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import bcrypt from 'bcryptjs'
@@ -12,6 +13,38 @@ import type { User } from '@/payload-types'
 type PinState = {
   success: boolean
   error?: string
+}
+
+type NameState = PinState
+
+// Checkout takes the name from the account to offer a returning member's saved card, so an
+// account without one can add it here. Like the other account settings, it needs the parent view.
+export async function updateNameAction(
+  _prevState: NameState,
+  formData: FormData,
+): Promise<NameState> {
+  const { user, payload } = await getCurrentUser()
+  if (!user) {
+    redirect('/admin')
+  }
+
+  if (!(await isParentModeUtil())) {
+    return { success: false, error: 'Nime muutmiseks ava vanema vaade.' }
+  }
+
+  const name = formData.get('name')?.toString().trim() ?? ''
+  if (!name) {
+    return { success: false, error: 'Sisesta oma nimi.' }
+  }
+
+  await payload.update({
+    collection: 'users',
+    id: user.id,
+    data: { name },
+  })
+
+  revalidatePath('/profile')
+  return { success: true }
 }
 
 export async function updatePinAction(

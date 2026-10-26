@@ -35,6 +35,7 @@ tags: [suhtleja, auth, mode, home, boards]
   - In parent mode, or when no PIN is set, the new PIN is enough.
   - In child mode the account password is required too (a parent who forgot the PIN); it is checked with `payload.login`, so wrong passwords count toward the login lockout. Changing the PIN this way does not open parent mode.
 - Removing the PIN (`clearPinAction`) and opening the Stripe Billing Portal require parent mode: without a PIN the parent view opens for anyone, and the portal can cancel the membership.
+- Changing the account name on `/profile` (`updateNameAction`) requires parent mode, like the other account settings.
 - Never rely on hiding a page or link in child mode: the server action or route must check the mode itself (`/profile` is reachable in child mode by typing the address).
 
 ## UX Rules

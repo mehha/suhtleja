@@ -130,10 +130,12 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     await expect(page.getByRole('button', { name: 'Vanema vaade', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Kasutaja menüü' })).toHaveCount(0)
 
-    // Managing the membership (which can cancel it) needs the parent view.
+    // Managing the membership (which can cancel it) and the account name need the parent view.
     await page.goto('/profile')
     await expect(page.getByText('Liikmelisuse haldamiseks ava vanema vaade')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Halda liikmelisust' })).toHaveCount(0)
+    await expect(page.getByText('Nime muutmiseks ava vanema vaade')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Salvesta nimi' })).toHaveCount(0)
     await page.goto('/kodu')
   })
 
@@ -149,6 +151,17 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     await pinInput.pressSequentially(pin)
     await expect(dialog).toBeHidden()
     await expect(page.getByRole('link', { name: 'Koduhaldus' })).toBeVisible()
+  })
+
+  await test.step('change the name on the profile', async () => {
+    await page.goto('/profile')
+    await page.getByLabel('Nimi').fill('  Testija Uus  ')
+    await page.getByRole('button', { name: 'Salvesta nimi' }).click()
+    await expect(page.getByText('Nimi salvestatud.')).toBeVisible()
+
+    await page.reload()
+    await expect(page.getByLabel('Nimi')).toHaveValue('Testija Uus')
+    await page.goto('/kodu')
   })
 
   let boardId = ''

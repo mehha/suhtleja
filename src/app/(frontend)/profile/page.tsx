@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/utilities/getCurrentUser'
 import { MEMBERSHIP_TRIAL_DAYS } from '@/utilities/membershipCheckout'
 import { isParentModeUtil } from '@/utilities/uiMode'
 import type { User } from '@/payload-types'
+import { ProfileNameForm } from '@/app/(frontend)/profile/ProfileNameForm'
 import { ProfilePageClient } from '@/app/(frontend)/profile/ProfilePageClient'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -51,12 +52,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
         <CardHeader>
           <CardTitle className="text-lg font-medium">Kasutaja info</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <ProfileNameForm name={u.name} isParentMode={isParentMode} />
           <dl className="flex flex-col gap-1 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Nimi</dt>
-              <dd>{u.name ?? '—'}</dd>
-            </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">E-post</dt>
               <dd>{u.email}</dd>
