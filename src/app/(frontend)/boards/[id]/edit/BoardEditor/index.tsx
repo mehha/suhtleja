@@ -20,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
-import { Play, Trash, WholeWord, Edit3, Check, X, Settings2 } from 'lucide-react'
+import { Play, Trash, WholeWord, Edit3, Check, X, Settings2, GripVertical } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Switch } from '@/components/ui/switch'
@@ -493,14 +493,31 @@ export default function BoardEditor({
             onLayoutChange={handleEditorLayoutChange}
             isResizable
             isDraggable
-            draggableCancel=".board-cell-actions"
+            // Cells move only by their grip. react-draggable cancels touchstart on whatever it
+            // drags, so dragging from the whole cell kept the cell buttons from getting taps.
+            draggableHandle=".board-cell-drag-handle"
           >
             {cells.map((cell) => (
               <div
                 key={cell.id}
                 className="relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5"
               >
-                <div className="board-cell-actions absolute right-1 top-1 z-10 flex gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      aria-label="Lohista kaardi liigutamiseks"
+                      className="board-cell-drag-handle absolute left-1 top-1 z-10 inline-flex h-8 w-8 cursor-grab touch-none items-center justify-center rounded-md border border-border bg-secondary text-secondary-foreground active:cursor-grabbing"
+                      role="img"
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Lohista kaardi liigutamiseks</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <div className="absolute right-1 top-1 z-10 flex gap-1">
                   <Button
                     type="button"
                     size="icon"
