@@ -22,6 +22,7 @@ tags: [suhtleja, frontend, auth, profile, users]
 - `/login` and `/register` are public, client-side forms and are `noindex, nofollow`.
   - Login posts to Payload `POST /api/users/login`, then `router.push('/kodu')`.
   - Register posts to `POST /api/users`, then logs in via `/api/users/login`, then goes to `/kodu`.
+  - Register asks for name, email and password. The name is required (trimmed, not blank): the form checks it, and `validateUserName` on the `users.name` field rejects a create without it ("Sisesta oma nimi."). Updates don't require it, because accounts created before 2026-10-26 may have no name and the profile actions and Stripe webhook still update them. The checkout route uses the name to offer a returning member's saved card (see `membership.md`).
   - If account creation fails, read the message from Payload's `errors[]` response (field error first). A duplicate email shows an Estonian "account already exists, log in" message; other errors fall back to Payload's message or "Registreerimine ebaõnnestus".
   - If account creation succeeds but the follow-up login fails, show a message asking the user to log in manually.
   - Under the "Loo konto" button, the form links the terms (`/kasutustingimused`) and privacy policy (`/privaatsus`) pages in a new tab. Those Payload pages must exist with these slugs.

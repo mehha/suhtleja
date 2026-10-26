@@ -56,7 +56,7 @@ describe('password hashing on Cloudflare Workers', () => {
 
     const user = await payload.create({
       collection: 'users',
-      data: { email, password, role: 'user' },
+      data: { email, password, name: 'Parooli Test', role: 'user' },
     })
     userId = user.id
 

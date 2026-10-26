@@ -61,6 +61,11 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
     e.preventDefault()
     setError(null)
 
+    if (!name.trim()) {
+      setError('Sisesta oma nimi.')
+      return
+    }
+
     if (password !== passwordConfirm) {
       setError('Paroolid ei kattu')
       return
@@ -81,7 +86,7 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
         body: JSON.stringify({
           email,
           password,
-          name,
+          name: name.trim(),
         }),
       })
 
@@ -153,6 +158,7 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
                 id="name"
                 autoComplete="name"
                 placeholder="nt. Mari Maasikas"
+                required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={loading}

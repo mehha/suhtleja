@@ -146,6 +146,28 @@ describe('users', () => {
     expect(after.membershipStatus ?? 'none').toBe('none')
   })
 
+  it('sign-up requires a name', async () => {
+    for (const [label, name] of [['missing', undefined], ['blank', '  ']] as const) {
+      await expect(
+        payload.create({ collection: 'users', data: { email: email(`noname-${label}`), password, name } as never, ...as(null) }),
+      ).rejects.toMatchObject({ data: { errors: [expect.objectContaining({ path: 'name', message: 'Sisesta oma nimi.' })] } })
+    }
+  })
+
+  it('accounts without a name can still be updated', async () => {
+    const user = await createUser('Nameless', 'user', 'none')
+    await payload.update({ collection: 'users', id: user.id, data: { name: null }, overrideAccess: true })
+
+    const updated = await payload.update({
+      collection: 'users',
+      id: user.id,
+      data: { membershipStatus: 'trialing' },
+      overrideAccess: true,
+    })
+    expect(updated.membershipStatus).toBe('trialing')
+    expect(updated.name ?? null).toBeNull()
+  })
+
   it('visitors cannot list users', async () => {
     await expect(payload.find({ collection: 'users', ...as(null) })).rejects.toThrow()
   })

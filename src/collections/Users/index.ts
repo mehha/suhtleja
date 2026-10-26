@@ -4,6 +4,7 @@ import { isAdmin } from '@/access/IsAdmin'
 import { isAdminFieldLevel } from '@/access/isAdminFieldLevel'
 import { isAdminOrSelf } from '@/access/isAdminOrSelf'
 import bcrypt from 'bcryptjs'
+import { validateUserName } from './validateName'
 
 const DEFAULT_PARENT_PIN = process.env.DEFAULT_PARENT_PIN || '0000'
 
@@ -45,6 +46,7 @@ export const Users: CollectionConfig = {
     {
       name: 'name',
       type: 'text',
+      validate: validateUserName,
     },
     {
       name: 'role',
