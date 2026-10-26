@@ -7,6 +7,7 @@ import { draftMode } from 'next/headers'
 import React, { cache } from 'react'
 
 import { RenderBlocks } from '@/blocks/RenderBlocks'
+import { PageFrame } from '@/components/Brand'
 import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import { getPageTitleMode } from '@/utilities/pageTitle'
@@ -70,10 +71,12 @@ export default async function Page({ params: paramsPromise }: Args) {
 
       <RenderHero {...hero} />
       {titleMode === 'render' && (
-        <header className="xl:container">
-          <h1 className="mt-6 text-balance font-display text-4xl font-black leading-[1.1] tracking-[-0.01em] text-[#22314c] md:text-[3.5rem]">
-            {page.title}
-          </h1>
+        <header>
+          <PageFrame>
+            <h1 className="mt-6 text-balance font-display text-4xl font-black leading-[1.1] tracking-[-0.01em] text-[#22314c] md:text-[3.5rem]">
+              {page.title}
+            </h1>
+          </PageFrame>
         </header>
       )}
       <RenderBlocks blocks={layout} promoteFirstHeading={titleMode === 'promote'} />

@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { ButtonLink, LogoTile, SectionIntro } from '@/components/Brand'
+import { ButtonLink, LogoTile, PageFrame, SectionIntro } from '@/components/Brand'
 import { Reveal } from '@/components/Brand/Reveal'
 import { Media } from '@/components/Media'
 import type { HowItWorksBlock as HowItWorksProps } from '@/payload-types'
@@ -34,7 +34,7 @@ export const HowItWorksBlock: React.FC<Props> = ({
 
   return (
     <section className={cn('py-12 text-[#22314c] sm:py-16', className)}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <PageFrame>
         <SectionIntro eyebrow={eyebrow} title={title} description={intro} as={promoteHeading ? 'h1' : 'h2'} />
 
         <ol className="mt-14 grid gap-16 lg:gap-20">
@@ -116,7 +116,7 @@ export const HowItWorksBlock: React.FC<Props> = ({
             </div>
           </div>
         ) : null}
-      </div>
+      </PageFrame>
     </section>
   )
 }

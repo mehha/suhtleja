@@ -1,7 +1,7 @@
 import React from 'react'
 import { Home, Mail, MessageSquareHeart, Phone, School } from 'lucide-react'
 
-import { LogoTile } from '@/components/Brand'
+import { LogoTile, PageFrame } from '@/components/Brand'
 import type { ContactBlock as ContactProps } from '@/payload-types'
 import { cn } from '@/utilities/ui'
 
@@ -26,7 +26,7 @@ export const ContactBlock: React.FC<Props> = ({ className, intro, email, phone, 
 
   return (
     <section className={cn('py-10 text-[#22314c] sm:py-12', className)}>
-      <div className="mx-auto grid max-w-7xl items-start gap-14 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16 lg:px-8">
+      <PageFrame className="grid items-start gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
         <div>
           {intro ? <p className="max-w-xl text-pretty text-lg leading-8 text-[#56627a]">{intro}</p> : null}
 
@@ -82,12 +82,12 @@ export const ContactBlock: React.FC<Props> = ({ className, intro, email, phone, 
             })}
           </ul>
         ) : null}
-      </div>
+      </PageFrame>
 
       {companyLine.length ? (
-        <p className="mx-auto mt-16 max-w-7xl border-t border-[#e6ebf3] px-4 pt-6 text-sm text-[#657189] sm:px-6 lg:px-8">
-          {companyLine.join(' · ')}
-        </p>
+        <PageFrame className="mt-16">
+          <p className="border-t border-[#e6ebf3] pt-6 text-sm text-[#657189]">{companyLine.join(' · ')}</p>
+        </PageFrame>
       ) : null}
     </section>
   )

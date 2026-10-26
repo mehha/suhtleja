@@ -23,7 +23,7 @@ tags: [suhtleja, ui, shadcn]
 - For mobile menu widths, keep a normal `vw` fallback and use `dvw` only as a supported enhancement.
 
 ## Brand Look (public pages)
-- Shared brand pieces live in `src/components/Brand`: `ButtonLink`, `toneAt` (logo colours in logo order: orange, red, blue, then green), `LogoTile` (a small copy of a logo tile, with the same gradient and tilt, for icons and step numbers), `Eyebrow` and `SectionIntro`.
+- Shared brand pieces live in `src/components/Brand`: `ButtonLink`, `toneAt` (logo colours in logo order: orange, red, blue, then green), `LogoTile` (a small copy of a logo tile, with the same gradient and tilt, for icons and step numbers), `Eyebrow`, `SectionIntro` and `PageFrame` (the header's horizontal frame, so content lines up with the logo).
 - Headings on public pages use `font-display` (Nunito, loaded in `src/app/(frontend)/layout.tsx`); body text stays Geist. Rich text gets the same through the typography settings in `tailwind.config.mjs` (navy headings in the display face, brand-blue links).
 - Section labels are short sentence-case text, not tracked capitals; buttons and links don't get arrow icons.
 - Use cards for real objects only (a price, a quote, a device). Lists of features or reasons sit open on the section background, with the same padding as any highlighted item so edges line up.

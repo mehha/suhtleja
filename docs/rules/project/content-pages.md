@@ -18,6 +18,9 @@ tags: [suhtleja, pages, blocks, payload]
 - The footer links "Meist" and "KKK" (`/#kkk`) as well as the legal pages.
 - `/demo` redirects permanently to `/kuidas-see-tootab` (`redirects.js`). The board-making video belongs in the steps block there.
 
+## Alignment
+- The page title and the content, steps and contact blocks sit in `PageFrame` (`src/components/Brand`), so their left edge lines up with the header logo at every width. Use it for new content page blocks too; `max-w-7xl px-4` or `xl:container` start 16–48px away from the logo.
+
 ## Rich text pages
 - Full-width content columns keep a readable line length (about 70 characters) and align left with the page title (`src/blocks/Content/Component.tsx`).
 - "Meist" sticks to facts the team has confirmed: the mission, the team description, the company details and what the product does. Don't add a founder story, partners or numbers without the team's input.

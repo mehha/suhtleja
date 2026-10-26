@@ -96,6 +96,19 @@ export function Eyebrow({ children, tone = 'blue' }: { children?: string | null;
   )
 }
 
+// The header's frame, so page content starts at the logo's left edge: -mx-4 undoes the page
+// shell's px-4 (`FrontendShell`, which the header sits outside), then the same container and the
+// header pill's inner padding (`px-4 sm:px-8` in `src/Header/Component.client.tsx`).
+export function PageFrame({ className, children }: { className?: string; children?: ReactNode }) {
+  return (
+    <div className="-mx-4">
+      <div className="container">
+        <div className={cn('px-4 sm:px-8', className)}>{children}</div>
+      </div>
+    </div>
+  )
+}
+
 export function SectionIntro({
   eyebrow,
   title,

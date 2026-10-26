@@ -5,6 +5,7 @@ import RichText from '@/components/RichText'
 import type { ContentBlock as ContentBlockProps } from '@/payload-types'
 
 import { CMSLink } from '../../components/Link'
+import { PageFrame } from '@/components/Brand'
 
 type Props = ContentBlockProps & {
   /** Render the first column's opening heading as the page's h1 (see `getPageTitleMode`). */
@@ -22,7 +23,7 @@ export const ContentBlock: React.FC<Props> = (props) => {
   }
 
   return (
-    <div className="xl:container my-16">
+    <PageFrame className="my-16">
       <div className="grid grid-cols-4 lg:grid-cols-12 gap-y-8 gap-x-16">
         {columns &&
           columns.length > 0 &&
@@ -51,6 +52,6 @@ export const ContentBlock: React.FC<Props> = (props) => {
             )
           })}
       </div>
-    </div>
+    </PageFrame>
   )
 }
