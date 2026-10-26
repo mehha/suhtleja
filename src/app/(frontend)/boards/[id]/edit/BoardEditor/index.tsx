@@ -36,6 +36,8 @@ const COMPACT_SWITCH_CLASS =
   'h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4'
 const TOGGLE_CARD_CLASS = 'flex items-center gap-2 rounded-xl border bg-card px-2.5 py-1.5'
 const GRID_MARGIN: [number, number] = [16, 16]
+// The narrowest cell that still fits its grip and buttons.
+const MIN_CELL_WIDTH = 96
 
 const layoutsMatch = (a: Layout[], b: Layout[]) => {
   if (a.length !== b.length) return false
@@ -149,10 +151,16 @@ export default function BoardEditor({
   const mobileCols = Math.max(1, Math.min(cols, 3))
   const mdCols = Math.max(1, Math.min(cols, 4))
   const activeGridCols = useMemo(() => {
-    if (gridWidth >= 1024) return cols
+    if (!gridWidth || gridWidth >= 1024) return cols
+    const fullCellWidth = (gridWidth - GRID_MARGIN[0] * Math.max(0, cols - 1)) / cols
+    if (fullCellWidth >= MIN_CELL_WIDTH) return cols
     if (gridWidth >= 768) return mdCols
     return mobileCols
   }, [cols, gridWidth, mdCols, mobileCols])
+  // With fewer columns than the board has, the grid shows a rearranged copy. A change there can't
+  // be mapped back to the board's own columns without moving and widening every cell, so the
+  // layout is read-only until the screen is wide enough.
+  const layoutLocked = activeGridCols !== cols
   const rowHeight = useMemo(() => {
     if (!gridWidth) return 140
 
@@ -166,14 +174,9 @@ export default function BoardEditor({
     return packLayoutToColumns(scaledLayout, activeGridCols)
   }, [activeGridCols, cols, layout])
   const handleEditorLayoutChange = (nextLayout: Layout[]) => {
-    if (layoutsMatch(nextLayout, editorLayout)) return
+    if (layoutLocked || layoutsMatch(nextLayout, editorLayout)) return
 
-    if (activeGridCols === cols) {
-      onLayoutChange(nextLayout)
-      return
-    }
-
-    onLayoutChange(scaleLayoutToColumns(nextLayout, activeGridCols, cols))
+    onLayoutChange(nextLayout)
   }
 
   const currentEditingCell =
@@ -482,6 +485,12 @@ export default function BoardEditor({
           </div>
         )}
 
+        {layoutLocked ? (
+          <p className="container text-sm text-muted-foreground">
+            Kaartide liigutamiseks ja suuruse muutmiseks ava tahvel laiemal ekraanil.
+          </p>
+        ) : null}
+
         <div ref={gridContainerRef} className="h-full w-full overflow-y-auto">
           <ReactGridLayout
             className="layout"
@@ -491,8 +500,8 @@ export default function BoardEditor({
             containerPadding={[0, 0]}
             layout={editorLayout}
             onLayoutChange={handleEditorLayoutChange}
-            isResizable
-            isDraggable
+            isResizable={!layoutLocked}
+            isDraggable={!layoutLocked}
             // Cells move only by their grip. react-draggable cancels touchstart on whatever it
             // drags, so dragging from the whole cell kept the cell buttons from getting taps.
             draggableHandle=".board-cell-drag-handle"
@@ -502,20 +511,22 @@ export default function BoardEditor({
                 key={cell.id}
                 className="relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5"
               >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span
-                      aria-label="Lohista kaardi liigutamiseks"
-                      className="board-cell-drag-handle absolute left-1 top-1 z-10 inline-flex h-8 w-8 cursor-grab touch-none items-center justify-center rounded-md border border-border bg-secondary text-secondary-foreground active:cursor-grabbing"
-                      role="img"
-                    >
-                      <GripVertical className="h-4 w-4" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Lohista kaardi liigutamiseks</p>
-                  </TooltipContent>
-                </Tooltip>
+                {layoutLocked ? null : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        aria-label="Lohista kaardi liigutamiseks"
+                        className="board-cell-drag-handle absolute left-1 top-1 z-10 inline-flex h-8 w-8 cursor-grab touch-none items-center justify-center rounded-md border border-border bg-secondary text-secondary-foreground active:cursor-grabbing"
+                        role="img"
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Lohista kaardi liigutamiseks</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
 
                 <div className="absolute right-1 top-1 z-10 flex gap-1">
                   <Button
