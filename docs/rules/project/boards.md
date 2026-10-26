@@ -84,5 +84,6 @@ tags: [suhtleja, frontend, boards, payload]
   - Put cell buttons inside the `.board-cell-actions` wrapper, which the grid's `draggableCancel` excludes from dragging. react-draggable cancels `touchstart` on the dragged cell, so without it taps on those buttons never reach `onClick` on touch screens.
 - When changing card UI on `/kodu`:
   - Keep keyboard navigation and drag behavior usable.
+  - Pass the same ids, of the same type, to `SortableContext` `items` and to `useSortable({ id })`. dnd-kit compares them with `indexOf`, so a string `'9'` never matches a number `9`: the drop still reorders, but no card moves during the drag.
   - Validate image fallback behavior for missing board visuals.
   - Use responsive grid columns for the home card lists rather than fixed card widths so mobile can render one column and wider screens can expand naturally.

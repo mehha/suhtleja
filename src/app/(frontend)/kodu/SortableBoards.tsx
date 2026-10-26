@@ -267,7 +267,7 @@ export function SortableBoards({
     <>
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
-          items={items.map((item) => String(item.id))}
+          items={items.map((item) => item.id)}
           strategy={rectSortingStrategy}
         >
           <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
