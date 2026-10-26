@@ -57,7 +57,8 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
 - A puzzle may optionally override that default with its own Payload media background track.
 - Frontend music must start only after a real child interaction on the game area, not on page load.
 - Frontend music must have a visible icon-only mute/unmute control overlaid on the game image in the top-right corner.
-- When a puzzle is completed, the looping background music must stop and `/great-success-borat.mp3` must play once for the celebration.
+- When a puzzle is completed, the looping background music must stop, `/connect-dots-success.mp3` (a chime synthesized for Suhtleja) must play once, and `ConnectDotsCelebration` shows a confetti burst with "Tubli!" for 2.6 s (confetti hidden under `prefers-reduced-motion`).
+- Only use images, animations and sounds the app holds the rights to. A Patrick Star GIF and a Borat clip were removed for this reason; don't add characters, film or TV clips. `/soft-dots-journey.mp3` was made by the owner with Suno.
 
 ## Data Rules
 - Dots are stored as normalized coordinates (`0..1`) relative to the image.

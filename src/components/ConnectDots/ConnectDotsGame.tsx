@@ -18,6 +18,7 @@ import {
   VolumeX,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ConnectDotsCelebration } from './ConnectDotsCelebration'
 import { Card } from '@/components/ui/card'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/utilities/ui'
@@ -50,7 +51,7 @@ type PointerPosition = {
 const TRACE_RADIUS = 0.05
 const CONNECT_DOTS_MUSIC_MUTED_KEY = 'connect-dots-music-muted'
 const CONNECT_DOTS_MUSIC_VOLUME = 0.2
-const CONNECT_DOTS_SUCCESS_AUDIO_URL = '/great-success-borat.mp3'
+const CONNECT_DOTS_SUCCESS_AUDIO_URL = '/connect-dots-success.mp3'
 const CONNECT_DOTS_SUCCESS_VOLUME = 0.9
 const SILENT_AUDIO_DATA_URI =
   'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA='
@@ -809,19 +810,7 @@ export function ConnectDotsGame({
 
             {finished ? (
               successBurstVisible ? (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    alt="Success animation"
-                    className="object-contain drop-shadow-[0_24px_48px_rgba(15,23,42,0.3)] animate-[successGifIn_2.6s_cubic-bezier(0.18,0.9,0.2,1)_1]"
-                    style={{
-                      height: 'min(32rem, 90vw)',
-                      width: 'min(32rem, 90vw)',
-                    }}
-                    draggable={false}
-                    src="/success.gif"
-                  />
-                </div>
+                <ConnectDotsCelebration />
               ) : (
                 <Button
                   aria-label="Alusta uuesti"
@@ -847,30 +836,6 @@ export function ConnectDotsGame({
                 {musicMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
               </Button>
             ) : null}
-            <style jsx>{`
-              @keyframes successGifIn {
-                0% {
-                  opacity: 0;
-                  transform: scale(0.28) translateY(24px);
-                }
-                16% {
-                  opacity: 1;
-                  transform: scale(1.18) translateY(-10px);
-                }
-                42% {
-                  opacity: 1;
-                  transform: scale(1.34) translateY(0);
-                }
-                70% {
-                  opacity: 1;
-                  transform: scale(1.22) translateY(0);
-                }
-                100% {
-                  opacity: 0;
-                  transform: scale(1.08) translateY(-6px);
-                }
-              }
-            `}</style>
           </div>
         </div>
 
