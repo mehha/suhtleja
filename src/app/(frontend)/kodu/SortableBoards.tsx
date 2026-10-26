@@ -101,32 +101,61 @@ function SortableBoardCard({
       onKeyDown={handleCardKeyDown}
       className="relative flex aspect-[4/3] w-full min-w-0 cursor-pointer flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm ring-1 ring-gray-900/5"
     >
-      <div className="flex items-center justify-between gap-2">
-        {/* DRAG HANDLE – ainult parent mode saab sortida */}
-        {canManage ? (
-          <button
-            type="button"
-            {...listeners}
-            {...attributes}
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-            }}
-            className="cursor-grab active:cursor-grabbing touch-none hover:bg-muted"
-            aria-label="Muuda tahvli järjekorda"
-          >
-            <GripVertical className="w-5 h-5" />
-          </button>
-        ) : (
-          <span className="w-5 h-5" aria-hidden="true" />
-        )}
+      <TooltipProvider>
+        <div className="flex items-center justify-between gap-2">
+          {/* DRAG HANDLE – ainult parent mode saab sortida */}
+          {canManage ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  {...listeners}
+                  {...attributes}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
+                  className="cursor-grab active:cursor-grabbing touch-none hover:bg-muted"
+                  aria-label="Muuda tahvli järjekorda"
+                >
+                  <GripVertical className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Lohista järjekorra muutmiseks</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <span className="w-5 h-5" aria-hidden="true" />
+          )}
 
-        {(canManage || board.canEdit) && (
-          <div className="flex items-center gap-2">
-            {isAdmin && <UserCog className="w-5 h-5" />}
-            {board.isShared ? <Globe2 className="w-4 h-4 text-sky-600" /> : null}
+          {(canManage || board.canEdit) && (
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span role="img" aria-label="Vaatad administraatorina" className="inline-flex">
+                      <UserCog className="w-5 h-5" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Vaatad administraatorina</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {board.isShared ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span role="img" aria-label="Jagatud kõigi kasutajatega" className="inline-flex">
+                      <Globe2 className="w-4 h-4 text-sky-600" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Jagatud kõigi kasutajatega</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : null}
 
-            <TooltipProvider>
               {board.canEdit ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -161,10 +190,10 @@ function SortableBoardCard({
                   <p>{board.unpinLabel ?? 'Eemalda koduvaatest'}</p>
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
+      </TooltipProvider>
 
       <div className="relative flex h-[calc(100%-50px)] w-full items-center justify-center overflow-hidden rounded-lg">
         {hasUploadImage ? (

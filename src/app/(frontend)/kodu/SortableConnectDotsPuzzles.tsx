@@ -81,36 +81,75 @@ function SortablePuzzleCard({
       onKeyDown={handleCardKeyDown}
       className="relative flex aspect-[4/3] w-full min-w-0 cursor-pointer flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm ring-1 ring-gray-900/5"
     >
-      <div className="flex items-center justify-between gap-2">
-        {canManage ? (
-          <button
-            type="button"
-            {...listeners}
-            {...attributes}
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-            }}
-            className="cursor-grab touch-none hover:bg-muted active:cursor-grabbing"
-            aria-label="Muuda mängude järjekorda"
-          >
-            <GripVertical className="h-5 w-5" />
-          </button>
-        ) : (
-          <span aria-hidden="true" className="h-5 w-5" />
-        )}
+      <TooltipProvider>
+        <div className="flex items-center justify-between gap-2">
+          {canManage ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  {...listeners}
+                  {...attributes}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
+                  className="cursor-grab touch-none hover:bg-muted active:cursor-grabbing"
+                  aria-label="Muuda mängude järjekorda"
+                >
+                  <GripVertical className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Lohista järjekorra muutmiseks</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <span aria-hidden="true" className="h-5 w-5" />
+          )}
 
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-1 text-[11px] font-medium text-sky-800">
-            <PencilRuler className="h-3.5 w-3.5" />
-            Ühenda punktid
-          </span>
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  role="img"
+                  aria-label="Ühenda punktid"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-100 text-sky-800"
+                >
+                  <PencilRuler className="h-3.5 w-3.5" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Ühenda punktid</p>
+              </TooltipContent>
+            </Tooltip>
 
-          {(canManage || puzzle.canEdit) && (
-            <TooltipProvider>
+            {(canManage || puzzle.canEdit) && (
               <div className="flex items-center gap-2">
-                {isAdmin && <UserCog className="h-5 w-5" />}
-                {puzzle.isShared ? <Globe2 className="h-4 w-4 text-sky-600" /> : null}
+                {isAdmin && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span role="img" aria-label="Vaatad administraatorina" className="inline-flex">
+                        <UserCog className="h-5 w-5" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Vaatad administraatorina</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                {puzzle.isShared ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span role="img" aria-label="Jagatud kõigi kasutajatega" className="inline-flex">
+                        <Globe2 className="h-4 w-4 text-sky-600" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Jagatud kõigi kasutajatega</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : null}
 
                 {puzzle.canEdit ? (
                   <Tooltip>
@@ -147,10 +186,10 @@ function SortablePuzzleCard({
                   </TooltipContent>
                 </Tooltip>
               </div>
-            </TooltipProvider>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      </TooltipProvider>
 
       <div className="relative h-[calc(100%-50px)] w-full overflow-hidden rounded-lg bg-[radial-gradient(circle_at_top,#f8fafc,#e2e8f0)]">
         <img src={puzzle.imageUrl} alt={puzzle.title} className="h-full w-full object-contain" />
