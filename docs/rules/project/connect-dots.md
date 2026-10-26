@@ -22,6 +22,8 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
 
 ## Behavior Rules
 - Auth and active membership are required for `/connect-dots`.
+- In child mode `/connect-dots` is a fullscreen child surface: no global header/footer, only `ChildModeBar` (home + parent PIN). See `parent-child-mode.md`.
+- User-facing names: the section is `Mängud` and the game type is `Ühenda punktid` (on `/kodu`, `/koduhaldus` and in the editor). Don't show "puzzle" or "Connect Dots" to users.
 - Parent mode is required for all frontend create/edit/delete puzzle flows.
 - Frontend shows only puzzles with `enabled = true`.
 - Non-admin users should see:

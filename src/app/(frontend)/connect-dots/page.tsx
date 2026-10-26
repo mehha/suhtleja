@@ -10,6 +10,8 @@ import {
   serializeConnectDotsPuzzle,
 } from '@/utilities/connectDots'
 import { isParentModeUtil } from '@/utilities/uiMode'
+import type { User } from '@/payload-types'
+import { ChildModeBar } from '@/app/(frontend)/kodu/ChildModeBar'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,7 +71,9 @@ export default async function ConnectDotsPage({
     .filter((puzzle): puzzle is ConnectDotsPlayerPuzzle => puzzle !== null)
 
   return (
-    <main className="xl:container space-y-6 py-6">
+    <main className={`xl:container space-y-6 py-6 ${isParentMode ? '' : 'pt-14'}`}>
+      {/* In the child view the site header is hidden (FrontendShell): home and PIN buttons only. */}
+      {!isParentMode && <ChildModeBar hasPin={Boolean((user as User).parentPinHash)} />}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-sky-700">
@@ -89,7 +93,7 @@ export default async function ConnectDotsPage({
 
         {isParentMode ? (
           <Button asChild type="button" variant="outline">
-            <Link href="/koduhaldus">Halda puzzle&apos;eid</Link>
+            <Link href="/koduhaldus">Halda mänge</Link>
           </Button>
         ) : null}
       </header>
@@ -99,8 +103,8 @@ export default async function ConnectDotsPage({
       ) : (
         <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-600">
           {isParentMode
-            ? 'Ühtegi aktiivset connect-dots pilti pole veel seadistatud. Ava tahvlite vaade ja lisa esimene puzzle.'
-            : 'Ühtegi aktiivset connect-dots pilti pole veel seadistatud.'}
+            ? 'Ühtegi mängu pole veel lisatud. Ava koduhaldus ja lisa esimene mäng.'
+            : 'Ühtegi mängu pole veel lisatud.'}
         </div>
       )}
     </main>

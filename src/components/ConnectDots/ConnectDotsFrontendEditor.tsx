@@ -474,7 +474,7 @@ export function ConnectDotsFrontendEditor({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <PencilRuler className="h-4 w-4 text-sky-600" />
-            <h1 className="text-2xl font-semibold">Halda connect-dots puzzle&apos;it</h1>
+            <h1 className="text-2xl font-semibold">Halda mängu „Ühenda punktid“</h1>
           </div>
           <p className="text-sm text-muted-foreground">
             Vali pilt, lisa punktid õiges järjekorras ja salvesta puzzle oma kogusse.
@@ -517,7 +517,7 @@ export function ConnectDotsFrontendEditor({
             id="connect-dots-description"
             name="description"
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Lühike abitekst puzzle valiku alla"
+            placeholder="Lühike abitekst mängu valiku alla"
             rows={3}
             value={description}
           />
@@ -712,7 +712,7 @@ export function ConnectDotsFrontendEditor({
 
             <div className={styles.helperBox}>
               {validationMessage === true
-                ? 'Puzzle salvestamiseks peab pilt olema valitud ja punkte peab olema vähemalt kaks.'
+                ? 'Mängu salvestamiseks peab pilt olema valitud ja punkte peab olema vähemalt kaks.'
                 : validationMessage}
             </div>
 

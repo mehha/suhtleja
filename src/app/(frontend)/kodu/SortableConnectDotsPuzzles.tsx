@@ -92,7 +92,7 @@ function SortablePuzzleCard({
               e.stopPropagation()
             }}
             className="cursor-grab touch-none hover:bg-muted active:cursor-grabbing"
-            aria-label="Muuda puzzle järjekorda"
+            aria-label="Muuda mängude järjekorda"
           >
             <GripVertical className="h-5 w-5" />
           </button>
@@ -103,7 +103,7 @@ function SortablePuzzleCard({
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-1 text-[11px] font-medium text-sky-800">
             <PencilRuler className="h-3.5 w-3.5" />
-            Connect Dots
+            Ühenda punktid
           </span>
 
           {(canManage || puzzle.canEdit) && (

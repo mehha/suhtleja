@@ -15,7 +15,7 @@ type FrontendShellProps = {
 }
 
 const isChildFullscreenPath = (pathname: string) => {
-  if (pathname === '/kodu') return true
+  if (pathname === '/kodu' || pathname === '/connect-dots') return true
 
   return /^\/boards\/[^/]+$/.test(pathname)
 }

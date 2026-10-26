@@ -36,6 +36,7 @@ tags: [suhtleja, stripe, membership, profile]
   - reuse a single unique email match
   - fail clearly instead of guessing when multiple unrelated Stripe customers share the same email
 - Membership cancel/manage flow should use Stripe Billing Portal.
+- The portal route requires parent mode (`403 parent_mode_required` otherwise), because the portal can cancel the membership. Starting a trial or membership in Checkout stays open in child mode: new customers start their trial before they have opened the parent view.
 - Hide membership-management UI when `membershipStatus` is `none`; show only checkout/upgrade in that state.
 - The frontend header must refresh client-side auth state after route changes so Stripe redirects and login/logout transitions do not require a manual browser refresh.
 - Pending-cancellation profile UI should be driven by `membershipCancelAtPeriodEnd` plus a future `currentPeriodEndsAt`, not only by the current status label.

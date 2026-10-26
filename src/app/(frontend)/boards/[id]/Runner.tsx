@@ -8,12 +8,10 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   Edit3,
-  Home,
   Sparkles,
   Slash,
   Trash,
   Undo2,
-  UserLock,
   Volume2Icon,
   WholeWord,
 } from 'lucide-react'
@@ -33,7 +31,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { AnimatedVolumeIcon } from '@/components/Animations/AnimatedVolumeIcon'
 import { getBoardTTSCacheManifest } from '@/utilities/boardTTSCacheManifest'
 import { prepareTextForTTS } from '@/utilities/azureTTS'
-import { ParentUnlockDialog } from '@/app/(frontend)/kodu/ParentUnlockDialog'
+import { ChildModeBar } from '@/app/(frontend)/kodu/ChildModeBar'
 
 const ResponsiveGridLayout = WidthProvider(ResponsiveGrid)
 const GRID_MARGIN: [number, number] = [16, 16]
@@ -549,29 +547,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
 
   return (
     <div className={`pb-28 md:pb-24 ${!isParentMode ? 'pt-14' : ''}`}>
-      {!isParentMode && (
-        <div className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
-          <Button
-            asChild
-            variant="secondary"
-            size="icon"
-            roundness="full"
-            className="bg-white/90 shadow-lg ring-1 ring-gray-900/10 backdrop-blur"
-          >
-            <Link href="/kodu" aria-label="Kodu">
-              <Home className="h-5 w-5" />
-            </Link>
-          </Button>
-
-          <ParentUnlockDialog
-            hasPin={hasPin}
-            className="bg-white/90 shadow-lg ring-1 ring-gray-900/10 backdrop-blur"
-          >
-            <UserLock className="h-5 w-5" />
-            <span className="sr-only">Vanema vaade</span>
-          </ParentUnlockDialog>
-        </div>
-      )}
+      {!isParentMode && <ChildModeBar hasPin={hasPin} />}
 
       <div className="actionbar-container fixed inset-x-0 bottom-0 z-40 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-4">
         <TooltipProvider>

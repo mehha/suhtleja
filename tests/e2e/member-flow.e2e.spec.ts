@@ -103,7 +103,15 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   })
 
   await test.step('set a parent PIN', async () => {
+    // A new account has the default PIN and starts in the child view, so changing the PIN takes the
+    // account password (the forgotten-PIN path), and the PIN can't be removed from here.
+    await expect(page.getByRole('button', { name: 'Eemalda PIN' })).toHaveCount(0)
     await page.locator('input[data-input-otp]').pressSequentially(pin)
+    await page.getByLabel('Konto parool').fill(`${password}-wrong`)
+    await page.getByRole('button', { name: /^(Sea|Uuenda) PIN$/ }).click()
+    await expect(page.getByText('Vale parool.')).toBeVisible()
+
+    await page.getByLabel('Konto parool').fill(password)
     await page.getByRole('button', { name: /^(Sea|Uuenda) PIN$/ }).click()
     await expect(page.getByText('PIN salvestatud.')).toBeVisible()
   })
@@ -116,6 +124,17 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
 
     await page.goto('/koduhaldus')
     await expect(page).toHaveURL(/\/kodu$/)
+
+    // The game page is a full-screen child page too: no site header or account menu.
+    await page.goto('/connect-dots')
+    await expect(page.getByRole('button', { name: 'Vanema vaade', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Kasutaja menüü' })).toHaveCount(0)
+
+    // Managing the membership (which can cancel it) needs the parent view.
+    await page.goto('/profile')
+    await expect(page.getByText('Liikmelisuse haldamiseks ava vanema vaade')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Halda liikmelisust' })).toHaveCount(0)
+    await page.goto('/kodu')
   })
 
   await test.step('unlock the parent view with the PIN', async () => {

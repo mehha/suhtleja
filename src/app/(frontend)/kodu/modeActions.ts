@@ -63,7 +63,8 @@ const getSafeChildReturnPath = (value: FormDataEntryValue | null): string => {
   const [pathname] = value.split(/[?#]/)
   if (!pathname) return fallback
 
-  const canStayOnPath = pathname === '/kodu' || /^\/boards\/[^/]+$/.test(pathname)
+  const canStayOnPath =
+    pathname === '/kodu' || pathname === '/connect-dots' || /^\/boards\/[^/]+$/.test(pathname)
   return canStayOnPath ? value : fallback
 }
 

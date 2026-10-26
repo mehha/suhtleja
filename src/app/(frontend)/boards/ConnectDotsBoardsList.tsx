@@ -75,16 +75,16 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold">Connect-dots puzzle&apos;id</h2>
+            <h2 className="text-2xl font-semibold">Mängud</h2>
             <p className="text-sm text-muted-foreground">
-              Halda siin connect-dots mänge ja vali, kas need ilmuvad koduvaates eraldi sektsioonis.
+              Halda siin mänge ja vali, millised neist on lapse koduvaates.
             </p>
           </div>
 
           <Button asChild className="gap-2">
             <Link href="/connect-dots/manage/new">
               <PlusCircle className="h-4 w-4" />
-              Lisa puzzle
+              Lisa mäng
             </Link>
           </Button>
         </div>
@@ -93,7 +93,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
           <Input
             className="max-w-xs"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Otsi puzzle&apos;it…"
+            placeholder="Otsi mängu…"
             type="search"
             value={query}
           />
@@ -118,7 +118,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
             <Table className="min-w-max text-sm">
               <TableHeader className="bg-muted/60">
                 <TableRow>
-                  <TableHead>Puzzle</TableHead>
+                  <TableHead>Mäng</TableHead>
                   <TableHead>Looja</TableHead>
                   <TableHead>Koduvaade</TableHead>
                   <TableHead>Nähtavus</TableHead>
@@ -136,8 +136,8 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{puzzle.title || 'Nimetu puzzle'}</span>
-                            <Badge variant="outline">Connect Dots</Badge>
+                            <span className="font-medium">{puzzle.title || 'Nimetu mäng'}</span>
+                            <Badge variant="outline">Ühenda punktid</Badge>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Link className="hover:underline" href={`/connect-dots?puzzle=${puzzle.id}`}>
@@ -206,7 +206,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                                   </Link>
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Muuda puzzle&apos;it</TooltipContent>
+                              <TooltipContent>Muuda mängu</TooltipContent>
                             </Tooltip>
                           ) : null}
 
@@ -230,7 +230,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                               onSubmit={(event) => {
                                 if (
                                   !window.confirm(
-                                    `Kas soovid kindlasti kustutada puzzle'i "${puzzle.title || 'Nimetu puzzle'}"?`,
+                                    `Kas soovid kindlasti kustutada mängu "${puzzle.title || 'Nimetu mäng'}"?`,
                                   )
                                 ) {
                                   event.preventDefault()

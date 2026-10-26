@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
 import { MEMBERSHIP_TRIAL_DAYS } from '@/utilities/membershipCheckout'
+import { isParentModeUtil } from '@/utilities/uiMode'
 import type { User } from '@/payload-types'
 import { ProfilePageClient } from '@/app/(frontend)/profile/ProfilePageClient'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +19,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
   const u = user as User
 
   const hasPin = Boolean(u.parentPinHash)
+  const isParentMode = await isParentModeUtil()
   const membershipRequired = query.membership === 'required'
   const isTrialEligible = !u.membershipStatus || u.membershipStatus === 'none'
 
@@ -65,6 +67,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
 
       <ProfilePageClient
         hasPin={hasPin}
+        isParentMode={isParentMode}
         membershipStatus={u.membershipStatus}
         trialEndsAt={u.trialEndsAt}
         currentPeriodEndsAt={u.currentPeriodEndsAt}

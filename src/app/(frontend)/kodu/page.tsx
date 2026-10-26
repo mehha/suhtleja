@@ -451,7 +451,7 @@ export default async function HomePage() {
             <Button className="gap-2" asChild>
               <Link href="/connect-dots/manage/new">
                 <PlusCircle className="h-4 w-4" />
-                Lisa puzzle
+                Lisa mäng
               </Link>
             </Button>
             <Button variant="outline" asChild>
@@ -498,7 +498,7 @@ export default async function HomePage() {
           {hasPuzzles ? (
             <section className="space-y-6">
               <div>
-                <h2 className="text-lg font-semibold">Connect-dots puzzle&apos;id</h2>
+                <h2 className="text-lg font-semibold">Mängud</h2>
               </div>
 
               <SortableConnectDotsPuzzles

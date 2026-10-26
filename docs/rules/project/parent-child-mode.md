@@ -31,6 +31,11 @@ tags: [suhtleja, auth, mode, home, boards]
 - PIN validation: exactly 4 digits.
 - PIN is stored hashed in `users.parentPinHash`.
 - Default hash at user creation comes from `DEFAULT_PARENT_PIN` (fallback `0000`).
+- The PIN is the lock, so changing it is a parent action (`pinChangeNeedsPassword` in `src/utilities/parentPin.ts`, checked in `updatePinAction`):
+  - In parent mode, or when no PIN is set, the new PIN is enough.
+  - In child mode the account password is required too (a parent who forgot the PIN); it is checked with `payload.login`, so wrong passwords count toward the login lockout. Changing the PIN this way does not open parent mode.
+- Removing the PIN (`clearPinAction`) and opening the Stripe Billing Portal require parent mode: without a PIN the parent view opens for anyone, and the portal can cancel the membership.
+- Never rely on hiding a page or link in child mode: the server action or route must check the mode itself (`/profile` is reachable in child mode by typing the address).
 
 ## UX Rules
 - Keep OTP auto-submit after 4 digits.
@@ -41,9 +46,9 @@ tags: [suhtleja, auth, mode, home, boards]
 - Keep explicit error message for invalid/missing PIN.
 - Header parent/child switcher should stay icon-only visually, with accessible names preserved for assistive tech.
 - Logged-in header controls should include an icon-only home link before the parent/child switcher; `/home` is a redirect alias for `/kodu`.
-- In child mode, `/kodu` and `/boards/[id]` should render as fullscreen child surfaces without the global header/footer/admin bar.
-- Child fullscreen surfaces must provide their own minimal navigation or unlock controls when global chrome is hidden.
-- Switching from parent mode to child mode may preserve safe child routes such as `/kodu` and `/boards/[id]`, but must fall back to `/kodu` from parent-only or management routes.
+- In child mode, `/kodu`, `/boards/[id]` and `/connect-dots` render as fullscreen child surfaces without the global header/footer/admin bar (`isChildFullscreenPath` in `src/app/(frontend)/FrontendShell.tsx`). Any page a child can open from `/kodu` belongs on that list: the global header has the account menu (`Logi välja`) and links out of the child view.
+- Child fullscreen surfaces must provide their own minimal navigation or unlock controls when global chrome is hidden. Use `ChildModeBar` (`src/app/(frontend)/kodu/ChildModeBar.tsx`: home + parent PIN dialog) and leave top padding for it.
+- Switching from parent mode to child mode may preserve safe child routes such as `/kodu`, `/boards/[id]` and `/connect-dots`, but must fall back to `/kodu` from parent-only or management routes.
 
 ## Change Checklist
 - If cookie options change:

@@ -37,6 +37,7 @@ tags: [suhtleja, frontend, auth, profile, users]
   - Must be exactly 4 digits (`updatePinAction`), stored only as a bcrypt hash in `users.parentPinHash`.
   - New users get a hash of `DEFAULT_PARENT_PIN` (fallback `0000`) from the `Users` `beforeChange` hook.
   - `clearPinAction` removes the hash and resets the `uiMode` cookie to `child`.
+  - `/profile` also renders in child mode (a new customer starts the trial there before ever opening the parent view). In child mode the PIN form asks for the account password, and `Eemalda PIN` and `Halda liikmelisust` are hidden; the server actions and the portal route enforce the same rules (see `parent-child-mode.md`).
   - Full unlock/lock behavior lives in `parent-child-mode.md`.
 
 ## Side Effects

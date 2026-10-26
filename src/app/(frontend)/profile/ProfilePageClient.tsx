@@ -6,6 +6,7 @@ import { updatePinAction, clearPinAction } from './actions'
 import { Button } from '@/components/ui/button'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/utilities/ui'
 import { MEMBERSHIP_TRIAL_DAYS } from '@/utilities/membershipCheckout'
@@ -28,6 +29,7 @@ const STRIPE_REQUEST_TIMEOUT_MS = 20_000
 
 type Props = {
   hasPin: boolean
+  isParentMode: boolean
   membershipStatus?: 'none' | 'trialing' | 'active' | 'past_due' | 'canceled' | null
   trialEndsAt?: string | null
   currentPeriodEndsAt?: string | null
@@ -61,6 +63,7 @@ const formatDate = (value?: string | null): string | null => {
 
 export function ProfilePageClient({
   hasPin: initialHasPin,
+  isParentMode,
   membershipStatus,
   trialEndsAt,
   currentPeriodEndsAt,
@@ -74,6 +77,9 @@ export function ProfilePageClient({
 
   // derived staatus: kui server action õnnestus, eelda et PIN on nüüd olemas
   const effectiveHasPin = initialHasPin || (state.success && !state.error)
+  // In the child view the PIN is the lock: changing it takes the account password, removing it
+  // and managing the membership take the parent view.
+  const needsPassword = initialHasPin && !isParentMode
 
   const membership = membershipStatus ?? 'none'
   const isMembershipActive = membership === 'active' || membership === 'trialing'
@@ -236,7 +242,7 @@ export function ProfilePageClient({
               'Alusta liikmelisust'
             )}
           </Button>
-          {canManageMembership && (
+          {canManageMembership && isParentMode && (
             <Button
               type="button"
               variant="outline"
@@ -246,6 +252,11 @@ export function ProfilePageClient({
             >
               {portalLoading ? 'Avan halduse...' : 'Halda liikmelisust'}
             </Button>
+          )}
+          {canManageMembership && !isParentMode && (
+            <p className="text-sm text-muted-foreground">
+              Liikmelisuse haldamiseks ava vanema vaade (ülal paremal).
+            </p>
           )}
         </CardContent>
       </Card>
@@ -272,8 +283,27 @@ export function ProfilePageClient({
             </p>
           </div>
 
+          {needsPassword && (
+            <p className="text-sm text-muted-foreground">
+              Vanema vaade on suletud. PIN-i muutmiseks ava vanema vaade (ülal paremal). Kui oled PIN-i
+              unustanud, sisesta konto parool ja uus PIN.
+            </p>
+          )}
+
           {/* PIN seadmine / uuendamine – üks form */}
           <form action={formAction} className="space-y-4">
+            {needsPassword && (
+              <div className="space-y-2">
+                <Label htmlFor="pin-password">Konto parool</Label>
+                <Input
+                  id="pin-password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  className="max-w-xs"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Uus PIN (4 numbrit)</Label>
               <InputOTP
@@ -305,7 +335,7 @@ export function ProfilePageClient({
           </form>
 
           {/* PIN eemaldamine – eraldi form, mitte form-i sees, ja EI mingit inline "use server" */}
-          {effectiveHasPin && (
+          {effectiveHasPin && isParentMode && (
             <form action={clearPinAction}>
               <Button type="submit" variant="outline">
                 Eemalda PIN

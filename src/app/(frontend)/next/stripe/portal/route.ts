@@ -3,6 +3,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Stripe from 'stripe'
 import { createStripeClient } from '@/utilities/stripe'
+import { isParentModeUtil } from '@/utilities/uiMode'
 
 export const runtime = 'nodejs'
 
@@ -53,6 +54,11 @@ export async function POST(req: Request) {
 
   if (!user.email) {
     return NextResponse.json({ error: 'missing_email' }, { status: 400 })
+  }
+
+  // The portal can cancel the membership, so the child view can't open it.
+  if (!(await isParentModeUtil())) {
+    return NextResponse.json({ error: 'parent_mode_required' }, { status: 403 })
   }
 
   const membershipStatus = (user as { membershipStatus?: string | null }).membershipStatus
