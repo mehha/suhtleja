@@ -14,6 +14,12 @@ import { getPageTitleMode } from '@/utilities/pageTitle'
 import PageClient from './page.client'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 
+// Pages are built once and served from the cache until an edit revalidates them (revalidatePage).
+// force-static also makes the layout's cookie reads empty here, so no request data ends up in a
+// cached page; the header and admin bar load the login in the browser. Draft previews (draft mode
+// cookie) still render per request.
+export const dynamic = 'force-static'
+
 export async function generateStaticParams() {
   const payload = await getPayload({ config: configPromise })
   const pages = await payload.find({

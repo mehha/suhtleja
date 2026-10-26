@@ -5,8 +5,9 @@ import type { PayloadAdminBarProps, PayloadMeUser } from '@payloadcms/admin-bar'
 import { cn } from '@/utilities/ui'
 import { usePathname, useSelectedLayoutSegments } from 'next/navigation'
 import { PayloadAdminBar } from '@payloadcms/admin-bar'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { fetchClientUser } from '@/utilities/fetchClientUser'
 import { useFetchPageOrPost } from '@/utilities/useFetchPageOrPost'
 
 import './index.scss'
@@ -50,9 +51,33 @@ const normalizePath = (pathname: string): string => {
   return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
 }
 
-export const AdminBar: React.FC<{
+type AdminBarProps = {
   adminBarProps?: PayloadAdminBarProps
-}> = (props) => {
+}
+
+// Rendered on every page, including static ones, so the browser decides: the bar and its requests
+// only load for admins.
+export const AdminBar: React.FC<AdminBarProps> = (props) => {
+  const pathname = usePathname()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchClientUser(pathname).then(
+      (user) => {
+        if (!cancelled) setIsAdmin(user?.role === 'admin')
+      },
+      () => undefined,
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [pathname])
+
+  return isAdmin ? <AdminBarContent {...props} /> : null
+}
+
+const AdminBarContent: React.FC<AdminBarProps> = (props) => {
   const { adminBarProps } = props || {}
   const segments = useSelectedLayoutSegments()
   const pathname = usePathname()

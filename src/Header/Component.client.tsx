@@ -2,7 +2,7 @@
 import { useHeaderTheme } from '@/providers/HeaderTheme'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useSyncExternalStore } from 'react'
 
 import type { Header, User } from '@/payload-types'
 
@@ -10,6 +10,7 @@ import { Logo } from '@/components/Logo/Logo'
 import { HeaderNav } from '@/Header/Nav'
 import { UserMenu } from '@/Header/Nav/UserMenu'
 import { NavMobile } from '@/Header/Nav/NavMobile'
+import { fetchClientUser } from '@/utilities/fetchClientUser'
 import { getClientSideURL } from '@/utilities/getURL'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -17,15 +18,14 @@ import { House, LogIn } from 'lucide-react'
 import { ParentModeToggle } from '@/Header/Nav/ParentModeToggle'
 import { cn } from '@/utilities/ui'
 
+const subscribeToNothing = () => () => {}
+const cookieSaysParentMode = () => /(?:^|;\s*)uiMode=parent(?:;|$)/.test(document.cookie)
+
 interface HeaderClientProps {
   data: Header
   currentUser: User | null
   isParentMode?: boolean
   hasPin: boolean
-}
-
-type MeResponse = {
-  user?: User | null
 }
 
 export const HeaderClient: React.FC<HeaderClientProps> = ({
@@ -40,6 +40,12 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
   const pathname = usePathname()
   const router = useRouter()
   const [clientUser, setClientUser] = useState<User | null>(currentUser)
+  // Static pages render in child mode; in the browser the uiMode cookie tells (re-read on every render).
+  const parentMode = useSyncExternalStore(
+    subscribeToNothing,
+    () => Boolean(isParentMode) || cookieSaysParentMode(),
+    () => Boolean(isParentMode),
+  )
   const [scrolled, setScrolled] = useState(false)
 
   async function handleSignOut() {
@@ -79,32 +85,16 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
     return () => window.removeEventListener('scroll', update)
   }, [])
 
+  // Static pages render the header logged out; the browser fills in the user.
   useEffect(() => {
     let cancelled = false
 
-    const syncUser = async () => {
-      try {
-        const baseUrl = getClientSideURL()
-        const res = await fetch(`${baseUrl}/api/users/me`, {
-          credentials: 'include',
-          cache: 'no-store',
-        })
-
-        if (cancelled) return
-
-        if (!res.ok) {
-          setClientUser(null)
-          return
-        }
-
-        const data = (await res.json().catch(() => null)) as MeResponse | null
-        setClientUser(data?.user ?? null)
-      } catch (err) {
-        console.error('Header auth sync failed', err)
-      }
-    }
-
-    void syncUser()
+    fetchClientUser(pathname).then(
+      (user) => {
+        if (!cancelled) setClientUser(user)
+      },
+      (err) => console.error('Header auth sync failed', err),
+    )
 
     return () => {
       cancelled = true
@@ -170,12 +160,12 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
                   <TooltipContent>Kodu</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <ParentModeToggle isParentMode={isParentMode} hasPin={effectiveHasPin} />
+              <ParentModeToggle isParentMode={parentMode} hasPin={effectiveHasPin} />
               <UserMenu
                 name={name}
                 email={clientUser.email ?? ''}
                 onSignOut={handleSignOut}
-                isParentMode={isParentMode}
+                isParentMode={parentMode}
               />
             </>
           ) : (

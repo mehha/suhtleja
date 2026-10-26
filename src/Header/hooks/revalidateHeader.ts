@@ -6,7 +6,9 @@ export const revalidateHeader: GlobalAfterChangeHook = ({ doc, req: { payload, c
   if (!context.disableRevalidate) {
     payload.logger.info(`Revalidating header`)
 
-    revalidateTag('global_header', 'max')
+    // Expire at once: there is no background revalidation queue (open-next.config.ts), so a
+    // stale-while-revalidate ('max') entry would keep being served stale.
+    revalidateTag('global_header', { expire: 0 })
   }
 
   return doc

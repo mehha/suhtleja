@@ -66,6 +66,16 @@ for (const path of PUBLIC_PAGES) {
   })
 }
 
+// Public pages are static (see content-pages.md, "Caching"). Reading cookies or headers in the layout
+// or a page would make them render per request again, with `cache-control: private, no-store`.
+test('public pages are served from the cache', async ({ request }) => {
+  test.skip(!process.env.SMOKE_BASE_URL, 'next dev renders every request')
+  for (const path of PUBLIC_PAGES) {
+    const response = await request.get(path)
+    expect(response.headers()['cache-control'], path).not.toContain('no-store')
+  }
+})
+
 test('/demo redirects permanently to Kuidas see töötab', async ({ request }) => {
   const response = await request.get('/demo', { maxRedirects: 0 })
   expect(response.status()).toBe(308)

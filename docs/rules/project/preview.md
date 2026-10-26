@@ -34,3 +34,4 @@ tags: [suhtleja, frontend, preview, draft-mode, payload]
 ## Change Checklist
 - If changing the preview URL shape, update `generatePreviewPath`, the route, and any collection `admin.preview` / `livePreview` configs together.
 - Re-test: open preview from the admin, confirm unpublished changes render, then exit preview via the admin bar and confirm published content returns.
+- Public pages are static (see "Caching" in `content-pages.md`). The draft mode cookie makes OpenNext and Next.js skip the cache, so a preview renders per request; check this after changing the caching setup.

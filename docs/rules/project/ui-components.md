@@ -36,7 +36,7 @@ tags: [suhtleja, ui, shadcn]
 - Only Geist Sans and Nunito's `latin` subset are preloaded. Nunito's other subsets (`latin-ext` for š and ž) load when a page uses them. `font-mono` is the system monospace font.
 - An image in the first screen gets `priority` (`MediaFrame` passes it on), so it loads at once with a preload link. Other images stay lazy.
 - `public/_headers` gives `/_next/static/*` a one-year `immutable` cache; those file names change with every build.
-- Public pages are rendered on every request (`cache-control: private, no-store`), because the root layout reads the login and the `uiMode` cookie. The R2 incremental cache only holds data cached with `unstable_cache`, such as the header and footer globals.
+- Public pages are static and cached; see "Caching" in `content-pages.md`.
 
 ## Error Page
 - `src/app/(frontend)/error.tsx` catches errors from pages and their Server Actions, so a failure shows a message instead of a blank page; the header stays.

@@ -13,6 +13,21 @@ tags: [suhtleja, pages, blocks, payload]
 - Page h1 logic: `src/utilities/pageTitle.ts` (see `docs/rules/project/seo.md`)
 - Shared brand pieces: `src/components/Brand` (see `docs/rules/project/ui-components.md`)
 
+## Caching
+- Public pages (`/` and `[slug]`) are static (`export const dynamic = 'force-static'` in both page files). They are built at deploy, kept in the R2 incremental cache and served from it by OpenNext before the Next.js server loads (`enableCacheInterception` in `open-next.config.ts`).
+- A cached page must not depend on the visitor. `force-static` makes `cookies()` and `headers()` empty, so the layout and header render logged out and in child mode. In the browser:
+  - the header loads the user;
+  - the admin bar appears only for admins;
+  - the parent/child toggle reads the `uiMode` cookie.
+  The header and the admin bar share one `/api/users/me` request per page (`src/utilities/fetchClientUser.ts`).
+- Edits in the admin refresh pages at once:
+  - pages through `revalidatePath`;
+  - the header, footer and page sitemap through `revalidateTag(tag, { expire: 0 })`.
+  There is no background revalidation queue, so don't use `'max'` (stale-while-revalidate) or time-based `revalidate` here; such entries are served stale and never refresh. `/posts` (time-based) shows this.
+- Content changed outside the admin (Payload scripts run with `context: { disableRevalidate: true }`) shows after the next deploy, which rebuilds the cache.
+- Draft previews still render per request: the draft mode cookie skips the cache.
+- App pages (`/kodu`, boards, profile, login) read cookies and render per request.
+
 ## Main menu
 - The header menu is content in the Header global. Intended items: "Kuidas see töötab", "Hind" (`/#hind`) and "Kontakt", plus the "Proovi tasuta" button for logged-out visitors (in code).
 - The footer links "Meist" and "KKK" (`/#kkk`) as well as the legal pages.

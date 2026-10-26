@@ -4,6 +4,8 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 
 import type { Page } from '../../../payload-types'
 
+// revalidatePath and `{ expire: 0 }` expire at once. There is no background revalidation queue
+// (open-next.config.ts), so a stale-while-revalidate ('max') entry would keep being served stale.
 export const revalidatePage: CollectionAfterChangeHook<Page> = ({
   doc,
   previousDoc,
@@ -16,7 +18,7 @@ export const revalidatePage: CollectionAfterChangeHook<Page> = ({
       payload.logger.info(`Revalidating page at path: ${path}`)
 
       revalidatePath(path)
-      revalidateTag('pages-sitemap', 'max')
+      revalidateTag('pages-sitemap', { expire: 0 })
     }
 
     // If the page was previously published, we need to revalidate the old path
@@ -26,7 +28,7 @@ export const revalidatePage: CollectionAfterChangeHook<Page> = ({
       payload.logger.info(`Revalidating old page at path: ${oldPath}`)
 
       revalidatePath(oldPath)
-      revalidateTag('pages-sitemap', 'max')
+      revalidateTag('pages-sitemap', { expire: 0 })
     }
   }
   return doc
@@ -36,7 +38,7 @@ export const revalidateDelete: CollectionAfterDeleteHook<Page> = ({ doc, req: { 
   if (!context.disableRevalidate) {
     const path = doc?.slug === 'home' ? '/' : `/${doc?.slug}`
     revalidatePath(path)
-    revalidateTag('pages-sitemap', 'max')
+    revalidateTag('pages-sitemap', { expire: 0 })
   }
 
   return doc

@@ -6,7 +6,9 @@ export const revalidateFooter: GlobalAfterChangeHook = ({ doc, req: { payload, c
   if (!context.disableRevalidate) {
     payload.logger.info(`Revalidating footer`)
 
-    revalidateTag('global_footer', 'max')
+    // Expire at once: there is no background revalidation queue (open-next.config.ts), so a
+    // stale-while-revalidate ('max') entry would keep being served stale.
+    revalidateTag('global_footer', { expire: 0 })
   }
 
   return doc

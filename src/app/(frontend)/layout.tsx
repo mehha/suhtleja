@@ -11,12 +11,10 @@ import { Header } from '@/Header/Component'
 import { Providers } from '@/providers'
 import { defaultTheme } from '@/providers/Theme/shared'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
-import { draftMode, headers } from 'next/headers'
+import { draftMode } from 'next/headers'
 
 import './globals.css'
 import { getServerSideURL } from '@/utilities/getURL'
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
 import { Toaster } from '@/components/ui/sonner'
 import { DEFAULT_META_DESCRIPTION, SITE_NAME } from '@/utilities/seo'
 import { getUiMode } from '@/utilities/uiMode'
@@ -32,11 +30,8 @@ const displayFont = Nunito({
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { isEnabled } = await draftMode()
-  const payload = await getPayload({ config: configPromise })
-  const requestHeaders = await headers()
-
-  const { user } = await payload.auth({ headers: requestHeaders })
-  const isAdmin = user?.role === 'admin'
+  // Public pages are static (`force-static`), so cookies read empty there and the browser fills in
+  // the login (header, admin bar). App pages such as /kodu render per request and get the real mode.
   const uiMode = await getUiMode()
 
   // scroll-pt: anchor links (/#hind) stop below the sticky header. The theme is always light, so it
@@ -57,22 +52,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Toaster />
           <FrontendShell
             adminBar={
-              isAdmin ? (
-                <AdminBar
-                  adminBarProps={{
-                    preview: isEnabled,
-                    createProps: {
-                      target: '_self',
-                    },
-                    editProps: {
-                      target: '_self',
-                    },
-                    logoutProps: {
-                      target: '_self',
-                    },
-                  }}
-                />
-              ) : null
+              <AdminBar
+                adminBarProps={{
+                  preview: isEnabled,
+                  createProps: {
+                    target: '_self',
+                  },
+                  editProps: {
+                    target: '_self',
+                  },
+                  logoutProps: {
+                    target: '_self',
+                  },
+                }}
+              />
             }
             footer={<Footer />}
             header={<Header />}
