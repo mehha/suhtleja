@@ -46,7 +46,7 @@ Header nav items are content in the Header global; link new sections with anchor
 - Media fields are optional. When missing, the component must render a polished product-style mockup instead of an empty frame.
 - The video section should show a poster/placeholder with a play button and open the uploaded video or embed URL inside a Dialog.
 - Use `DialogTrigger`'s native button for the video poster. Passing a server-rendered button through `asChild` can omit the trigger from server HTML and cause a hydration mismatch. Verify the trigger is present before hydration and the dialog opens/closes after a full reload.
-- Homepage dialog videos must not rely on unmuted autoplay; uploaded videos should use native controls, `playsInline`, and `preload="metadata"` for iPad Safari/Chrome compatibility.
+- Opening the video dialog starts playback: the uploaded video calls `play()` when it mounts (`sections/DialogVideo.tsx`) and YouTube/Vimeo embeds get `autoplay=1`; the click that opened the dialog is the user gesture. Nothing may depend on it: if a browser blocks playback, the native controls stay. Uploaded videos keep native controls, `playsInline` and `preload="metadata"` for iPad Safari/Chrome.
 - Homepage video embed URLs should be normalized to player/embed URLs for common providers such as YouTube and Vimeo.
 - Feature media must support editable aspect ratios, with `16/9` as the default and `9/16` available for phone portrait mockups.
 - Feature tabs and FAQ answers use `forceMount`, so every feature description and answer is in the server HTML. Inactive tabs and closed answers are hidden with CSS.

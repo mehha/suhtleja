@@ -23,6 +23,7 @@ import { cn } from '@/utilities/ui'
 import { homepageDefaults, rowsOr, textOr } from './defaults'
 import { AboutSection } from './sections/AboutSection'
 import { AudienceSection } from './sections/AudienceSection'
+import { DialogVideo } from './sections/DialogVideo'
 import { ClosingSection } from './sections/ClosingSection'
 import { FaqSection } from './sections/FaqSection'
 import { ListenSection } from './sections/ListenSection'
@@ -68,6 +69,7 @@ function getVideoEmbedUrl(rawUrl?: string | null) {
       const id = url.pathname.split('/').filter(Boolean)[0]
       if (id) {
         return appendSearchParams(new URL(`https://www.youtube.com/embed/${id}`), {
+          autoplay: '1',
           playsinline: '1',
           rel: '0',
         })
@@ -82,6 +84,7 @@ function getVideoEmbedUrl(rawUrl?: string | null) {
 
       if (id) {
         return appendSearchParams(new URL(`https://www.youtube.com/embed/${id}`), {
+          autoplay: '1',
           playsinline: '1',
           rel: '0',
         })
@@ -92,13 +95,14 @@ function getVideoEmbedUrl(rawUrl?: string | null) {
       const id = url.pathname.split('/').filter(Boolean)[0]
       if (id) {
         return appendSearchParams(new URL(`https://player.vimeo.com/video/${id}`), {
+          autoplay: '1',
           playsinline: '1',
         })
       }
     }
 
     if (hostname === 'player.vimeo.com') {
-      return appendSearchParams(url, { playsinline: '1' })
+      return appendSearchParams(url, { autoplay: '1', playsinline: '1' })
     }
 
     return rawUrl
@@ -164,16 +168,12 @@ function VideoDialog({ video }: { video?: SuhtlejaHomepageProps['video'] }) {
               referrerPolicy="strict-origin-when-cross-origin"
             />
           ) : (
-            <video
-              controls
-              playsInline
-              preload="metadata"
+            <DialogVideo
+              src={videoSrc}
+              type={videoFile?.mimeType || undefined}
               poster={posterUrl || undefined}
               className="max-h-[82svh] w-full bg-black"
-            >
-              <source src={videoSrc} type={videoFile?.mimeType || undefined} />
-              Sinu brauser ei saa seda videot esitada.
-            </video>
+            />
           )}
         </div>
       </DialogContent>
