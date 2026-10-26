@@ -8,7 +8,9 @@ import { hasActiveMembership } from '@/utilities/membershipStatus'
 export const runtime = 'nodejs'
 
 const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const GROQ_MODEL = process.env.GROQ_MODEL ?? 'qwen/qwen3-32b'
+// Groq retires models (qwen/qwen3-32b went away). Both uses fail soft, so a retired model silently turns
+// the features off: watch for `model_not_found` in the logs.
+const GROQ_MODEL = process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b'
 
 type GroqBody = {
   contextTail?: string[]
@@ -143,6 +145,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({ terms: normalizeSymbolSearchTerms(parsed.terms, raw) })
     } catch (error) {
+      console.error('Groq symbol search terms failed', error)
       return NextResponse.json(
         {
           error: error instanceof Error ? error.message : 'groq_request_failed',
@@ -220,6 +223,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ surface })
   } catch (error) {
     // Soft-fail: kui Groq error, loeme lihtsalt algset tokenit
+    console.error('Groq word form failed', error)
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'groq_request_failed',

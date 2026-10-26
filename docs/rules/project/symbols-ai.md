@@ -38,7 +38,8 @@ tags: [suhtleja, frontend, symbols, groq, api]
 - Saved symbol URLs should be stored as original URLs and wrapped with `getSymbolProxyURL()` at render time.
 
 ## `POST /next/groq`
-- Env: `GROQ_API_KEY` (missing returns 500), `GROQ_MODEL` (default `qwen/qwen3-32b`).
+- Env: `GROQ_API_KEY` (missing returns 500), `GROQ_MODEL` (default `openai/gpt-oss-120b`, also set in `wrangler.jsonc` vars).
+- Groq retires models. Both uses fail soft (the word stays as typed, no search terms), so a retired model turns the features off without an error in the UI; the route logs `Groq word form failed` / `Groq symbol search terms failed` with `model_not_found`. `qwen/qwen3-32b` was retired in 2026. On 2026-10-26, `openai/gpt-oss-120b` gave correct forms for test sentences ("koer joob vett", "ema loeb raamatut", "mina lähen kooli") at about 0.7 s per word; `qwen/qwen3.8-27b` left verbs unconjugated and `openai/gpt-oss-20b` often returned invalid JSON.
 - Two modes, body `{ token, contextTail?, task? }`:
   - `task: 'symbol-search-terms'`: returns `{ terms: string[] }` (up to 8 lowercase English ARASAAC search terms).
   - Default: Estonian morphology fix for one token using the last 2 context words, returns `{ surface }`. Without context the token is returned unchanged and Groq is not called.

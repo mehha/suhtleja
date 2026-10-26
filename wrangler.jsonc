@@ -50,7 +50,7 @@
     }
   ],
   "vars": {
-    "GROQ_MODEL": "qwen/qwen3-32b",
+    "GROQ_MODEL": "openai/gpt-oss-120b",
     "NEXT_PUBLIC_SERVER_URL": "https://suhtleja.ee",
     "NEXT_INC_CACHE_R2_PREFIX": "opennext-cache",
     "SPEECH_REGION": "northeurope",
