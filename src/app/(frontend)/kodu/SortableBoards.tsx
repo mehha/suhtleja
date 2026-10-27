@@ -106,26 +106,19 @@ function SortableBoardCard({
         <div className="flex items-center justify-between gap-2">
           {/* DRAG HANDLE – ainult parent mode saab sortida */}
           {canManage ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  {...listeners}
-                  {...attributes}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                  }}
-                  className="cursor-grab active:cursor-grabbing touch-none hover:bg-muted"
-                  aria-label="Muuda tahvli järjekorda"
-                >
-                  <GripVertical className="w-5 h-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Lohista järjekorra muutmiseks</p>
-              </TooltipContent>
-            </Tooltip>
+            <button
+              type="button"
+              {...listeners}
+              {...attributes}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              className="cursor-grab active:cursor-grabbing touch-none hover:bg-muted"
+              aria-label="Muuda tahvli järjekorda"
+            >
+              <GripVertical className="w-5 h-5" />
+            </button>
           ) : (
             <span className="w-5 h-5" aria-hidden="true" />
           )}

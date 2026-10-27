@@ -85,26 +85,19 @@ function SortablePuzzleCard({
       <TooltipProvider>
         <div className="flex items-center justify-between gap-2">
           {canManage ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  {...listeners}
-                  {...attributes}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                  }}
-                  className="cursor-grab touch-none hover:bg-muted active:cursor-grabbing"
-                  aria-label="Muuda mängude järjekorda"
-                >
-                  <GripVertical className="h-5 w-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Lohista järjekorra muutmiseks</p>
-              </TooltipContent>
-            </Tooltip>
+            <button
+              type="button"
+              {...listeners}
+              {...attributes}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              className="cursor-grab touch-none hover:bg-muted active:cursor-grabbing"
+              aria-label="Muuda mängude järjekorda"
+            >
+              <GripVertical className="h-5 w-5" />
+            </button>
           ) : (
             <span aria-hidden="true" className="h-5 w-5" />
           )}
