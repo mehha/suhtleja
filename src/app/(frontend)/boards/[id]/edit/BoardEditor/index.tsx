@@ -1,7 +1,7 @@
 // src/components/BoardEditor/index.tsx (või src/app/(frontend)/boards/[id]/edit/AppEditor/index.tsx)
 'use client'
 
-import RGL, { WidthProvider, type Layout } from 'react-grid-layout'
+import ReactGridLayout, { type Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import type { Board, Media } from '@/payload-types'
@@ -31,7 +31,6 @@ import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
 import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import { toast } from 'sonner'
 
-const ReactGridLayout = WidthProvider(RGL)
 const COMPACT_SWITCH_CLASS =
   'h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4'
 const TOGGLE_CARD_CLASS = 'flex items-center gap-2 rounded-xl border bg-card px-2.5 py-1.5'
@@ -491,83 +490,83 @@ export default function BoardEditor({
           </p>
         ) : null}
 
-        <div ref={gridContainerRef} className="h-full w-full overflow-y-auto">
-          <ReactGridLayout
-            className="layout"
-            cols={activeGridCols}
-            rowHeight={rowHeight}
-            margin={GRID_MARGIN}
-            containerPadding={[0, 0]}
-            layout={editorLayout}
-            onLayoutChange={handleEditorLayoutChange}
-            isResizable={!layoutLocked}
-            isDraggable={!layoutLocked}
-            // Cells move only by their grip. react-draggable cancels touchstart on whatever it
-            // drags, so dragging from the whole cell kept the cell buttons from getting taps.
-            draggableHandle=".board-cell-drag-handle"
-          >
-            {cells.map((cell) => (
-              <div
-                key={cell.id}
-                className="relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5"
-              >
-                {layoutLocked ? null : (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span
-                        aria-label="Lohista kaardi liigutamiseks"
-                        className="board-cell-drag-handle absolute left-1 top-1 z-10 inline-flex h-8 w-8 cursor-grab touch-none items-center justify-center rounded-md border border-border bg-secondary text-secondary-foreground active:cursor-grabbing"
-                        role="img"
-                      >
-                        <GripVertical className="h-4 w-4" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Lohista kaardi liigutamiseks</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
+        {/* Not a scroll container: the page scrolls. The grid gets the width measured here rather
+            than from WidthProvider, which only re-measures on window resize, so cell widths and the
+            square row height always come from the same number. It renders once that width is
+            known, so cells don't first appear at a fallback size and animate to the real one. */}
+        <div ref={gridContainerRef} className="w-full">
+          {gridWidth > 0 ? (
+            <ReactGridLayout
+              className="layout"
+              width={gridWidth}
+              cols={activeGridCols}
+              rowHeight={rowHeight}
+              margin={GRID_MARGIN}
+              containerPadding={[0, 0]}
+              layout={editorLayout}
+              onLayoutChange={handleEditorLayoutChange}
+              isResizable={!layoutLocked}
+              isDraggable={!layoutLocked}
+              // Cells move only by their grip. react-draggable cancels touchstart on whatever it
+              // drags, so dragging from the whole cell kept the cell buttons from getting taps.
+              draggableHandle=".board-cell-drag-handle"
+            >
+              {cells.map((cell) => (
+                <div
+                  key={cell.id}
+                  className="relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5"
+                >
+                  {layoutLocked ? null : (
+                    <span
+                      aria-label="Lohista kaardi liigutamiseks"
+                      className="board-cell-drag-handle absolute left-2 top-2.5 z-10 inline-flex cursor-grab touch-none rounded hover:bg-muted active:cursor-grabbing"
+                      role="img"
+                    >
+                      <GripVertical className="h-5 w-5" />
+                    </span>
+                  )}
 
-                <div className="absolute right-1 top-1 z-10 flex gap-1">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    className="h-8 w-8"
-                    aria-label="Muuda kaarti"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      e.preventDefault()
-                      setEditingCellId(cell.id)
-                    }}
-                  >
-                    <Edit3 className="h-4 w-4" />
-                  </Button>
+                  <div className="absolute right-1 top-1 z-10 flex gap-1">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="secondary"
+                      className="h-8 w-8"
+                      aria-label="Muuda kaarti"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
+                        setEditingCellId(cell.id)
+                      }}
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </Button>
 
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant="destructive"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      e.preventDefault()
-                      deleteCell(cell.id)
-                    }}
-                  >
-                    <Trash width={14} />
-                  </Button>
-                </div>
-
-                {renderCellImage(cell)}
-
-                {cell.title && (
-                  <div className="shrink-0 px-1 pb-1 text-center uppercase text-slate-950">
-                    <div className="break-words text-xl font-semibold leading-5">{cell.title}</div>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="destructive"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
+                        deleteCell(cell.id)
+                      }}
+                    >
+                      <Trash width={14} />
+                    </Button>
                   </div>
-                )}
-              </div>
-            ))}
-          </ReactGridLayout>
+
+                  {renderCellImage(cell)}
+
+                  {cell.title && (
+                    <div className="shrink-0 px-1 pb-1 text-center uppercase text-slate-950">
+                      <div className="break-words text-xl font-semibold leading-5">{cell.title}</div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ReactGridLayout>
+          ) : null}
         </div>
 
         <CellEditModal

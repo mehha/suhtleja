@@ -84,6 +84,7 @@ tags: [suhtleja, frontend, boards, payload]
 - When changing the board editor grid (`/boards/[id]/edit`, react-grid-layout):
   - Cells move only by their grip (`.board-cell-drag-handle`, the grid's `draggableHandle`). react-draggable cancels `touchstart` on whatever it drags, so dragging from the whole cell kept the cell buttons from getting taps on touch screens. Keep new cell controls outside the grip.
   - The editor shows the board's own columns while a cell is at least 96px wide (`MIN_CELL_WIDTH`), and a rearranged copy with fewer columns below that. In that copy, moving and resizing are off and layout changes are ignored: mapping them back to the board's columns widened and moved every cell. Never write a scaled layout back to the board.
+  - The grid takes its `width` from the editor's own ResizeObserver, not `WidthProvider` (which only re-measures on window resize), and its wrapper is not a scroll container: square rows follow the width, so an inner scrollbar changed the width, which changed the height, which toggled the scrollbar.
 - When changing card UI on `/kodu`:
   - Keep keyboard navigation and drag behavior usable.
   - Pass the same ids, of the same type, to `SortableContext` `items` and to `useSortable({ id })`. dnd-kit compares them with `indexOf`, so a string `'9'` never matches a number `9`: the drop still reorders, but no card moves during the drag.
