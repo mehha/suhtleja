@@ -64,7 +64,8 @@ jobs:
       # A new customer's main path (register, trial, PIN, board speaks) against a local dev server on
       # a throwaway D1 and R2, like the integration tests. The test signs its own Stripe webhook event,
       # so the Stripe values are placeholders and nothing calls Stripe. Speech uses the real Azure key.
-      # The device tests tap through the child's pages on phones and tablets, upright and sideways.
+      # The device tests tap through the child's and the parent's pages on phones and tablets,
+      # upright and sideways.
       # Remove the dev server's state and output so the build starts clean.
       - name: Member flow and device tests
         env:
@@ -76,7 +77,7 @@ jobs:
           SPEECH_VOICE: ${{ vars.SPEECH_VOICE }}
         run: |
           pnpm payload migrate
-          pnpm test:e2e tests/e2e/member-flow.e2e.spec.ts tests/e2e/devices.e2e.spec.ts
+          pnpm test:e2e tests/e2e/member-flow.e2e.spec.ts tests/e2e/devices.e2e.spec.ts tests/e2e/devices-parent.e2e.spec.ts
           rm -rf .wrangler/state .next
 
       - name: Check R2 cache upload configuration

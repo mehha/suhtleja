@@ -1,148 +1,30 @@
-import { randomUUID } from 'crypto'
-import { expect as baseExpect, test as base, type APIRequestContext, type Locator, type Page } from '@playwright/test'
+import { type Page } from '@playwright/test'
 
 import { countPlayedAudio, silentWav } from './audio'
-import { createMember, DEFAULT_PIN } from './member'
+import { DEFAULT_PIN } from './member'
+import {
+  BOARD,
+  DOTS,
+  WIDE_BOARD,
+  WORDS,
+  enterParentView,
+  expect,
+  expectFingerSized,
+  expectNoSidewaysScroll,
+  expectOnScreen,
+  expectTouchFriendly,
+  orientations,
+  test,
+  type BoardShape,
+} from './touch'
 
 // The child's pages on the screens they are used on: tablets most of all, and phones, held upright
 // and turned sideways. Each touch project (see playwright.config.ts) gets its own member with a full
 // board and a game; the tests tap with touch events, as a finger does. They create an account, so
 // they run only against a local server; Playwright's global teardown deletes it.
 
-type BoardShape = { cols: number; words: string[] }
-
-// A board as a parent fills one: six columns, words in reading order, every other with a picture,
-// and long words that have to shrink to fit a phone's tile. Six columns fit an upright tablet.
-const BOARD: BoardShape = {
-  cols: 6,
-  words: [
-    ...['mina', 'sina', 'tahan', 'ei', 'jah', 'veel'],
-    ...['süüa', 'juua', 'mängida', 'magada', 'õue', 'koju'],
-    ...['ema', 'isa', 'vanaema', 'sõber', 'õpetaja', 'kass'],
-    ...['rõõmus', 'kurb', 'väsinud', 'mänguväljak', 'aitäh', 'palun'],
-  ],
-}
-const WORDS = BOARD.words
-// Eight columns are too many for an upright tablet, which shows four, rearranged.
-const WIDE_BOARD: BoardShape = {
-  cols: 8,
-  words: [
-    ...['üks', 'kaks', 'kolm', 'neli', 'viis', 'kuus', 'seitse', 'kaheksa'],
-    ...['punane', 'sinine', 'kollane', 'roheline', 'must', 'valge', 'hall', 'pruun'],
-  ],
-}
-// Normalized dots, in the order they are connected.
-const DOTS = [
-  { x: 0.2, y: 0.3 },
-  { x: 0.5, y: 0.75 },
-  { x: 0.8, y: 0.3 },
-  { x: 0.5, y: 0.15 },
-]
-
-type Member = {
-  boardId: number
-  boardName: string
-  cookies: Awaited<ReturnType<APIRequestContext['storageState']>>['cookies']
-  puzzleId: number
-  wideBoardId: number
-}
-
-// The cells of a board, row by row in the given words' order.
-const cellsOf = ({ cols, words }: BoardShape) =>
-  words.map((title, index) => ({
-    id: randomUUID(),
-    x: index % cols,
-    y: Math.floor(index / cols),
-    w: 1,
-    h: 1,
-    title,
-    ...(index % 2 === 0 ? { externalImageURL: '/logo.png' } : {}),
-  }))
-
-const test = base.extend<object, { member: Member }>({
-  // One member per worker, made through the API, so the tests start on the member's own pages.
-  member: [
-    async ({ playwright }, use, workerInfo) => {
-      const api = await playwright.request.newContext({ baseURL: workerInfo.project.use.baseURL })
-      const { run } = await createMember(api)
-
-      const createBoard = async (name: string, shape: BoardShape) => {
-        const response = await api.post('/api/boards', {
-          data: {
-            name,
-            pinned: true,
-            actionBar: { enabled: true },
-            grid: { cols: shape.cols, rows: shape.words.length / shape.cols, cells: cellsOf(shape) },
-          },
-        })
-        baseExpect(response.status(), await response.text()).toBe(201)
-        return (await response.json()).doc.id as number
-      }
-      const boardName = `Seadmetahvel ${run}`
-      const boardId = await createBoard(boardName, BOARD)
-      const wideBoardId = await createBoard(`Lai tahvel ${run}`, WIDE_BOARD)
-
-      const puzzle = await api.post('/api/connect-dots-puzzles', {
-        data: { title: `Punktimäng ${run}`, slug: `punktimang-${run}`, enabled: true, pinned: true, externalImageURL: '/og-image.jpg', dots: DOTS },
-      })
-      baseExpect(puzzle.status(), await puzzle.text()).toBe(201)
-
-      const { cookies } = await api.storageState()
-      await use({ boardId, boardName, cookies, puzzleId: (await puzzle.json()).doc.id, wideBoardId })
-      await api.dispose()
-    },
-    { scope: 'worker' },
-  ],
-  // The member is logged in on every page the test opens.
-  storageState: async ({ member }, provide) => provide({ cookies: member.cookies, origins: [] }),
-})
-
 test.skip(!!process.env.SMOKE_BASE_URL, 'Creates an account, so it never runs against a deployed site.')
 test.skip(({ hasTouch }) => !hasTouch, 'Touch screens only.')
-
-// The dev server compiles each route on its first request, which takes more than the default 5s on
-// CI runners.
-const expect = baseExpect.configure({ timeout: 30_000 })
-
-type Viewport = { width: number; height: number }
-
-// The device as it comes (upright) and turned sideways.
-function orientations(viewport: Viewport | null): Array<[string, Viewport]> {
-  const { width, height } = viewport!
-  const upright = { width: Math.min(width, height), height: Math.max(width, height) }
-  return [
-    ['upright', upright],
-    ['sideways', { width: upright.height, height: upright.width }],
-  ]
-}
-
-async function enterParentView(page: Page, baseURL: string | undefined) {
-  await page.context().addCookies([{ name: 'uiMode', value: 'parent', url: baseURL! }])
-}
-
-// Nothing makes the page wider than the screen: a sideways swipe must not move the page.
-async function expectNoSidewaysScroll(page: Page) {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-  expect(overflow, 'horizontal scroll in px').toBeLessThanOrEqual(0)
-}
-
-// The element is fully on the screen (after scrolling it into view).
-async function expectOnScreen(page: Page, locator: Locator, what: string) {
-  await locator.scrollIntoViewIfNeeded()
-  const box = (await locator.boundingBox())!
-  const viewport = page.viewportSize()!
-  expect(box.x, `${what}: left edge`).toBeGreaterThanOrEqual(0)
-  expect(box.y, `${what}: top edge`).toBeGreaterThanOrEqual(0)
-  expect(box.x + box.width, `${what}: right edge`).toBeLessThanOrEqual(viewport.width + 0.5)
-  expect(box.y + box.height, `${what}: bottom edge`).toBeLessThanOrEqual(viewport.height + 0.5)
-}
-
-// Big enough for a finger: Apple and Google both ask for 44 px or more.
-async function expectFingerSized(locator: Locator, what: string, min = 44) {
-  const box = (await locator.boundingBox())!
-  expect(box.width, `${what}: width`).toBeGreaterThanOrEqual(min)
-  expect(box.height, `${what}: height`).toBeGreaterThanOrEqual(min)
-}
 
 type Tile = { label: string; left: number; top: number; width: number; height: number }
 
@@ -273,7 +155,7 @@ test.describe('child home', () => {
         const card = page.getByRole('button').filter({ hasText: member.boardName })
         await expectOnScreen(page, card, 'board card')
         await expectFingerSized(card, 'board card')
-        await expectNoSidewaysScroll(page)
+        await expectTouchFriendly(page, `child home, ${name}`)
       })
     }
 
@@ -288,6 +170,7 @@ test.describe('board', () => {
       await page.setViewportSize(orientations(viewport)[index]![1])
       await page.goto(`/boards/${member.boardId}`)
       await expectBoardLaidOut(page)
+      await expectTouchFriendly(page, `board, ${name}`)
     })
 
     test(`keeps a wide board's reading order when it shows fewer columns, ${name}`, async ({ page, member, viewport }) => {
@@ -384,6 +267,7 @@ test.describe('parent view', () => {
     const dialog = page.getByRole('dialog', { name: 'Avan vanema vaate' })
     await expect(dialog).toBeVisible()
     await expectOnScreen(page, dialog, 'PIN dialog')
+    await expectTouchFriendly(page, 'PIN dialog')
 
     // Tablets and phones bring up the number pad for this field, and offer a code to fill in.
     const pin = dialog.locator('input[data-input-otp]')
@@ -398,7 +282,7 @@ test.describe('parent view', () => {
     if (viewport!.width >= 768) {
       await expect(page.getByRole('navigation', { name: 'Peamenüü' }).getByRole('link', { name: 'Koduhaldus' })).toBeVisible()
     } else {
-      await page.getByRole('button', { name: 'Open menu' }).tap()
+      await page.getByRole('button', { name: 'Ava menüü' }).tap()
       const menu = page.getByRole('dialog')
       await expect(menu.getByRole('link', { name: 'Koduhaldus' })).toBeVisible()
       await expect(menu.getByRole('button', { name: 'Logi välja' })).toBeVisible()
@@ -474,7 +358,7 @@ test.describe('game', () => {
     for (const [name, size] of orientations(viewport)) {
       await test.step(name, async () => {
         await page.setViewportSize(size)
-        await expectNoSidewaysScroll(page)
+        await expectTouchFriendly(page, `game, ${name}`)
         for (const index of DOTS.keys()) await expectOnScreen(page, dotTargets(page).nth(index), `dot ${index + 1}`)
       })
     }
