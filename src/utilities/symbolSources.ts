@@ -148,10 +148,30 @@ export async function searchSymbolBank(
 }
 
 /**
- * The English terms Groq suggests for a word without a direct match, searched in the same bank. Each
- * term gets an equal share of the limit: the banks match prefixes, so one term ("break") could
- * otherwise fill every slot with near misses ("breakfast") and hide the other terms.
+ * The English terms Groq suggested for a word without a direct match, searched in one bank. The banks
+ * match prefixes, so each term gets an equal share of the limit (one term, "break", could otherwise
+ * fill every slot with near misses, "breakfast"), and every term's exact match comes before the near
+ * misses ("dog", "puppy", then "dog bed").
  */
+async function searchSymbolBankWithTerms(
+  bank: SymbolBank,
+  terms: string[],
+  limit: number,
+): Promise<SymbolItem[]> {
+  const perTermLimit = Math.max(4, Math.ceil(limit / terms.length))
+  const perTerm = await Promise.all(
+    terms.map((term) =>
+      searchSymbolBank(bank, term, { limit, locale: 'en' })
+        .then((items) => items.slice(0, perTermLimit))
+        .catch(() => [] as SymbolItem[]),
+    ),
+  )
+  const exact = perTerm.map((items, i) =>
+    items.filter((item) => item.title.trim().toLowerCase() === terms[i].trim().toLowerCase()),
+  )
+  return mergeUnique([...exact, ...perTerm], limit)
+}
+
 export async function searchSymbolBankWithAiTerms(
   bank: SymbolBank,
   q: string,
@@ -161,15 +181,52 @@ export async function searchSymbolBankWithAiTerms(
   if (!terms.length) {
     return error ? { aiError: error, items: [] } : { items: [] }
   }
+  return { aiTerms: terms, items: await searchSymbolBankWithTerms(bank, terms, limit) }
+}
 
-  const perTermLimit = Math.max(4, Math.ceil(limit / terms.length))
-  const perTerm = await Promise.all(
-    terms.map((term) =>
-      searchSymbolBank(bank, term, { limit, locale: 'en' })
-        .then((items) => items.slice(0, perTermLimit))
-        .catch(() => [] as SymbolItem[]),
+// Banks whose labels are English only: an Estonian word never matches there by itself.
+const ENGLISH_ONLY_BANKS: readonly SymbolBank[] = ['mulberry', 'openmoji']
+
+export type SymbolBankResult = { aiTerms?: string[]; bank: SymbolBank; items: SymbolItem[] }
+
+/**
+ * Several banks for one query, one result per bank. A bank that finds nothing for the word itself
+ * searches Groq's English terms instead when its labels are English only, or when nothing at all was
+ * found (`othersFound`: the caller found pictures elsewhere, such as the member's own; a promise lets
+ * the banks search while the caller still looks). Groq is asked at most once; once asked, every bank
+ * that found nothing uses its terms.
+ */
+export async function searchSymbolBanks(
+  banks: readonly SymbolBank[],
+  q: string,
+  { limit, othersFound = false }: { limit: number; othersFound?: boolean | Promise<boolean> },
+): Promise<{ aiError?: string; results: SymbolBankResult[] }> {
+  const direct = await Promise.all(
+    banks.map((bank) => searchSymbolBank(bank, q, { limit }).catch(() => [] as SymbolItem[])),
+  )
+  const directResults: SymbolBankResult[] = banks.map((bank, i) => ({ bank, items: direct[i] }))
+
+  const anyFound = (await othersFound) || direct.some((items) => items.length > 0)
+  const needsTerms = directResults.some(
+    ({ bank, items }) => !items.length && (ENGLISH_ONLY_BANKS.includes(bank) || !anyFound),
+  )
+  if (!needsTerms) return { results: directResults }
+
+  const { error, terms } = await getSymbolSearchTerms(q)
+  if (!terms.length) {
+    return error ? { aiError: error, results: directResults } : { results: directResults }
+  }
+
+  const results = await Promise.all(
+    directResults.map(async (result) =>
+      result.items.length
+        ? result
+        : {
+            aiTerms: terms,
+            bank: result.bank,
+            items: await searchSymbolBankWithTerms(result.bank, terms, limit),
+          },
     ),
   )
-
-  return { aiTerms: terms, items: mergeUnique(perTerm, limit) }
+  return { results }
 }

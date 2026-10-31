@@ -28,21 +28,29 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 
-type SearchScope = 'all' | 'mine' | 'library' | 'arasaac' | 'mulberry' | 'openmoji'
+type SymbolBank = 'arasaac' | 'mulberry' | 'openmoji'
+
+type SearchScope = 'all' | 'mine' | 'library' | SymbolBank
 
 type PictureItem = {
   id: string
   title: string
   preview: string
-  source: 'mine' | 'library' | 'arasaac' | 'mulberry' | 'openmoji'
+  source: 'mine' | 'library' | SymbolBank
   mediaId?: number
 }
 
-type SearchResults = {
+// One symbol bank's group. `aiTerms`: the word itself found nothing, these English terms did.
+type BankResult = {
   aiTerms?: string[]
+  bank: SymbolBank
+  items: PictureItem[]
+}
+
+type SearchResults = {
+  banks: BankResult[]
   library: PictureItem[]
   mine: PictureItem[]
-  symbols: PictureItem[]
 }
 
 type MediaUploadResponse = {
@@ -97,21 +105,38 @@ type PendingImage =
 
 const SEARCH_DELAY_MS = 350
 
-const EMPTY_RESULTS: SearchResults = { library: [], mine: [], symbols: [] }
+const EMPTY_RESULTS: SearchResults = { banks: [], library: [], mine: [] }
 
 const SCOPE_LABELS: Record<SearchScope, string> = {
   all: 'Kõik allikad',
   mine: 'Minu pildid',
   library: 'Suhtleja kogu',
   arasaac: 'ARASAAC',
-  mulberry: 'Mulberry (inglise)',
-  openmoji: 'OpenMoji',
+  mulberry: 'Mulberry',
+  openmoji: 'OpenMoji (emojid)',
 }
 
-const BANK_HEADINGS: Record<string, string> = {
+const BANK_HEADINGS: Record<SymbolBank, string> = {
   arasaac: 'ARASAAC',
   mulberry: 'Mulberry',
   openmoji: 'OpenMoji',
+}
+
+const BANK_LICENSES: Record<SymbolBank, string> = {
+  arasaac: 'ARASAAC: CC BY-NC-SA 4.0',
+  mulberry: 'Mulberry: CC BY-SA 4.0',
+  openmoji: 'OpenMoji: CC BY-SA 4.0',
+}
+
+function parseBankResults(value: unknown): BankResult[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (result): result is BankResult =>
+      Boolean(result) &&
+      typeof result.bank === 'string' &&
+      result.bank in BANK_HEADINGS &&
+      Array.isArray(result.items),
+  )
 }
 
 const GENERATE_ERRORS: Record<string, string> = {
@@ -205,7 +230,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     setGenError(null)
   }, [open, cell])
 
-  // One search over the member's own pictures, the shared library and a symbol bank. It starts with
+  // One search over the member's own pictures, the shared library and the symbol banks. It starts with
   // the card's text and runs while typing; an empty query lists the newest pictures.
   const searchKey = `${scope}:${query.trim()}`
   useEffect(() => {
@@ -222,12 +247,11 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
           signal: controller.signal,
         })
         if (!res.ok) throw new Error('Image search failed')
-        const json = (await res.json()) as Partial<SearchResults>
+        const json = (await res.json()) as Partial<Record<keyof SearchResults, unknown>>
         setResults({
-          aiTerms: Array.isArray(json.aiTerms) ? json.aiTerms : undefined,
+          banks: parseBankResults(json.banks),
           library: Array.isArray(json.library) ? json.library : [],
           mine: Array.isArray(json.mine) ? json.mine : [],
-          symbols: Array.isArray(json.symbols) ? json.symbols : [],
         })
         setSearchedKey(searchKey)
       } catch {
@@ -418,18 +442,20 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
 
   const hasQuery = query.trim().length > 0
   const searched = searchedKey === searchKey
-  const sections: Array<{ key: string; heading: string; items: PictureItem[] }> = [
+  const banksWithItems = results.banks.filter((result) => result.items.length > 0)
+  const sections: Array<{ aiTerms?: string[]; heading: string; items: PictureItem[]; key: string }> = [
     { key: 'mine', heading: hasQuery ? 'Minu pildid' : 'Minu viimased pildid', items: results.mine },
     {
       key: 'library',
       heading: hasQuery ? 'Suhtleja kogu' : 'Suhtleja kogu, uusimad',
       items: results.library,
     },
-    {
-      key: 'symbols',
-      heading: BANK_HEADINGS[scope] ?? 'ARASAAC',
-      items: results.symbols,
-    },
+    ...banksWithItems.map((result) => ({
+      aiTerms: result.aiTerms,
+      heading: BANK_HEADINGS[result.bank],
+      items: result.items,
+      key: result.bank,
+    })),
   ].filter((section) => section.items.length > 0)
   const ownAndLibraryCount = results.mine.length + results.library.length
 
@@ -535,9 +561,9 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                 {sections.map((section) => (
                   <section key={section.key} className="flex flex-col gap-2">
                     <h3 className="text-sm font-semibold">{section.heading}</h3>
-                    {section.key === 'symbols' && results.aiTerms?.length ? (
+                    {section.aiTerms?.length ? (
                       <p className="text-xs text-slate-500">
-                        Otsest vastet ei olnud, AI otsis: {results.aiTerms.join(', ')}
+                        Otsest vastet ei olnud, AI otsis: {section.aiTerms.join(', ')}
                       </p>
                     ) : null}
                     {renderTiles(section.items)}
@@ -567,6 +593,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
+                className="gap-2"
               >
                 {uploading ? <Spinner /> : <Upload className="h-4 w-4" />}
                 Lae üles
@@ -576,13 +603,14 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                 size="sm"
                 variant={showGenerate ? 'secondary' : 'outline'}
                 onClick={openGenerate}
+                className="gap-2"
               >
                 <Sparkles className="h-4 w-4" />
                 Loo AI-ga
               </Button>
-              {results.symbols.length > 0 && (
+              {banksWithItems.length > 0 && (
                 <p className="ml-auto text-[10px] text-slate-400">
-                  ARASAAC: CC BY-NC-SA 4.0 · Mulberry: CC BY-SA 4.0 · OpenMoji: CC BY-SA 4.0
+                  {banksWithItems.map((result) => BANK_LICENSES[result.bank]).join(' · ')}
                 </p>
               )}
             </div>
@@ -618,6 +646,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                   variant="secondary"
                   onClick={runGenerate}
                   disabled={genLoading || !genLabel.trim() || genQuota?.remaining === 0}
+                  className="gap-2"
                 >
                   {genLoading ? <Spinner /> : <Sparkles className="h-4 w-4" />}
                   Loo pildid
@@ -686,6 +715,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
             variant="positive"
             onClick={handleSave}
             disabled={saving || uploading}
+            className="gap-2"
           >
             {saving && <Spinner />}
             Salvesta

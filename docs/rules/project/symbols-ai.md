@@ -29,7 +29,7 @@ tags: [suhtleja, frontend, symbols, groq, api]
 - Params: `q` (required, empty returns `{ items: [] }`), `source` (`arasaac` default, `mulberry`, `openmoji`), `limit` (max 100, default 40), `locale`, `preferLocal=true`, `aiFallback=true`.
 - Sources:
   - ARASAAC (external API). Without `locale`, searches `et` and `en` and de-duplicates. With `locale`, falls back to `en` when empty.
-  - Mulberry Symbols through the Global Symbols API (`globalsymbols.com/api/v1/labels/search`, `symbolset=mulberry`, `language=eng`, no API key). Labels are English only; Global Symbols has Estonian labels only for ARASAAC, so Estonian words reach Mulberry through `aiFallback`. Images are PNGs under `globalsymbols.com/uploads/production/image/`.
+  - Mulberry Symbols through the Global Symbols API (`globalsymbols.com/api/v1/labels/search`, `symbolset=mulberry`, `language=eng`, no API key). Labels are English only; Global Symbols has Estonian labels only for ARASAAC, so Estonian words reach Mulberry through Groq's English terms (`aiFallback` here, always in `image-search`). Images are PNGs under `globalsymbols.com/uploads/production/image/`.
   - OpenMoji (fetched from unpkg, filtered by annotation/tags).
   - Local `media` collection when `preferLocal=true` (bulk add), only when `alt` or the file name without its extension is exactly `q` (`src/utilities/findLibraryMedia.ts`): first the member's own picture (`findOwnMedia`), then a media library file (in a folder; admin folders before `AI-pildid`, `findLibraryMedia`). Never match loosely or take another customer's files outside the library: that picked homepage screenshots for "mina" and "ema", and would show one customer's uploads on another customer's board.
 - `aiFallback=true`: when the query itself finds nothing, the route asks Groq for English search terms (`getSymbolSearchTerms`), searches each term in the same source (ARASAAC in `en`), gives each term an equal share of `limit` (the sources match prefixes, so "break" would otherwise fill the list with "breakfast"), and returns `{ items, aiTerms }`. A Groq failure returns `{ items: [], aiError }`.
@@ -39,12 +39,13 @@ tags: [suhtleja, frontend, symbols, groq, api]
 
 ## `GET /next/image-search` (card editor)
 - Params: `q` (trimmed, at most 80 characters; may be empty), `scope` (`all` default, `mine`, `library`, `arasaac`, `mulberry`, `openmoji`).
-- Returns `{ mine, library, symbols, aiTerms?, aiError? }`. `mine` and `library` items carry `mediaId`; the editor sets those as the card's `image`, symbols as `externalImageURL`.
+- Returns `{ mine, library, banks, aiError? }`. `mine` and `library` items carry `mediaId`; the editor sets those as the card's `image`, symbol items as `externalImageURL`.
   - `mine`: the member's own image media (`owner` = user), `alt` or file name containing `q`, newest first.
   - `library`: image media in any folder (the shared library), same match, without the member's own files (they are in `mine`).
-  - `symbols`: the bank for the scope (`all` uses ARASAAC). Nothing without a query.
-- `all` returns at most 12 per picture group; a single scope up to 40. Without a query, `mine` and `library` list the newest files.
-- Groq's English terms are only tried when every group is empty (`searchSymbolBankWithAiTerms`).
+  - `banks`: one `{ bank, items, aiTerms? }` per symbol bank, which the editor shows as its own group. `all` ("Kõik allikad") searches ARASAAC and Mulberry; a bank scope searches that bank. OpenMoji (emoji, not AAC symbols) is never part of `all`. Nothing without a query.
+- `all` returns at most 12 per picture group and 24 per bank; a single scope up to 40. Without a query, `mine` and `library` list the newest files.
+- Groq's English terms (`searchSymbolBanks` in `symbolSources.ts`): a bank that finds nothing for the word itself searches the terms when its labels are English only (Mulberry, OpenMoji: an Estonian word never matches there), or when no group found anything (ARASAAC). Groq is asked at most once per search; once asked, every empty bank uses the terms and carries `aiTerms`. A bank that found the word keeps its own result. Each term's exact match comes before the prefix matches. So most Estonian searches in `all` cost one Groq call (about 1–2 s more).
+- The bank searches run alongside the media queries; only the Groq decision waits for them.
 - Media is publicly readable, so the route's `where` (owner or folder) is what keeps other customers' files out. Keep it that way.
 
 ## `GET /next/symbol-image`
