@@ -25,7 +25,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog'
 import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
 import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
@@ -95,7 +95,6 @@ type Props = {
   updateBoardVisibility: (formData: FormData) => Promise<ActionResult>
 }
 
-type Compound = NonNullable<Board['compounds']>[number]
 
 export default function BoardEditor({
   board,
@@ -218,7 +217,7 @@ export default function BoardEditor({
     )
   }
 
-  const compounds = (board.compounds ?? []) as Compound[]
+  const compoundCount = board.compounds?.length ?? 0
   const {
     dialogOpen: leaveDialogOpen,
     setDialogOpen: setLeaveDialogOpen,
@@ -310,34 +309,18 @@ export default function BoardEditor({
                 )}
               </Button>
 
-              {/* Halda sõnaühendeid + tooltip */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="secondary" size="sm" asChild>
-                    <Link href={`/boards/${board.id}/compounds`}>
-                      <WholeWord className="mr-2 h-5 w-5 text-pink-600" />
-                      Halda sõnaühendeid
-                    </Link>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-sm">
-                  {compounds.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Sõnaühendeid pole veel lisatud.</p>
-                  ) : (
-                    <div className="max-h-[260px] space-y-2 overflow-y-auto text-xs">
-                      {compounds.map((compound) => {
-                        const surfaces = compound.parts?.map((p) => p.surface).join(' ') ?? ''
-
-                        return (
-                          <div key={compound.id} className="rounded border bg-muted/40 px-2 py-1">
-                            <div className="font-medium">{surfaces || '—'}</div>
-                          </div>
-                        )
-                      })}
-                    </div>
+              {/* The count says whether the board has any; the list is a click away. */}
+              <Button variant="secondary" size="sm" asChild>
+                <Link href={`/boards/${board.id}/compounds`}>
+                  <WholeWord className="mr-2 h-5 w-5 text-pink-600" aria-hidden="true" />
+                  Sõnaühendid
+                  {compoundCount > 0 && (
+                    <span className="ml-1.5 rounded-full bg-slate-200 px-1.5 text-xs font-semibold">
+                      {compoundCount}
+                    </span>
                   )}
-                </TooltipContent>
-              </Tooltip>
+                </Link>
+              </Button>
 
               {/* Same place as the board view's "Muuda tahvlit", so the two pages switch back and forth. */}
               <Button variant="positive" size="sm" asChild>

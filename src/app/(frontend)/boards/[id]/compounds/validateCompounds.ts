@@ -1,8 +1,8 @@
 import type { Compound } from './applyCompounds'
 
-export const COMPOUND_TOO_SHORT = 'Iga sõnaühend peab sisaldama vähemalt kahte rida (vähemalt 2 celli).'
-export const COMPOUND_MISSING_CELL = 'Vali igale reale cell.'
-export const COMPOUND_MISSING_WORD = 'Kirjuta igale reale sõna.'
+export const COMPOUND_TOO_SHORT = 'Sõnaühendis peab olema vähemalt kaks kaarti.'
+export const COMPOUND_MISSING_CELL = 'Vali igale reale kaart.'
+export const COMPOUND_MISSING_WORD = 'Kirjuta igale kaardile sõna.'
 
 // What keeps a compound from being saved, or null. The editor and the save action both check it.
 export function getCompoundProblem(compound: Compound): string | null {

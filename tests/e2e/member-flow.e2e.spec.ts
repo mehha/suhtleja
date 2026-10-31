@@ -201,17 +201,23 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
 
   await test.step('add a compound', async () => {
     await page.goto(`/boards/${boardId}/compounds`)
-    await page.getByRole('button', { name: 'Lisa sõnaühend' }).first().click()
+    await page.getByRole('button', { name: 'Lisa esimene sõnaühend' }).click()
 
-    // A new compound opens with the board's first two cells.
-    const compoundWords = page.getByPlaceholder('nt kaks / kassi')
+    // The cards are picked in the order the child taps them.
+    const picker = page.getByRole('dialog', { name: 'Uus sõnaühend' })
+    await picker.getByRole('button', { name: 'kaks', exact: true }).click()
+    await picker.getByRole('button', { name: 'kass', exact: true }).click()
+    await picker.getByRole('button', { name: 'Lisa sõnaühend' }).click()
+
+    // The new compound opens with the cards' own words.
+    const compoundWords = page.getByLabel('Sõna', { exact: true })
     await expect(compoundWords).toHaveCount(2)
     await expect(compoundWords.nth(0)).toHaveValue('kaks')
     await expect(compoundWords.nth(1)).toHaveValue('kass')
     await compoundWords.nth(1).fill('kassi')
 
     // Leaving with unsaved changes asks first.
-    await page.getByRole('link', { name: 'Tagasi seadetesse' }).click()
+    await page.getByRole('link', { name: 'Muuda tahvlit' }).click()
     const leave = page.getByRole('dialog', { name: 'Salvestamata muudatused' })
     await leave.getByRole('button', { name: 'Jää lehele' }).click()
     await expect(leave).toBeHidden()
@@ -223,11 +229,21 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
       if (route.request().method() === 'POST') await new Promise((resolve) => setTimeout(resolve, 1000))
       await route.continue()
     })
-    await page.getByRole('button', { name: 'Salvesta kõik' }).click()
+    await page.getByRole('button', { name: 'Salvesta', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Salvestan…' })).toBeDisabled()
     // Saving synthesizes the compound's speech, so it can take a while.
-    await expect(page.getByText('Sõnaühendid salvestatud.').first()).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByText('Sõnaühendid salvestatud.')).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByRole('button', { name: 'Salvestatud' })).toBeDisabled()
     await page.unroute(compoundsPage)
+
+    // Kuula says the whole compound.
+    const heard = page.waitForResponse((response) => new URL(response.url()).pathname === '/next/tts-ms')
+    await page.getByRole('button', { name: 'Kuula: kaks kassi' }).click()
+    const heardResponse = await heard
+    expect(heardResponse.request().postDataJSON()).toEqual({ text: 'kaks kassi.' })
+    expect(heardResponse.status()).toBe(200)
+    // The board's own speech is checked from here on.
+    speech.length = 0
 
     await page.getByRole('link', { name: 'Vaata tahvlit' }).click()
     await expect(page).toHaveURL(new RegExp(`/boards/${boardId}$`))

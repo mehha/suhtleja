@@ -74,7 +74,13 @@ tags: [suhtleja, frontend, boards, payload]
   - A tapped word that completes a compound is said in the form the whole phrase gives it (the tap takes it from `applyCompounds`), so the tap and "play all" agree. The phrase bar shows the same forms. The tapped tile shows the written form, never the speech form.
   - Only whole compounds change a word. A word tapped while its compound is only started (`kaks`, `suur` of `kaks` + `suur` + `kass`) is said as tapped; it takes the compound's form in the phrase and in "play all" once the compound is complete.
   - Compounds are off when the board's AI setting is on.
-  - In the editor, `Salvesta kõik` stays disabled until the save returns, leaving with unsaved changes asks first (`useUnsavedChangesGuard`), and a compound with a cell that was removed from the board is marked `Kustutatud cell` (it can never match). The save action returns an `ActionResult`, so its messages reach the editor in production.
+  - The page (`compounds/CompoundsEditor.tsx`, `compounds/CardPicker.tsx`) speaks the parent's language: cards (`kaart`, as in the board editor), words (`Sõna`) and pronunciation (`Hääldus`), never "cell", "TTS" or IDs.
+    - Each compound is a card that says what it does: the cards' pictures and words, then the words it says (`KAKS + KASS → kaks kassi`), with `Kuula` (the whole compound through `/next/tts-ms`) and delete (undo in the toast). Opened, it has a row per card: the card, its word and, behind `Hääldus erineb kirjapildist`, its pronunciation. An empty pronunciation says the word, so the speech follows the word while it's edited; the editor drops saved pronunciations that only repeat the word.
+    - Cards are picked from the board's own cards with their pictures (`CardPicker`, in reading order, with a search from 13 cards). A new compound is made by tapping cards in the order the child taps them; a row's card is swapped, or a card added, with one tap. A compound keeps at least two cards.
+    - Save sits in a bar at the bottom of the screen: `Salvesta` while there are changes, `Salvestatud` without, disabled until the save returns. A failed save opens the first compound that needs fixing and marks its empty word. Leaving with unsaved changes asks first (`useUnsavedChangesGuard`).
+    - A compound with a card that was removed from the board is marked `Kaart on kustutatud` (it can never match). A board with AI on, or without cards, says so above the list.
+    - The save action returns an `ActionResult`, so its messages reach the page in production, and updates with `overrideAccess: false`. Tested in `tests/int/compounds-editor.int.spec.tsx` and the member flow e2e test.
+  - The board editor's `Sõnaühendid` button shows how many compounds the board has.
 - Boards management rules:
   - `/koduhaldus` must include a separate connect-dots puzzles table.
   - Non-admin users must see their own rows plus rows shared via `visibleToAllUsers`.
