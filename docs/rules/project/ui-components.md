@@ -28,6 +28,7 @@ tags: [suhtleja, ui, shadcn]
 - Section labels are short sentence-case text, not tracked capitals; buttons and links don't get arrow icons.
 - Use cards for real objects only (a price, a quote, a device). Lists of features or reasons sit open on the section background, with the same padding as any highlighted item so edges line up.
 - The footer uses the logo's navy (`#22314c`), not black.
+- The header is a sticky bar. Once the page scrolls past 8px, it gets a deeper shadow, and the logo (`compact`) folds its "Suhtleja.ee" wordmark away so the bar gets shorter. An invisible copy of the full logo keeps the header's place in the page at full height, so the content doesn't move and Chrome's scroll anchoring can't bounce the bar open and shut near the threshold. The `<header>` element ignores clicks (`pointer-events-none`) so the empty strip under the shorter bar doesn't block the page; the bar itself takes clicks.
 - Brand motion lives in `tailwind.config.mjs` (`tile-drop`, `pop-in`, `chip-in`, `tile-hint`, `sound-bar`, `draw-x`, `fade-up`): springy, short, and always behind `motion-safe:`. The keyframes use the `translate`/`scale` properties so they don't override a tile's `rotate-*`. For a one-time entrance below the fold, wrap content in `Reveal` and style children with `group-data-[reveal=pending]/reveal:` and `group-data-[reveal=in]/reveal:`.
 - After changing `tailwind.config.mjs`, restart the dev server; a running server keeps the old config.
 

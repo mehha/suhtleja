@@ -3,20 +3,17 @@ import React from 'react'
 
 interface Props {
   className?: string
+  /** Folds the wordmark away under the tiles (the scrolled header). */
+  compact?: boolean
   loading?: 'lazy' | 'eager'
   priority?: 'auto' | 'high' | 'low'
 }
 
 export const Logo = (props: Props) => {
-  const { className } = props
+  const { className, compact = false } = props
 
   return (
-    <div
-      className={clsx(
-        'inline-flex select-none flex-col items-center gap-1.5 leading-none',
-        className,
-      )}
-    >
+    <div className={clsx('inline-flex select-none flex-col items-center leading-none', className)}>
       <div className="flex items-end gap-1">
         <span className="relative flex h-10 w-10 rotate-[-2deg] items-center justify-center overflow-hidden rounded-[9px] bg-gradient-to-br from-[#ffbb2e] via-[#ff980d] to-[#ec6c05] shadow-[0_7px_16px_rgba(236,108,5,0.32)]">
           <span className="absolute inset-[6px] rounded-full bg-white shadow-inner shadow-black/10" />
@@ -66,8 +63,25 @@ export const Logo = (props: Props) => {
         </span>
       </div>
 
-      <span className="whitespace-nowrap text-[1.38rem] font-bold tracking-[-0.025em] text-[#22314c] [text-shadow:0_1px_0_rgba(255,255,255,0.4)] sm:text-[1.58rem]">
-        Suhtleja.ee
+      {/* The wordmark's row folds from 1fr to 0fr. The clip lets the "j" descender hang below the row. */}
+      <span
+        className={clsx(
+          'grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none',
+          compact ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
+        )}
+      >
+        <span className="min-h-0 [clip-path:inset(-1em_-1em_-0.3em_-1em)]">
+          <span
+            className={clsx(
+              'block whitespace-nowrap pt-1.5 text-[1.38rem] font-bold tracking-[-0.025em] text-[#22314c] transition-[opacity,transform,filter] ease-out [text-shadow:0_1px_0_rgba(255,255,255,0.4)] motion-reduce:transition-none sm:text-[1.58rem]',
+              compact
+                ? '-translate-y-2 scale-90 opacity-0 blur-[2px] duration-200'
+                : 'translate-y-0 scale-100 opacity-100 blur-0 delay-75 duration-300',
+            )}
+          >
+            Suhtleja.ee
+          </span>
+        </span>
       </span>
     </div>
   )

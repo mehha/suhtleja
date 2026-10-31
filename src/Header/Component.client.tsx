@@ -18,6 +18,9 @@ import { House, LogIn } from 'lucide-react'
 import { ParentModeToggle } from '@/Header/Nav/ParentModeToggle'
 import { cn } from '@/utilities/ui'
 
+// -my-1.5 drops the space the phone-size scale leaves empty (68px box, 56px logo).
+const logoClassName = '-my-1.5 origin-left scale-[0.82] sm:my-0 sm:scale-90 lg:scale-100'
+
 const subscribeToNothing = () => () => {}
 const cookieSaysParentMode = () => /(?:^|;\s*)uiMode=parent(?:;|$)/.test(document.cookie)
 
@@ -77,7 +80,8 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
     setClientUser(currentUser)
   }, [currentUser])
 
-  // The header sticks to the top; once the page scrolls, a deeper shadow lifts it off the content.
+  // The header sticks to the top; once the page scrolls, a deeper shadow lifts it off the content
+  // and the logo folds its wordmark away so the bar gets shorter.
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 8)
     update()
@@ -115,21 +119,25 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
   const effectiveHasPin = Boolean(clientUser?.parentPinHash || hasPin)
 
   return (
-    <header className="container sticky top-3 z-30 mt-6" {...(theme ? { 'data-theme': theme } : {})}>
+    <header
+      className="container pointer-events-none sticky top-3 z-30 mt-6 grid"
+      {...(theme ? { 'data-theme': theme } : {})}
+    >
+      {/* Holds the header's place at full height, so the page doesn't move when the bar shrinks
+          (a shrinking sticky header also makes scroll anchoring bounce it open and shut). */}
+      <div aria-hidden="true" className="invisible col-start-1 row-start-1 py-3 sm:py-4">
+        <Logo className={logoClassName} />
+      </div>
+
       <div
         className={cn(
-          'flex items-center justify-between gap-4 rounded-full bg-white px-4 py-3 ring-1 ring-gray-900/5 transition-shadow duration-200 dark:bg-black sm:p-4 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center',
+          'pointer-events-auto col-start-1 row-start-1 flex items-center justify-between gap-4 self-start rounded-full bg-white px-4 py-3 ring-1 ring-gray-900/5 transition-shadow duration-200 dark:bg-black sm:p-4 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center',
           scrolled ? 'shadow-lg shadow-slate-900/10' : 'shadow-sm',
         )}
       >
         <div className="flex items-center lg:justify-self-start">
           <Link href="/" className="flex items-center" aria-label="Suhtleja">
-            {/* -my-1.5 drops the space the phone-size scale leaves empty (68px box, 56px logo). */}
-            <Logo
-              className="-my-1.5 origin-left scale-[0.82] sm:my-0 sm:scale-90 lg:scale-100"
-              loading="eager"
-              priority="high"
-            />
+            <Logo className={logoClassName} compact={scrolled} loading="eager" priority="high" />
           </Link>
         </div>
 
