@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useTransition } from 'react'
+import React, { useEffect, useOptimistic, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { toast } from 'sonner'
+import { ACTION_ERROR, FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import { CircleArrowRight, Edit, Globe2, GripVertical, PencilRuler, TrashIcon, UserCog } from 'lucide-react'
 
 import {
@@ -33,21 +34,21 @@ type SortableConnectDotsPuzzlesProps = {
   isAdmin?: boolean
   onReorder: (ids: string[]) => Promise<void>
   puzzles: HomeConnectDotsPuzzle[]
-  unpinAction: (formData: FormData) => Promise<void>
+  unpinAction: (formData: FormData) => Promise<ActionResult>
 }
 
 type SortablePuzzleCardProps = {
   canManage: boolean
   isAdmin?: boolean
+  onUnpin: (puzzle: HomeConnectDotsPuzzle) => void
   puzzle: HomeConnectDotsPuzzle
-  unpinAction: (formData: FormData) => Promise<void>
 }
 
 function SortablePuzzleCard({
   canManage,
   isAdmin,
+  onUnpin,
   puzzle,
-  unpinAction,
 }: SortablePuzzleCardProps) {
   const router = useRouter()
 
@@ -66,6 +67,8 @@ function SortablePuzzleCard({
   }
 
   const handleCardKeyDown: React.KeyboardEventHandler<HTMLLIElement> = (event) => {
+    // Enter on the card's own buttons and links is theirs, not a request to open the card.
+    if (event.target !== event.currentTarget) return
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       handleCardClick()
@@ -163,17 +166,17 @@ function SortablePuzzleCard({
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <form
-                      action={unpinAction}
+                    <button
+                      aria-label={puzzle.unpinLabel ?? 'Eemalda koduvaatest'}
                       className="flex items-center"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onUnpin(puzzle)
+                      }}
+                      type="button"
                     >
-                      <input name="puzzleId" type="hidden" value={puzzle.id} />
-                      <input name="visible" type="hidden" value="false" />
-                      <button type="submit">
-                        <TrashIcon className="h-5 w-5 text-red-600" />
-                      </button>
-                    </form>
+                      <TrashIcon className="h-5 w-5 text-red-600" />
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{puzzle.unpinLabel ?? 'Eemalda koduvaatest'}</p>
@@ -220,6 +223,38 @@ export function SortableConnectDotsPuzzles({
   unpinAction,
 }: SortableConnectDotsPuzzlesProps) {
   const [items, setItems] = useState<HomeConnectDotsPuzzle[]>(puzzles)
+  // A removed card disappears at once; the revalidated list takes over when the save returns, and
+  // a failed save brings the card back.
+  const [visibleItems, hideItem] = useOptimistic(items, (state, id: HomeConnectDotsPuzzle['id']) =>
+    state.filter((item) => item.id !== id),
+  )
+  const [, startUnpin] = useTransition()
+
+  const unpin = (puzzle: HomeConnectDotsPuzzle) => {
+    startUnpin(async () => {
+      hideItem(puzzle.id)
+
+      const formData = new FormData()
+      formData.set('puzzleId', String(puzzle.id))
+      formData.set('visible', 'false')
+
+      // Caught here: an error thrown in a transition would otherwise reach the error page.
+      let result: ActionResult
+      try {
+        result = await unpinAction(formData)
+      } catch (error) {
+        console.error('Unpin failed', error)
+        result = { ok: false, error: ACTION_ERROR }
+      }
+
+      if (result.ok) {
+        toast.success(FLASH_TOASTS['game-unpinned'].message, { id: 'home-unpin' })
+      } else {
+        toast.error(result.error, { id: 'home-unpin' })
+      }
+    })
+  }
+
   const [isPending, startTransition] = useTransition()
   const [mounted, setMounted] = useState(false)
 
@@ -237,12 +272,12 @@ export function SortableConnectDotsPuzzles({
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = items.findIndex((item) => item.id === active.id)
-    const newIndex = items.findIndex((item) => item.id === over.id)
+    const oldIndex = visibleItems.findIndex((item) => item.id === active.id)
+    const newIndex = visibleItems.findIndex((item) => item.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
 
     const previousItems = items
-    const newItems = arrayMove(items, oldIndex, newIndex)
+    const newItems = arrayMove(visibleItems, oldIndex, newIndex)
     setItems(newItems)
 
     startTransition(async () => {
@@ -260,13 +295,13 @@ export function SortableConnectDotsPuzzles({
   if (!mounted) {
     return (
       <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-        {items.map((puzzle) => (
+        {visibleItems.map((puzzle) => (
           <SortablePuzzleCard
             key={puzzle.id}
             canManage={false}
             isAdmin={isAdmin}
             puzzle={puzzle}
-            unpinAction={unpinAction}
+            onUnpin={unpin}
           />
         ))}
       </ul>
@@ -276,15 +311,15 @@ export function SortableConnectDotsPuzzles({
   return (
     <>
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={items.map((item) => item.id)} strategy={rectSortingStrategy}>
+        <SortableContext items={visibleItems.map((item) => item.id)} strategy={rectSortingStrategy}>
           <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-            {items.map((puzzle) => (
+            {visibleItems.map((puzzle) => (
               <SortablePuzzleCard
                 key={puzzle.id}
                 canManage={canManage}
                 isAdmin={isAdmin}
                 puzzle={puzzle}
-                unpinAction={unpinAction}
+                onUnpin={unpin}
               />
             ))}
           </ul>

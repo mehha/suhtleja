@@ -300,4 +300,26 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     // On the child home the same button stays in place as the page heading.
     await expect(page.getByRole('heading', { level: 1, name: 'Kodu' })).toBeVisible()
   })
+
+  await test.step('the parent removes the board from the home', async () => {
+    await page.getByRole('button', { name: 'Vanema vaade', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Avan vanema vaate' })
+    await dialog.locator('input[data-input-otp]').pressSequentially(pin)
+    await expect(dialog).toBeHidden()
+
+    // The page carries no user document: the header gets a name, an email and an id, the cards no
+    // owner. A user document has the PIN hash.
+    const html = await (await page.request.get('/kodu')).text()
+    expect(html).not.toContain('parentPinHash')
+
+    const card = page.getByRole('button').filter({ hasText: boardName })
+    await card.getByRole('button', { name: 'Eemalda koduvaatest' }).click()
+    // The card goes at once; the toast comes when the save returns.
+    await expect(card).toHaveCount(0)
+    await expect(page.getByText('Tahvel eemaldati koduvaatest.')).toBeVisible()
+
+    await page.reload()
+    await expect(page.getByRole('heading', { level: 1, name: 'Kodu' })).toBeVisible()
+    await expect(page.getByRole('button').filter({ hasText: boardName })).toHaveCount(0)
+  })
 })

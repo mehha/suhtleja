@@ -8,7 +8,8 @@ import { SortableBoards, type HomeBoard } from './SortableBoards'
 import { ArrowRight, MonitorCheck, PlusCircle, Settings2 } from 'lucide-react'
 import { isParentModeUtil, requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
-import { withToast, type FlashToastKey } from '@/utilities/flashToast'
+import { revalidatePath } from 'next/cache'
+import { ACTION_ERROR, withToast, type ActionResult } from '@/utilities/flashToast'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { CreateBoardForm } from '../boards/CreateBoardForm'
@@ -255,14 +256,17 @@ export default async function HomePage() {
     )
   }
 
-  async function toggleBoardHomeVisibility(formData: FormData) {
+  // Removing a card from the home hides it at once (SortableBoards, SortableConnectDotsPuzzles) and
+  // saves in the background. These actions return their outcome instead of redirecting, and
+  // revalidate so the list settles on the saved one.
+  async function toggleBoardHomeVisibility(formData: FormData): Promise<ActionResult> {
     'use server'
 
     const boardId = formData.get('boardId') as string | null
     const visible = formData.get('visible') === 'true'
 
     if (!boardId) {
-      redirect('/kodu')
+      return { ok: false, error: ACTION_ERROR }
     }
 
     const payload = await getPayload({ config: configPromise })
@@ -274,13 +278,13 @@ export default async function HomePage() {
     }
     requireActiveMembership(user)
 
-    let toastKey: FlashToastKey = visible ? 'board-pinned' : 'board-unpinned'
     try {
-      const board = (await payload.findByID({
+      const board = await payload.findByID({
         collection: 'boards',
         id: boardId,
         depth: 0,
-      })) as Board
+        select: { owner: true },
+      })
 
       if (isOwnedByUser(board, user.id)) {
         await payload.update({
@@ -289,6 +293,7 @@ export default async function HomePage() {
           data: {
             pinned: visible,
           },
+          depth: 0,
         })
       } else {
         const prefs = getUserSharedHomePreferences(user)
@@ -298,24 +303,27 @@ export default async function HomePage() {
           data: {
             hiddenSharedBoardIds: setHiddenState(prefs.hiddenSharedBoardIds, boardId, !visible),
           },
+          depth: 0,
         })
       }
     } catch (error) {
       console.error('toggleBoardHomeVisibility failed', error)
-      toastKey = 'error'
+      return { ok: false, error: ACTION_ERROR }
     }
 
-    redirect(withToast('/kodu', toastKey))
+    revalidatePath('/kodu')
+    revalidatePath('/koduhaldus')
+    return { ok: true }
   }
 
-  async function togglePuzzleHomeVisibility(formData: FormData) {
+  async function togglePuzzleHomeVisibility(formData: FormData): Promise<ActionResult> {
     'use server'
 
     const puzzleId = formData.get('puzzleId') as string | null
     const visible = formData.get('visible') === 'true'
 
     if (!puzzleId) {
-      redirect('/kodu')
+      return { ok: false, error: ACTION_ERROR }
     }
 
     const payload = await getPayload({ config: configPromise })
@@ -327,15 +335,15 @@ export default async function HomePage() {
     }
     requireActiveMembership(user)
 
-    let toastKey: FlashToastKey = visible ? 'game-pinned' : 'game-unpinned'
     try {
-      const puzzle = (await payload.findByID({
+      const puzzle = await payload.findByID({
         collection: 'connect-dots-puzzles',
         id: puzzleId,
         depth: 0,
         overrideAccess: false,
+        select: { owner: true },
         user,
-      })) as SharedHomeConnectDotsPuzzleDoc
+      })
 
       if (isOwnedByUser(puzzle, user.id)) {
         await payload.update({
@@ -344,6 +352,7 @@ export default async function HomePage() {
           data: {
             pinned: visible,
           },
+          depth: 0,
           overrideAccess: false,
           user,
         })
@@ -355,14 +364,17 @@ export default async function HomePage() {
           data: {
             hiddenSharedPuzzleIds: setHiddenState(prefs.hiddenSharedPuzzleIds, puzzleId, !visible),
           },
+          depth: 0,
         })
       }
     } catch (error) {
       console.error('togglePuzzleHomeVisibility failed', error)
-      toastKey = 'error'
+      return { ok: false, error: ACTION_ERROR }
     }
 
-    redirect(withToast('/kodu', toastKey))
+    revalidatePath('/kodu')
+    revalidatePath('/koduhaldus')
+    return { ok: true }
   }
 
   async function reorderMixedBoards(boardIds: string[]) {
@@ -377,43 +389,46 @@ export default async function HomePage() {
     }
     requireActiveMembership(user)
 
-    const docs = await Promise.all(
-      boardIds.map((id) =>
-        payload.findByID({
-          collection: 'boards',
-          id,
-          depth: 0,
-        }),
-      ),
-    )
+    // One query for the owners, in the order the parent left the cards. The updates only change
+    // the order, so they return nothing populated (by default each was a whole board with media).
+    const found = await payload.find({
+      collection: 'boards',
+      depth: 0,
+      pagination: false,
+      select: { owner: true, visibleToAllUsers: true },
+      where: { id: { in: boardIds } },
+    })
+    const docsById = new Map(found.docs.map((doc) => [String(doc.id), doc]))
+    const docs = boardIds.flatMap((id) => docsById.get(id) ?? [])
 
     const ownedBoardIds = docs
-      .filter((doc) => isOwnedByUser(doc as Board, user.id))
+      .filter((doc) => isOwnedByUser(doc, user.id))
       .map((doc) => String(doc.id))
 
     const sharedBoardIds = docs
-      .filter((doc) => !isOwnedByUser(doc as Board, user.id) && doc.visibleToAllUsers)
+      .filter((doc) => !isOwnedByUser(doc, user.id) && doc.visibleToAllUsers)
       .map((doc) => String(doc.id))
 
-    await Promise.all(
-      ownedBoardIds.map((id, index) =>
+    await Promise.all([
+      ...ownedBoardIds.map((id, index) =>
         payload.update({
           collection: 'boards',
           id,
           data: {
             order: index + 1,
           },
+          depth: 0,
         }),
       ),
-    )
-
-    await payload.update({
-      collection: 'users',
-      id: user.id,
-      data: {
-        sharedBoardOrder: sharedBoardIds,
-      },
-    })
+      payload.update({
+        collection: 'users',
+        id: user.id,
+        data: {
+          sharedBoardOrder: sharedBoardIds,
+        },
+        depth: 0,
+      }),
+    ])
   }
 
   async function reorderMixedPuzzles(puzzleIds: string[]) {
@@ -428,17 +443,17 @@ export default async function HomePage() {
     }
     requireActiveMembership(user)
 
-    const docs = await Promise.all(
-      puzzleIds.map((id) =>
-        payload.findByID({
-          collection: 'connect-dots-puzzles',
-          id,
-          depth: 0,
-          overrideAccess: false,
-          user,
-        }),
-      ),
-    )
+    const found = await payload.find({
+      collection: 'connect-dots-puzzles',
+      depth: 0,
+      overrideAccess: false,
+      pagination: false,
+      select: { owner: true, visibleToAllUsers: true },
+      user,
+      where: { id: { in: puzzleIds } },
+    })
+    const docsById = new Map(found.docs.map((doc) => [String(doc.id), doc]))
+    const docs = puzzleIds.flatMap((id) => docsById.get(id) ?? [])
 
     const ownedPuzzleIds = docs
       .filter((doc) => isOwnedByUser(doc, user.id))
@@ -448,27 +463,28 @@ export default async function HomePage() {
       .filter((doc) => !isOwnedByUser(doc, user.id) && doc.visibleToAllUsers)
       .map((doc) => String(doc.id))
 
-    await Promise.all(
-      ownedPuzzleIds.map((id, index) =>
+    await Promise.all([
+      ...ownedPuzzleIds.map((id, index) =>
         payload.update({
           collection: 'connect-dots-puzzles',
           id,
           data: {
             order: index + 1,
           },
+          depth: 0,
           overrideAccess: false,
           user,
         }),
       ),
-    )
-
-    await payload.update({
-      collection: 'users',
-      id: user.id,
-      data: {
-        sharedPuzzleOrder: sharedPuzzleIds,
-      },
-    })
+      payload.update({
+        collection: 'users',
+        id: user.id,
+        data: {
+          sharedPuzzleOrder: sharedPuzzleIds,
+        },
+        depth: 0,
+      }),
+    ])
   }
 
   const hasBoards = ownedBoards.length > 0 || sharedBoards.length > 0

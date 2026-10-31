@@ -62,6 +62,9 @@ tags: [suhtleja, frontend, boards, payload]
   - Shared items (`visibleToAllUsers`) are shown on `/kodu` by default for every user unless that user hides them.
   - Shared item hide/show and order are stored per user, not on the shared document itself.
   - Reordering is parent-mode only within each rendered subsection.
+  - Reordering moves the cards at once and saves in the background (`reorderMixedBoards`, `reorderMixedPuzzles`): one query finds the owners of the cards, and the order updates return nothing populated (`depth: 0`).
+  - The trash button on a home card (parent view) removes it from the home at once (`useOptimistic` in `SortableBoards` and `SortableConnectDotsPuzzles`) and saves in the background. The actions return an `ActionResult` and revalidate `/kodu` and `/koduhaldus`; the success toast comes when the save returns, and a failed save brings the card back with an error toast.
+  - Enter or Space on a card's own buttons and links (drag handle, edit, remove) acts on them; only on the card itself does it open the board or game.
   - Parent mode must expose both actions on `/kodu`: `Lisa uus tahvel` and `Halda koduhaldust`.
   - `/kodu` loads its four lists (own and shared boards and games) at once, with `pagination: false` (Payload's default stops at 10). Boards load only what a card shows (`HOME_BOARD_SELECT`: name, order and the cards' pictures), so the browser gets no owner documents, other cards or speech cache.
   - `/kodu` and `/koduhaldus` read the user with `getCurrentUser`, which React's `cache` shares with the header, so a page render authenticates once.

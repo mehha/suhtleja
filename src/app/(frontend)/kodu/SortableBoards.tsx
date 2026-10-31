@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useTransition } from 'react'
+import React, { useEffect, useOptimistic, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Board } from '@/payload-types'
@@ -13,6 +13,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { toast } from 'sonner'
+import { ACTION_ERROR, FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import {
   CircleArrowRight,
   Edit,
@@ -41,14 +42,14 @@ type SortableBoardsProps = {
   canManage: boolean
   isAdmin?: boolean
   onReorder: (ids: string[]) => Promise<void>
-  unpinAction: (formData: FormData) => Promise<void>
+  unpinAction: (formData: FormData) => Promise<ActionResult>
 }
 
 type SortableBoardCardProps = {
   board: HomeBoard
   canManage: boolean
   isAdmin?: boolean
-  unpinAction: (formData: FormData) => Promise<void>
+  onUnpin: (board: HomeBoard) => void
 }
 
 function getVisualCell(board: Board): any | undefined {
@@ -61,7 +62,7 @@ function SortableBoardCard({
   board,
   canManage,
   isAdmin,
-  unpinAction,
+  onUnpin,
 }: SortableBoardCardProps) {
   const router = useRouter()
 
@@ -86,6 +87,8 @@ function SortableBoardCard({
   }
 
   const handleCardKeyDown: React.KeyboardEventHandler<HTMLLIElement> = (event) => {
+    // Enter on the card's own buttons and links is theirs, not a request to open the card.
+    if (event.target !== event.currentTarget) return
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       handleCardClick()
@@ -168,17 +171,17 @@ function SortableBoardCard({
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <form
+                  <button
+                    aria-label={board.unpinLabel ?? 'Eemalda koduvaatest'}
                     className="flex items-center"
-                    action={unpinAction}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onUnpin(board)
+                    }}
+                    type="button"
                   >
-                    <input type="hidden" name="boardId" value={board.id} />
-                    <input type="hidden" name="visible" value="false" />
-                    <button type="submit">
-                      <TrashIcon className="w-5 h-5 text-red-600" />
-                    </button>
-                  </form>
+                    <TrashIcon className="w-5 h-5 text-red-600" />
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{board.unpinLabel ?? 'Eemalda koduvaatest'}</p>
@@ -240,6 +243,38 @@ export function SortableBoards({
   unpinAction,
 }: SortableBoardsProps) {
   const [items, setItems] = useState<HomeBoard[]>(boards)
+  // A removed card disappears at once; the revalidated list takes over when the save returns, and
+  // a failed save brings the card back.
+  const [visibleItems, hideItem] = useOptimistic(items, (state, id: HomeBoard['id']) =>
+    state.filter((item) => item.id !== id),
+  )
+  const [, startUnpin] = useTransition()
+
+  const unpin = (board: HomeBoard) => {
+    startUnpin(async () => {
+      hideItem(board.id)
+
+      const formData = new FormData()
+      formData.set('boardId', String(board.id))
+      formData.set('visible', 'false')
+
+      // Caught here: an error thrown in a transition would otherwise reach the error page.
+      let result: ActionResult
+      try {
+        result = await unpinAction(formData)
+      } catch (error) {
+        console.error('Unpin failed', error)
+        result = { ok: false, error: ACTION_ERROR }
+      }
+
+      if (result.ok) {
+        toast.success(FLASH_TOASTS['board-unpinned'].message, { id: 'home-unpin' })
+      } else {
+        toast.error(result.error, { id: 'home-unpin' })
+      }
+    })
+  }
+
   const [isPending, startTransition] = useTransition()
   const [mounted, setMounted] = useState(false)
 
@@ -257,13 +292,13 @@ export function SortableBoards({
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = items.findIndex((item) => item.id === active.id)
-    const newIndex = items.findIndex((item) => item.id === over.id)
+    const oldIndex = visibleItems.findIndex((item) => item.id === active.id)
+    const newIndex = visibleItems.findIndex((item) => item.id === over.id)
 
     if (oldIndex === -1 || newIndex === -1) return
 
     const previousItems = items
-    const newItems = arrayMove(items, oldIndex, newIndex)
+    const newItems = arrayMove(visibleItems, oldIndex, newIndex)
     setItems(newItems)
 
     startTransition(async () => {
@@ -281,13 +316,13 @@ export function SortableBoards({
   if (!mounted) {
     return (
       <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-        {items.map((board) => (
+        {visibleItems.map((board) => (
           <SortableBoardCard
             key={board.id}
             board={board}
             canManage={false}
             isAdmin={isAdmin}
-            unpinAction={unpinAction}
+            onUnpin={unpin}
           />
         ))}
       </ul>
@@ -298,17 +333,17 @@ export function SortableBoards({
     <>
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
-          items={items.map((item) => item.id)}
+          items={visibleItems.map((item) => item.id)}
           strategy={rectSortingStrategy}
         >
           <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-            {items.map((board) => (
+            {visibleItems.map((board) => (
               <SortableBoardCard
                 key={board.id}
                 board={board}
                 canManage={canManage}
                 isAdmin={isAdmin}
-                unpinAction={unpinAction}
+                onUnpin={unpin}
               />
             ))}
           </ul>
