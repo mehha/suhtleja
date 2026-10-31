@@ -6,15 +6,7 @@ import Image from 'next/image'
 import type { Board, Media } from '@/payload-types'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import {
-  Edit3,
-  Sparkles,
-  Slash,
-  Trash,
-  Undo2,
-  Volume2Icon,
-  WholeWord,
-} from 'lucide-react'
+import { Edit3, Trash, Undo2, Volume2Icon } from 'lucide-react'
 import {
   WidthProvider,
   Responsive as ResponsiveGrid,
@@ -25,7 +17,7 @@ import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 
 // UUS: sõnaühendite util
-import { applyCompounds, Compound, type SelectedToken } from './compounds/applyCompounds'
+import { applyCompounds, type SelectedToken } from './compounds/applyCompounds'
 import { getCompoundFormForLastToken } from './compounds/getCompoundFormForLastToken'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { AnimatedVolumeIcon } from '@/components/Animations/AnimatedVolumeIcon'
@@ -66,9 +58,9 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   const [phrasePlaying, setPhrasePlaying] = useState(false)
   const [tempLabel, setTempLabel] = useState<{ id: string; text: string } | null>(null)
 
-  const aiAllowed = board.extra?.ai ?? false
+  // The board's own setting (saved in the editor); the runner plays the board the way the child gets it.
+  const aiEnabled = board.extra?.ai ?? false
   const actionBarEnabled = board.actionBar?.enabled ?? false
-  const [aiEnabled, setAiEnabled] = useState<boolean>(aiAllowed)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const gridContainerRef = useRef<HTMLDivElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -456,7 +448,6 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     )
   }
 
-  const compounds = (board.compounds ?? []) as Compound[]
 
   const sequenceCells = useMemo(
     () =>
@@ -566,10 +557,29 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     <div className="pb-28 md:pb-24">
       {!isParentMode && <ChildModeBar hasPin={hasPin} title={board.name} />}
 
+      {/* The parent view shows the board as the child gets it; changing it happens in the editor. */}
+      {isParentMode && (
+        <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-3xl font-semibold">{board.name || 'Nimetu tahvel'}</h1>
+          {canEdit ? (
+            <Button asChild className="gap-2">
+              <Link href={`/boards/${board.id}/edit`}>
+                <Edit3 className="h-4 w-4" aria-hidden="true" />
+                Muuda tahvlit
+              </Link>
+            </Button>
+          ) : (
+            <p className="text-sm text-slate-500">
+              Jagatud tahvel · muuta saab ainult tahvli looja
+            </p>
+          )}
+        </header>
+      )}
+
       <div className="actionbar-container fixed inset-x-0 bottom-0 z-40 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-4">
         <TooltipProvider>
           <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] ring-1 ring-white/70 backdrop-blur md:flex-row md:items-stretch md:justify-between">
-            <h1 className="text-center text-3xl font-semibold sr-only">{board.name}</h1>
+            {!isParentMode && <h1 className="sr-only">{board.name}</h1>}
 
             {actionBarEnabled && (
               <div className="flex min-h-16 min-w-0 max-w-full flex-1 items-center gap-2 overflow-hidden rounded-xl bg-slate-50 px-3 py-1.5 ring-1 ring-slate-200/70">
@@ -701,97 +711,6 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
                   </TooltipContent>
                 </Tooltip>
               </div>
-
-              {isParentMode && (
-                <>
-                  <div className="h-9 w-px bg-slate-200" />
-
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      type="button"
-                      size="sm"
-                      roundness="full"
-                      variant={aiEnabled ? 'positive' : 'muted'}
-                      onClick={() => setAiEnabled((v) => !v)}
-                      aria-pressed={aiEnabled}
-                      title={
-                        aiEnabled
-                          ? 'AI on: parandab sõna kuju'
-                          : 'AI off: loeb täpselt valitud sõna'
-                      }
-                      className="h-10 gap-1.5 px-3 shadow-sm"
-                    >
-                      {aiEnabled ? <Sparkles size={16} /> : <Slash size={16} />}
-                      <span className="hidden sm:inline">
-                        {aiEnabled ? 'AI sees' : 'AI väljas'}
-                      </span>
-                    </Button>
-
-                    {/* Halda sõnaühendeid + tooltip */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        {canEdit ? (
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            asChild
-                            className="h-10 w-10 border-slate-200 bg-white shadow-sm"
-                          >
-                            <Link href={`/boards/${board.id}/compounds`}>
-                              <WholeWord className="h-5 w-5 text-pink-600" />
-                            </Link>
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            className="h-10 w-10 border-slate-200 bg-white shadow-sm"
-                          >
-                            <WholeWord className="h-5 w-5" />
-                            <span className="sr-only">Sõnaühendite haldus</span>
-                          </Button>
-                        )}
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-sm">
-                        {compounds.length === 0 ? (
-                          <p className="text-xs text-muted-foreground">
-                            Sõnaühendeid pole veel lisatud.
-                          </p>
-                        ) : (
-                          <div className="max-h-[260px] space-y-2 overflow-y-auto text-xs">
-                            {compounds.map((compound) => {
-                              const surfaces = compound.parts?.map((p) => p.surface).join(' ') ?? ''
-
-                              return (
-                                <div
-                                  key={compound.id}
-                                  className="rounded border bg-muted/40 px-2 py-1"
-                                >
-                                  <div className="font-medium">{surfaces || '—'}</div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-
-                    {canEdit && (
-                      <Link href={`/boards/${board.id}/edit`}>
-                        <Button
-                          variant="secondary"
-                          roundness="full"
-                          size="icon"
-                          className="h-10 w-10 border-slate-200 bg-white shadow-sm"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                          <span className="sr-only">Muuda</span>
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </TooltipProvider>

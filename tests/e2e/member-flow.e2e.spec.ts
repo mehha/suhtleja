@@ -189,6 +189,15 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     expect(saved.status(), await saved.text()).toBe(200)
   })
 
+  await test.step('the board and its editor link to each other', async () => {
+    await page.goto(`/boards/${boardId}`)
+    await expect(page.getByRole('heading', { level: 1, name: boardName })).toBeVisible()
+    await page.getByRole('link', { name: 'Muuda tahvlit' }).click()
+    await expect(page).toHaveURL(new RegExp(`/boards/${boardId}/edit$`))
+    await page.getByRole('link', { name: 'Vaata tahvlit' }).click()
+    await expect(page).toHaveURL(new RegExp(`/boards/${boardId}$`))
+  })
+
   await test.step('put the board on the child home', async () => {
     await page.goto('/koduhaldus')
     const row = page.getByRole('row').filter({ hasText: boardName })

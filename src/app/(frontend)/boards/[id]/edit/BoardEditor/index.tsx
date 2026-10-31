@@ -333,11 +333,13 @@ export default function BoardEditor({
                 </TooltipContent>
               </Tooltip>
 
-              <Link href={`/boards/${board.id}`}>
-                <Button variant="positive" size="sm">
-                  <Play className="h-5 w-5" />
-                </Button>
-              </Link>
+              {/* Same place as the board view's "Muuda tahvlit", so the two pages switch back and forth. */}
+              <Button variant="positive" size="sm" asChild>
+                <Link href={`/boards/${board.id}`} className="gap-2">
+                  <Play className="h-4 w-4" aria-hidden="true" />
+                  Vaata tahvlit
+                </Link>
+              </Button>
             </div>
           </div>
 

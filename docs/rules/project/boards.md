@@ -61,6 +61,8 @@ tags: [suhtleja, frontend, boards, payload]
   - AAC board runner tiles should have high-visibility hover/press affordances: clear border/ring contrast, obvious lift on pointer hover, and a readable pressed state without adding extra hover box shadow.
   - The board runner action bar should stay fixed at the bottom of the viewport, remain compact enough for child-mode play, and leave bottom padding so board tiles are not hidden behind it.
   - In child mode, `/boards/[id]` must include minimal in-page controls for returning to `/kodu` and opening the parent PIN dialog because global header navigation is hidden.
+  - The action bar holds only the child's controls (phrase, play, undo, clear), in both views, so the parent view shows the board the way the child gets it. The runner uses the board's saved AI setting (`extra.ai`); AI and compounds are set in the editor, not in the runner.
+  - In parent mode, the board's name and, for the owner, a labelled `Muuda tahvlit` link sit above the board; a shared board says that only its creator can change it. The editor's header has `Vaata tahvlit` in the same place, so the two pages switch back and forth.
 - Boards management rules:
   - `/koduhaldus` must include a separate connect-dots puzzles table.
   - Non-admin users must see their own rows plus rows shared via `visibleToAllUsers`.
