@@ -7,12 +7,7 @@ import type { Board, Media } from '@/payload-types'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Edit3, Trash, Undo2, Volume2Icon } from 'lucide-react'
-import {
-  WidthProvider,
-  Responsive as ResponsiveGrid,
-  type Layout,
-  type Layouts,
-} from 'react-grid-layout'
+import ReactGridLayout, { type Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 
@@ -28,8 +23,10 @@ import { CellLabel } from './CellLabel'
 import { toast } from 'sonner'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
 
-const ResponsiveGridLayout = WidthProvider(ResponsiveGrid)
 const GRID_MARGIN: [number, number] = [16, 16]
+// The board keeps its own columns while a tile is at least this wide (the editor's minimum too), so
+// a tablet shows the board as the parent made it, upright and sideways alike.
+const MIN_TILE_WIDTH = 96
 
 type RunnerProps = { board: Board; isParentMode: boolean; canEdit: boolean; hasPin: boolean }
 
@@ -103,17 +100,8 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     [cells],
   )
 
-  const clampLayoutToCols = (items: Layout[], colCount: number): Layout[] =>
-    items.map((item) => {
-      const w = Math.max(1, Math.min(item.w, colCount))
-      const maxX = Math.max(0, colCount - w)
-      return {
-        ...item,
-        w,
-        x: Math.min(item.x, maxX),
-      }
-    })
-
+  // Fewer columns than the board has: the tiles in reading order (row by row), each into the
+  // shortest column, so the child still finds the words in the board's order.
   const buildColumnLayout = (items: Layout[], colCount: number): Layout[] => {
     const safeColCount = Math.max(1, colCount)
     const sorted = [...items].sort((a, b) => a.y - b.y || a.x - b.x)
@@ -137,15 +125,6 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   const mdCols = Math.max(1, Math.min(cols, 4))
   const mobileCols = Math.max(1, Math.min(cols, 3))
   const [gridWidth, setGridWidth] = useState(0)
-  const responsiveLayouts: Layouts = useMemo(
-    () => ({
-      lg: baseLayout,
-      md: clampLayoutToCols(baseLayout, mdCols),
-      sm: buildColumnLayout(baseLayout, mobileCols),
-      xs: buildColumnLayout(baseLayout, mobileCols),
-    }),
-    [baseLayout, mdCols, mobileCols],
-  )
 
   useEffect(() => {
     const element = gridContainerRef.current
@@ -160,10 +139,31 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   }, [])
 
   const activeGridCols = useMemo(() => {
-    if (gridWidth >= 1024) return cols
+    if (!gridWidth || gridWidth >= 1024) return cols
+    const fullTileWidth = (gridWidth - GRID_MARGIN[0] * Math.max(0, cols - 1)) / cols
+    if (fullTileWidth >= MIN_TILE_WIDTH) return cols
     if (gridWidth >= 768) return mdCols
     return mobileCols
   }, [cols, gridWidth, mdCols, mobileCols])
+  const activeLayout = useMemo(
+    () => (activeGridCols === cols ? baseLayout : buildColumnLayout(baseLayout, activeGridCols)),
+    [activeGridCols, baseLayout, cols],
+  )
+
+  // The action bar is fixed to the bottom edge and taller on phones (the phrase above the buttons)
+  // and above an iPhone's home indicator, so the page leaves room for its measured height: the last
+  // row can always be scrolled clear of it.
+  const actionBarRef = useRef<HTMLDivElement | null>(null)
+  const [actionBarHeight, setActionBarHeight] = useState(0)
+  useEffect(() => {
+    const element = actionBarRef.current
+    if (!element || typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(() => setActionBarHeight(element.offsetHeight))
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [])
 
   const squareRowHeight = useMemo(() => {
     if (!gridWidth) return 140
@@ -585,7 +585,10 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   }, [cachedAudioUrlByText])
 
   return (
-    <div className="pb-28 md:pb-24">
+    <div
+      className="pb-28 md:pb-24"
+      style={actionBarHeight ? { paddingBottom: actionBarHeight + 16 } : undefined}
+    >
       {!isParentMode && <ChildModeBar hasPin={hasPin} title={board.name} />}
 
       {/* The parent view shows the board as the child gets it; changing it happens in the editor. */}
@@ -607,7 +610,10 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
         </header>
       )}
 
-      <div className="actionbar-container fixed inset-x-0 bottom-0 z-40 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-4">
+      <div
+        ref={actionBarRef}
+        className="actionbar-container fixed inset-x-0 bottom-0 z-40 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-4"
+      >
         <TooltipProvider>
           <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] ring-1 ring-white/70 backdrop-blur md:flex-row md:items-stretch md:justify-between">
             {!isParentMode && <h1 className="sr-only">{board.name}</h1>}
@@ -748,56 +754,63 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
         </TooltipProvider>
       </div>
 
+      {/* The grid gets the width measured here, so the columns, the tile width and the square row
+          height all come from the same number, also when the device turns. It renders once that
+          width is known, so tiles don't first appear at a fallback size. */}
       <div ref={gridContainerRef}>
-        <ResponsiveGridLayout
-          className="layout"
-          breakpoints={{ lg: 1024, md: 768, sm: 640, xs: 0 }}
-          cols={{ lg: cols, md: mdCols, sm: mobileCols, xs: mobileCols }}
-          rowHeight={squareRowHeight}
-          isResizable={false}
-          isDraggable={false}
-          margin={GRID_MARGIN}
-          containerPadding={[0, 0]}
-          compactType={null}
-          preventCollision
-          layouts={responsiveLayouts}
-        >
-          {cells.map((cell) => {
-            const cellIdString = String(cell.id)
+        {gridWidth > 0 ? (
+          <ReactGridLayout
+            className="layout"
+            width={gridWidth}
+            cols={activeGridCols}
+            rowHeight={squareRowHeight}
+            isResizable={false}
+            isDraggable={false}
+            margin={GRID_MARGIN}
+            containerPadding={[0, 0]}
+            compactType={null}
+            preventCollision
+            layout={activeLayout}
+          >
+            {cells.map((cell) => {
+              const cellIdString = String(cell.id)
 
-            // UUS: Kontrollime, kas sellele kaardile on määratud ajutine tekst
-            const isOverridden = tempLabel?.id === cellIdString
-            const isActiveCell = activeCellId === cellIdString
-            const titleToShow = isOverridden && tempLabel ? tempLabel.text : cell.title
+              // UUS: Kontrollime, kas sellele kaardile on määratud ajutine tekst
+              const isOverridden = tempLabel?.id === cellIdString
+              const isActiveCell = activeCellId === cellIdString
+              const titleToShow = isOverridden && tempLabel ? tempLabel.text : cell.title
 
-            return (
-              <div
-                key={cellIdString}
-                className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl border-2 bg-white p-2 shadow-lg ring-2 transition-all duration-150 hover:-translate-y-1 hover:scale-[1.025] active:translate-y-0 active:scale-[0.96] ${
-                  isActiveCell
-                    ? 'cursor-pointer border-[#ff980d] ring-[#ff980d]/45 hover:ring-[#ff980d]/70'
-                    : 'cursor-pointer border-slate-200 ring-transparent hover:border-[#ff980d] hover:ring-[#ff980d]/35'
-                }`}
-              >
-                {renderCellImage(cell)}
+              return (
+                <div
+                  key={cellIdString}
+                  // Hover styles only where a pointer hovers: a touch screen keeps :hover on the
+                  // last tapped tile, which then stayed orange as if it were still speaking.
+                  className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl border-2 bg-white p-2 shadow-lg ring-2 transition-all duration-150 active:translate-y-0 active:scale-[0.96] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:scale-[1.025] ${
+                    isActiveCell
+                      ? 'cursor-pointer border-[#ff980d] ring-[#ff980d]/45 [@media(hover:hover)]:hover:ring-[#ff980d]/70'
+                      : 'cursor-pointer border-slate-200 ring-transparent [@media(hover:hover)]:hover:border-[#ff980d] [@media(hover:hover)]:hover:ring-[#ff980d]/35'
+                  }`}
+                >
+                  {renderCellImage(cell)}
 
-                {titleToShow && (
-                  <CellLabel
-                    title={titleToShow}
-                    className="pointer-events-none transition-colors duration-200"
+                  {titleToShow && (
+                    <CellLabel
+                      title={titleToShow}
+                      className="pointer-events-none transition-colors duration-200"
+                    />
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => void handleCellClick(cell)}
+                    className="absolute inset-0 cursor-pointer"
+                    aria-label={titleToShow ?? 'valik'}
                   />
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => void handleCellClick(cell)}
-                  className="absolute inset-0 cursor-pointer"
-                  aria-label={titleToShow ?? 'valik'}
-                />
-              </div>
-            )
-          })}
-        </ResponsiveGridLayout>
+                </div>
+              )
+            })}
+          </ReactGridLayout>
+        ) : null}
       </div>
     </div>
   )

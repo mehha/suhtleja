@@ -42,6 +42,7 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
   - an uploaded image
   - at least 2 valid dots
 - Wrong dot selections must be ignored.
+- Each dot takes taps on a 44px round target (an invisible circle around the drawn dot), big enough for a child's finger; a tap beside it counts as a wrong one.
 - Supported play styles:
   - click the next dot
   - trace/drag from the current dot to the next dot

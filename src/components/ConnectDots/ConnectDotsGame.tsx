@@ -772,7 +772,9 @@ export function ConnectDotsGame({
                         }
                       }}
                     >
-                      <circle cx={dotX} cy={dotY} fill="transparent" r="18" />
+                      {/* The tap target: 44px across, big enough for a child's finger. A tap
+                          beside it counts as a wrong one, so the picture flashes red. */}
+                      <circle cx={dotX} cy={dotY} fill="transparent" r="22" />
                       {isStart ? (
                         <circle
                           cx={dotX}
