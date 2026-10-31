@@ -1,10 +1,11 @@
 'use client'
 
-import { LayoutDashboard, LogOut, UserRound } from 'lucide-react'
+import { LogOut, UserRound } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -15,15 +16,25 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import Link from 'next/link'
 
+import type { InfoLink } from './links'
+
 type UserMenuProps = {
   name: string
   email?: string
   avatarUrl?: string
   onSignOut?: () => void
   isParentMode?: boolean
+  infoLinks?: InfoLink[]
 }
 
-export function UserMenu({ name, email, avatarUrl, onSignOut, isParentMode }: UserMenuProps) {
+export function UserMenu({
+  name,
+  email,
+  avatarUrl,
+  onSignOut,
+  isParentMode,
+  infoLinks = [],
+}: UserMenuProps) {
   const displayName = name || email || 'Kasutaja'
   const initials = name
     .split(' ')
@@ -66,21 +77,34 @@ export function UserMenu({ name, email, avatarUrl, onSignOut, isParentMode }: Us
           </div>
 
           {isParentMode && (
+            <DropdownMenuItem asChild className="rounded-xl text-slate-800 focus:text-slate-950">
+              <Link href="/profile" className="flex w-full items-center gap-2">
+                <UserRound className="h-4 w-4" />
+                Profiil ja liikmelisus
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {infoLinks.length > 0 && (
             <>
-              <DropdownMenuItem asChild className="rounded-xl text-slate-800 focus:text-slate-950">
-                <Link href="/profile" className="flex w-full items-center gap-2">
-                  <UserRound className="h-4 w-4" />
-                  Profiil
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="rounded-xl text-slate-800 focus:text-slate-950">
-                <Link href="/koduhaldus" className="flex w-full items-center gap-2">
-                  <LayoutDashboard className="h-4 w-4" />
-                  Koduhaldus
-                </Link>
-              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1.5" />
+              {infoLinks.map(({ href, label, newTab }) => (
+                <DropdownMenuItem
+                  key={href}
+                  asChild
+                  className="rounded-xl text-slate-600 focus:text-slate-950"
+                >
+                  <Link
+                    href={href}
+                    className="flex w-full items-center"
+                    {...(newTab ? { rel: 'noopener noreferrer', target: '_blank' } : {})}
+                  >
+                    {label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
             </>
           )}
+          <DropdownMenuSeparator className="my-1.5" />
           <DropdownMenuItem
             className="rounded-xl text-red-600 focus:text-red-700"
             onClick={onSignOut}

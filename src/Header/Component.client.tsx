@@ -2,7 +2,7 @@
 import { useHeaderTheme } from '@/providers/HeaderTheme'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import React, { useEffect, useState, useSyncExternalStore } from 'react'
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 
 import type { Header, User } from '@/payload-types'
 
@@ -14,12 +14,15 @@ import { fetchClientUser } from '@/utilities/fetchClientUser'
 import { getClientSideURL } from '@/utilities/getURL'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { House, LogIn } from 'lucide-react'
+import { LogIn } from 'lucide-react'
 import { ParentModeToggle } from '@/Header/Nav/ParentModeToggle'
+import { AppNav } from '@/Header/Nav/AppNav'
+import { appLinks, infoLinks } from '@/Header/Nav/links'
 import { cn } from '@/utilities/ui'
 
-// -my-1.5 drops the space the phone-size scale leaves empty (68px box, 56px logo).
-const logoClassName = '-my-1.5 origin-left scale-[0.82] sm:my-0 sm:scale-90 lg:scale-100'
+// zoom (unlike a scale transform) shrinks the logo's layout box too, so the narrow header doesn't
+// keep room for the full-size logo.
+const logoClassName = '[zoom:0.82] sm:[zoom:0.9] lg:[zoom:1]'
 
 const subscribeToNothing = () => () => {}
 const cookieSaysParentMode = () => /(?:^|;\s*)uiMode=parent(?:;|$)/.test(document.cookie)
@@ -117,6 +120,8 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
 
   const name = clientUser?.name && true ? clientUser.name : (clientUser?.email ?? '')
   const effectiveHasPin = Boolean(clientUser?.parentPinHash || hasPin)
+  const links = useMemo(() => appLinks(parentMode), [parentMode])
+  const accountInfoLinks = useMemo(() => infoLinks(data), [data])
 
   return (
     <header
@@ -131,49 +136,51 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
 
       <div
         className={cn(
-          'pointer-events-auto col-start-1 row-start-1 flex items-center justify-between gap-4 self-start rounded-full bg-white px-4 py-3 ring-1 ring-gray-900/5 transition-shadow duration-200 dark:bg-black sm:p-4 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center',
+          'pointer-events-auto col-start-1 row-start-1 flex items-center justify-between gap-3 self-start rounded-full bg-white px-4 py-3 ring-1 ring-gray-900/5 transition-shadow duration-200 dark:bg-black sm:gap-4 sm:p-4 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center',
           scrolled ? 'shadow-lg shadow-slate-900/10' : 'shadow-sm',
         )}
       >
         <div className="flex items-center lg:justify-self-start">
-          <Link href="/" className="flex items-center" aria-label="Suhtleja">
+          {/* Logged in, the logo leads to the app's home, like the Kodu link. */}
+          <Link href={clientUser ? '/kodu' : '/'} className="flex items-center" aria-label="Suhtleja">
             <Logo className={logoClassName} compact={scrolled} loading="eager" priority="high" />
           </Link>
         </div>
 
-        <div className="hidden lg:flex lg:justify-self-center">
-          <HeaderNav data={data} />
-        </div>
+        {clientUser ? (
+          <div className="hidden md:flex lg:justify-self-center">
+            <AppNav links={links} />
+          </div>
+        ) : (
+          <div className="hidden lg:flex lg:justify-self-center">
+            <HeaderNav data={data} />
+          </div>
+        )}
 
         <div className="flex items-center gap-2 sm:gap-4 lg:justify-self-end">
-          {/* ainult siis, kui on sisse loginud */}
           {clientUser ? (
             <>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Kodu"
-                      className="h-10 w-10 rounded-full border border-slate-300 bg-white p-0 text-slate-800 shadow-sm hover:bg-accent hover:text-accent-foreground [&_svg]:h-[18px] [&_svg]:w-[18px]"
-                    >
-                      <Link href="/home">
-                        <House aria-hidden="true" />
-                        <span className="sr-only">Kodu</span>
-                      </Link>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Kodu</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
               <ParentModeToggle isParentMode={parentMode} hasPin={effectiveHasPin} />
-              <UserMenu
-                name={name}
-                email={clientUser.email ?? ''}
-                onSignOut={handleSignOut}
-                isParentMode={parentMode}
+              <div className="hidden md:block">
+                <UserMenu
+                  name={name}
+                  email={clientUser.email ?? ''}
+                  onSignOut={handleSignOut}
+                  isParentMode={parentMode}
+                  infoLinks={accountInfoLinks}
+                />
+              </div>
+              <NavMobile
+                data={data}
+                className="md:hidden"
+                account={{
+                  name,
+                  email: clientUser.email ?? '',
+                  isParentMode: parentMode,
+                  links,
+                  infoLinks: accountInfoLinks,
+                  onSignOut: handleSignOut,
+                }}
               />
             </>
           ) : (
@@ -201,10 +208,9 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+              <NavMobile data={data} className="lg:hidden" />
             </>
           )}
-
-          <NavMobile data={data} />
         </div>
       </div>
     </header>

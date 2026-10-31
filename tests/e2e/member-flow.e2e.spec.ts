@@ -150,7 +150,8 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
 
     await pinInput.pressSequentially(pin)
     await expect(dialog).toBeHidden()
-    await expect(page.getByRole('link', { name: 'Koduhaldus' })).toBeVisible()
+    // The header's main menu has a Koduhaldus link too (in the menu sheet on phones).
+    await expect(page.getByRole('main').getByRole('link', { name: 'Koduhaldus' })).toBeVisible()
   })
 
   await test.step('change the name on the profile', async () => {
@@ -198,7 +199,7 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     await expect(page.getByText('Tahvel lisati koduvaatesse.')).toBeVisible()
     await expect(page).toHaveURL(/\/koduhaldus$/)
 
-    await page.getByRole('button', { name: 'Laps', exact: true }).click()
+    await page.getByRole('button', { name: 'Lapse vaade', exact: true }).click()
     await expect(page).toHaveURL(/\/kodu$/)
     await expect(page.getByRole('button', { name: 'Vanema vaade', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Koduhaldus' })).toHaveCount(0)

@@ -45,8 +45,12 @@ tags: [suhtleja, auth, mode, home, boards]
   - Clear fields.
   - Return focus to first OTP slot.
 - Keep explicit error message for invalid/missing PIN.
-- Header parent/child switcher should stay icon-only visually, with accessible names preserved for assistive tech.
-- Logged-in header controls should include an icon-only home link before the parent/child switcher; `/home` is a redirect alias for `/kodu`.
+- The logged-in header is the app's header, not the site's (`src/Header/Component.client.tsx`, links in `src/Header/Nav/links.ts`):
+  - The logo leads to `/kodu`. The main menu (`AppNav`) has labelled links with the current page marked: `Kodu`, plus `Koduhaldus` in the parent view. `/home` is a redirect alias for `/kodu`.
+  - The parent/child switch is one labelled button for the view you can switch to (`ParentModeToggle`): `Lapse vaade` (filled navy, the parent's main action) in the parent view, and `Vanema vaade` (opens the PIN dialog) in the child view. Phones under 380px wide show the short labels `Laps` and `Vanem`.
+  - The account menu has `Profiil ja liikmelisus` (parent view), the CMS header links except homepage sections such as `/#hind` (`infoLinks`), and `Logi välja`.
+  - Under the `md` breakpoint the main menu and account menu move into the menu sheet (`NavMobile` with `account`), so the bar holds only the logo, the switch and the menu button.
+  - Logged-out visitors keep the site menu (`Kuidas see töötab`, `Hind`, `Kontakt`), `Proovi tasuta` and the login button.
 - In child mode, `/kodu`, `/boards/[id]` and `/connect-dots` render as fullscreen child surfaces without the global header/footer/admin bar (`isChildFullscreenPath` in `src/app/(frontend)/FrontendShell.tsx`). Any page a child can open from `/kodu` belongs on that list: the global header has the account menu (`Logi välja`) and links out of the child view.
 - Child fullscreen surfaces must provide their own minimal navigation or unlock controls when global chrome is hidden. Use `ChildModeBar` (`src/app/(frontend)/kodu/ChildModeBar.tsx`: home + parent PIN dialog) and leave top padding for it.
 - Switching from parent mode to child mode may preserve safe child routes such as `/kodu`, `/boards/[id]` and `/connect-dots`, but must fall back to `/kodu` from parent-only or management routes.
