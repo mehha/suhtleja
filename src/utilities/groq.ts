@@ -131,6 +131,7 @@ const PICTOGRAM_SUBJECT_PROMPT = [
   'You describe what a pictogram on an AAC communication board card should show.',
   'Input is a card label in Estonian or English: one word or a short phrase.',
   'Return one short English description (at most 15 words) of a single, simple, concrete scene that a child recognises as the label.',
+  'Also say whether the label is personal: generated pictures of generic labels are shared with every family that uses the app.',
   '',
   'Rules:',
   '1) Concrete nouns: the object itself. Example: koer -> a brown dog',
@@ -138,13 +139,20 @@ const PICTOGRAM_SUBJECT_PROMPT = [
   '3) Abstract words: the gesture or situation people use for it. Example: veel -> a hand asking for more food on a plate',
   '4) Keep it simple: one object or at most two people, no crowds or busy backgrounds.',
   '5) No text, letters, numbers or signs in the description.',
-  '6) No names of real people, brands or characters.',
+  '6) No names of real people, brands or characters in the description.',
+  '7) personal is true when the label contains a name of a person, pet, school, kindergarten or place, or other private detail (e.g. "vanaema Malle", "Muki", "Pähklikese lasteaed"). Family roles and common words are not personal ("vanaema", "koer", "lasteaed").',
   '',
-  'Return ONLY JSON: {"subject":"..."}',
+  'Return ONLY JSON: {"subject":"...","personal":false}',
 ].join('\n')
 
-/** An English scene description for generating a pictogram. Falls back to the label itself. */
-export async function getPictogramSubject(label: string): Promise<string> {
+/**
+ * An English scene description for generating a pictogram, and whether the label is personal (a
+ * personal label's picture is not shared). Falls back to the label itself, and to personal, so a
+ * Groq failure never shares a picture by mistake.
+ */
+export async function getPictogramSubject(
+  label: string,
+): Promise<{ personal: boolean; subject: string }> {
   try {
     const txt = await createGroqJsonCompletion({
       messages: [
@@ -153,12 +161,15 @@ export async function getPictogramSubject(label: string): Promise<string> {
       ],
       temperature: 0.2,
     })
-    const parsed = JSON.parse(txt) as { subject?: unknown }
+    const parsed = JSON.parse(txt) as { personal?: unknown; subject?: unknown }
     const subject = typeof parsed.subject === 'string' ? parsed.subject.trim() : ''
 
-    return subject && subject.length <= 200 ? subject : label
+    return {
+      personal: parsed.personal !== false,
+      subject: subject && subject.length <= 200 ? subject : label,
+    }
   } catch (error) {
     console.error('Groq pictogram subject failed', error)
-    return label
+    return { personal: true, subject: label }
   }
 }

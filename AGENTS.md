@@ -25,7 +25,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - Shared speech pattern (`/next/tts-ms`): `src/app/(frontend)/next/tts-ms/route.ts`, rule `docs/rules/project/audio-tts.md`.
 - `membership`: Stripe routes `src/app/(frontend)/next/stripe`, helper `src/utilities/membershipStatus.ts`, rule `docs/rules/project/membership.md`.
 - `auth/profile`: `src/app/(frontend)/login`, `register`, `profile`, rule `docs/rules/project/auth-profile.md`.
-- `symbols/AI helpers`: `src/app/(frontend)/next/{symbols,symbol-image,symbol-generate,groq}`, collection `src/collections/SymbolGenerations.ts`, rule `docs/rules/project/symbols-ai.md`.
+- `symbols/AI helpers`: `src/app/(frontend)/next/{symbols,image-search,symbol-image,symbol-generate,groq}`, collection `src/collections/SymbolGenerations.ts`, rule `docs/rules/project/symbols-ai.md`.
 - `search`: `src/app/(frontend)/search`, `src/search`, rule `docs/rules/project/search.md`.
 - `homepage`: block `src/blocks/SuhtlejaHomepage`, rule `docs/rules/project/homepage.md`.
 - `content pages`: page route `src/app/(frontend)/[slug]`, blocks `src/blocks/HowItWorks`, `src/blocks/Contact`, rule `docs/rules/project/content-pages.md`.

@@ -1,9 +1,9 @@
 // src/components/BoardEditor/CellEditModal.tsx
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { Copy, Sparkles } from 'lucide-react'
+import { Copy, Sparkles, Upload } from 'lucide-react'
 
 import { getClientSideURL } from '@/utilities/getURL'
 import { cn } from '@/utilities/ui'
@@ -27,30 +27,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
 
-type SymbolSource = 'arasaac' | 'mulberry' | 'openmoji'
+type SearchScope = 'all' | 'mine' | 'library' | 'arasaac' | 'mulberry' | 'openmoji'
 
-type SymbolItem = {
+type PictureItem = {
   id: string
   title: string
   preview: string
-  source: SymbolSource
-  license: string
-  attribution?: string
+  source: 'mine' | 'library' | 'arasaac' | 'mulberry' | 'openmoji'
+  mediaId?: number
 }
 
-type MediaDoc = {
-  id: string | number
-  url: string
-  alt?: string
-  filename?: string
-  sizes?: Record<string, { url?: string }>
+type SearchResults = {
+  aiTerms?: string[]
+  library: PictureItem[]
+  mine: PictureItem[]
+  symbols: PictureItem[]
 }
 
 type MediaUploadResponse = {
@@ -60,21 +52,19 @@ type MediaUploadResponse = {
   }
 }
 
-type SymbolsResponse = {
-  aiTerms?: string[]
-  items?: SymbolItem[]
-}
-
-type MediaSearchResponse = {
-  docs?: MediaDoc[]
-  totalPages?: number
-}
-
 type GenerateResponse = {
   error?: string
+  generationId?: number
   images?: string[]
   limit?: number
+  personal?: boolean
   remaining?: number
+}
+
+type SaveGeneratedResponse = {
+  error?: string
+  media?: { id: number; url: string | null }
+  shared?: boolean
 }
 
 type CellImagePatch = {
@@ -99,15 +89,30 @@ type CellEditModalProps = {
   onSaveAction: (cellId: string, patch: CellImagePatch) => void
 }
 
-type TabKey = 'symbols' | 'generate' | 'upload' | 'media'
-
 // The picture the user chose in this dialog. It replaces the card's picture only on "Salvesta".
 type PendingImage =
   | { kind: 'external'; url: string }
   | { kind: 'media'; id: string | number; url: string }
-  | { kind: 'generated'; dataURL: string }
+  | { kind: 'generated'; dataURL: string; generationId: number }
 
-const SYMBOL_SEARCH_DELAY_MS = 400
+const SEARCH_DELAY_MS = 350
+
+const EMPTY_RESULTS: SearchResults = { library: [], mine: [], symbols: [] }
+
+const SCOPE_LABELS: Record<SearchScope, string> = {
+  all: 'Kõik allikad',
+  mine: 'Minu pildid',
+  library: 'Suhtleja kogu',
+  arasaac: 'ARASAAC',
+  mulberry: 'Mulberry (inglise)',
+  openmoji: 'OpenMoji',
+}
+
+const BANK_HEADINGS: Record<string, string> = {
+  arasaac: 'ARASAAC',
+  mulberry: 'Mulberry',
+  openmoji: 'OpenMoji',
+}
 
 const GENERATE_ERRORS: Record<string, string> = {
   ai_unavailable: 'AI-pildid pole praegu saadaval.',
@@ -119,26 +124,9 @@ function pendingImageSrc(pending: PendingImage): string {
   return pending.kind === 'generated' ? pending.dataURL : pending.url
 }
 
-function dataURLToFile(dataURL: string, name: string): File {
-  const [header = '', base64 = ''] = dataURL.split(',')
-  const mimeType = /data:([^;]+);/.exec(header)?.[1] ?? 'image/jpeg'
-  const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
-  const extension = mimeType.split('/')[1] ?? 'jpg'
-  const baseName =
-    name
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/\p{M}/gu, '')
-      .replace(/[^\p{L}\p{N}]+/gu, '-')
-      .replace(/^-|-$/g, '') || 'pilt'
-
-  return new File([bytes], `ai-${baseName}.${extension}`, { type: mimeType })
-}
-
-async function uploadMedia(file: File, alt?: string) {
+async function uploadMedia(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  if (alt) formData.append('_payload', JSON.stringify({ alt }))
 
   const res = await fetch(`${getClientSideURL()}/api/media`, {
     method: 'POST',
@@ -152,7 +140,7 @@ async function uploadMedia(file: File, alt?: string) {
     return null
   }
 
-  return { id: json.doc.id, url: json.doc.url ?? undefined }
+  return { id: json.doc.id, url: json.doc.url ?? '' }
 }
 
 export const CellEditModal: React.FC<CellEditModalProps> = ({
@@ -165,32 +153,26 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   const [pending, setPending] = useState<PendingImage | null>(null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [tab, setTab] = useState<TabKey>('symbols')
-
-  // Symbols
-  const [symQ, setSymQ] = useState('')
-  const [symSource, setSymSource] = useState<SymbolSource>('arasaac')
-  const [symLoading, setSymLoading] = useState(false)
-  const [symbols, setSymbols] = useState<SymbolItem[]>([])
-  const [symAiTerms, setSymAiTerms] = useState<string[]>([])
-  const [symError, setSymError] = useState<string | null>(null)
-  const [symSearchedKey, setSymSearchedKey] = useState<string | null>(null)
+  // Search
+  const [query, setQuery] = useState('')
+  const [scope, setScope] = useState<SearchScope>('all')
+  const [results, setResults] = useState<SearchResults>(EMPTY_RESULTS)
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [searchedKey, setSearchedKey] = useState<string | null>(null)
 
   // AI generation
+  const [showGenerate, setShowGenerate] = useState(false)
   const [genLabel, setGenLabel] = useState('')
   const [genLoading, setGenLoading] = useState(false)
   const [genImages, setGenImages] = useState<string[]>([])
+  const [genGenerationId, setGenGenerationId] = useState<number | null>(null)
+  const [genPersonal, setGenPersonal] = useState(false)
   const [genError, setGenError] = useState<string | null>(null)
   const [genQuota, setGenQuota] = useState<{ limit: number; remaining: number } | null>(null)
 
-  // Media
-  const [mediaQ, setMediaQ] = useState('')
-  const [mediaLoading, setMediaLoading] = useState(false)
-  const [mediaItems, setMediaItems] = useState<MediaDoc[]>([])
-  const [mediaError, setMediaError] = useState<string | null>(null)
-  const [mediaPage, setMediaPage] = useState(1)
-  const [mediaTotalPages, setMediaTotalPages] = useState(1)
   const initializedCellIdRef = useRef<string | null>(null)
 
   const currentImageSrc =
@@ -198,7 +180,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     cell?.externalImageURL ||
     null
   const previewSrc = pending ? pendingImageSrc(pending) : currentImageSrc
-  const selectedSrc = pending ? pendingImageSrc(pending) : currentImageSrc
+  const selectedSrc = previewSrc
 
   // Sünkroniseeri state, kui dialog avaneb
   useEffect(() => {
@@ -212,65 +194,60 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     const cellTitle = cell.title ?? ''
     setTitle(cellTitle)
     setPending(null)
-    setSymQ(cellTitle)
-    setSymbols([])
-    setSymAiTerms([])
-    setSymError(null)
-    setSymSearchedKey(null)
+    setQuery(cellTitle)
+    setResults(EMPTY_RESULTS)
+    setSearchError(null)
+    setSearchedKey(null)
+    setShowGenerate(false)
     setGenLabel(cellTitle)
     setGenImages([])
+    setGenGenerationId(null)
     setGenError(null)
-    setTab('symbols')
   }, [open, cell])
 
-  // Search while typing, starting with the card's own text when the dialog opens.
-  const hasSymbolQuery = symQ.trim().length > 0
-  const symSearchKey = `${symSource}:${symQ.trim()}`
+  // One search over the member's own pictures, the shared library and a symbol bank. It starts with
+  // the card's text and runs while typing; an empty query lists the newest pictures.
+  const searchKey = `${scope}:${query.trim()}`
   useEffect(() => {
-    if (!open || tab !== 'symbols') return
-    const q = symQ.trim()
-    // An empty query shows nothing (see hasSymbolQuery); there is nothing to fetch.
-    if (!q || symSearchedKey === symSearchKey) return
+    if (!open || searchedKey === searchKey) return
 
     const controller = new AbortController()
     const timer = setTimeout(async () => {
-      setSymLoading(true)
-      setSymError(null)
+      setSearching(true)
+      setSearchError(null)
       try {
-        const params = new URLSearchParams({
-          aiFallback: 'true',
-          limit: '40',
-          q,
-          source: symSource,
-        })
-        const res = await fetch(`${getClientSideURL()}/next/symbols?${params.toString()}`, {
+        const params = new URLSearchParams({ q: query.trim(), scope })
+        const res = await fetch(`${getClientSideURL()}/next/image-search?${params.toString()}`, {
           credentials: 'include',
           signal: controller.signal,
         })
-        if (!res.ok) throw new Error('Symbols load failed')
-        const json = (await res.json()) as SymbolsResponse
-        setSymbols(Array.isArray(json.items) ? json.items : [])
-        setSymAiTerms(Array.isArray(json.aiTerms) ? json.aiTerms : [])
-        setSymSearchedKey(symSearchKey)
+        if (!res.ok) throw new Error('Image search failed')
+        const json = (await res.json()) as Partial<SearchResults>
+        setResults({
+          aiTerms: Array.isArray(json.aiTerms) ? json.aiTerms : undefined,
+          library: Array.isArray(json.library) ? json.library : [],
+          mine: Array.isArray(json.mine) ? json.mine : [],
+          symbols: Array.isArray(json.symbols) ? json.symbols : [],
+        })
+        setSearchedKey(searchKey)
       } catch {
         if (controller.signal.aborted) return
-        setSymError('Ei õnnestu sümboleid laadida')
-        setSymbols([])
-        setSymAiTerms([])
+        setSearchError('Ei õnnestu pilte laadida')
+        setResults(EMPTY_RESULTS)
       } finally {
-        if (!controller.signal.aborted) setSymLoading(false)
+        if (!controller.signal.aborted) setSearching(false)
       }
-    }, SYMBOL_SEARCH_DELAY_MS)
+    }, SEARCH_DELAY_MS)
 
     return () => {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [open, tab, symQ, symSource, symSearchKey, symSearchedKey])
+  }, [open, query, scope, searchKey, searchedKey])
 
-  // How many generations are left this month, once the tab is opened.
+  // How many generations are left this month, once the AI panel is opened.
   useEffect(() => {
-    if (!open || tab !== 'generate' || genQuota) return
+    if (!open || !showGenerate || genQuota) return
     const controller = new AbortController()
     fetch(`${getClientSideURL()}/next/symbol-generate`, {
       credentials: 'include',
@@ -284,7 +261,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
       })
       .catch(() => {})
     return () => controller.abort()
-  }, [open, tab, genQuota])
+  }, [open, showGenerate, genQuota])
 
   const handleUpload = async (file: File) => {
     setUploading(true)
@@ -294,12 +271,15 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
         toast.error('Pildi üleslaadimine ebaõnnestus.')
         return
       }
-      setPending({ kind: 'media', id: media.id, url: media.url ?? '' })
+      setPending({ kind: 'media', id: media.id, url: media.url })
+      // The upload is one of "Minu pildid" now.
+      setSearchedKey(null)
     } catch (e) {
       console.error('Upload failed', e)
       toast.error('Pildi üleslaadimine ebaõnnestus.')
     } finally {
       setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -322,7 +302,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
         setGenQuota({ limit: json.limit, remaining: json.remaining })
       }
 
-      if (!res.ok || !json.images?.length) {
+      if (!res.ok || !json.images?.length || typeof json.generationId !== 'number') {
         setGenError(
           (json.error && GENERATE_ERRORS[json.error]) ||
             'Pildi loomine ebaõnnestus. Proovi uuesti.',
@@ -331,6 +311,8 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
       }
 
       setGenImages(json.images)
+      setGenGenerationId(json.generationId)
+      setGenPersonal(Boolean(json.personal))
     } catch {
       setGenError('Pildi loomine ebaõnnestus. Proovi uuesti.')
     } finally {
@@ -339,71 +321,16 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   }
 
   const openGenerate = () => {
-    setGenLabel(symQ.trim() || title)
-    setTab('generate')
+    setGenLabel(query.trim() || title)
+    setShowGenerate(true)
   }
 
-  const mediaQueryURL = useMemo(() => {
-    const base = getClientSideURL()
-    const q = mediaQ.trim()
-    const params = new URLSearchParams({
-      limit: '24',
-      page: String(mediaPage),
-      'where[and][0][folder][exists]': 'true',
-      'where[and][1][mimeType][contains]': 'image',
-    })
-
-    if (q) {
-      params.set('where[and][2][or][0][alt][contains]', q)
-      params.set('where[and][2][or][1][filename][contains]', q)
+  const pickItem = (item: PictureItem) => {
+    if (typeof item.mediaId === 'number') {
+      setPending({ kind: 'media', id: item.mediaId, url: item.preview })
+    } else {
+      setPending({ kind: 'external', url: item.preview })
     }
-
-    return `${base}/api/media?${params.toString()}`
-  }, [mediaQ, mediaPage])
-
-  const runMediaSearch = async () => {
-    setMediaLoading(true)
-    setMediaError(null)
-    try {
-      const res = await fetch(mediaQueryURL, { credentials: 'include' })
-      if (!res.ok) throw new Error('Media load failed')
-      const json = (await res.json()) as MediaSearchResponse
-      const docs: MediaDoc[] = Array.isArray(json?.docs) ? json.docs : []
-      setMediaItems(docs)
-      if (typeof json?.totalPages === 'number') {
-        setMediaTotalPages(json.totalPages)
-      }
-    } catch (e) {
-      setMediaItems([])
-      setMediaError('Ei õnnestu meediumit laadida')
-    } finally {
-      setMediaLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (open && tab === 'media') setMediaPage(1)
-  }, [open, tab])
-
-  useEffect(() => {
-    if (tab !== 'media') return
-    const delay = mediaQ.trim() ? 300 : 0
-    const t = setTimeout(() => {
-      void runMediaSearch()
-    }, delay)
-    return () => clearTimeout(t)
-  }, [tab, mediaQueryURL, mediaQ])
-
-  const pickMedia = (m: MediaDoc) => {
-    if (!m?.id) return
-    const url =
-      m.sizes?.thumbnail?.url ||
-      m.sizes?.small?.url ||
-      m.sizes?.medium?.url ||
-      m.url
-    if (!url) return
-
-    setPending({ kind: 'media', id: m.id, url })
   }
 
   const handleSave = async () => {
@@ -423,16 +350,22 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     } else if (pending?.kind === 'generated') {
       setSaving(true)
       try {
-        const media = await uploadMedia(
-          dataURLToFile(pending.dataURL, title || genLabel),
-          title || genLabel,
-        )
-        if (!media) {
+        const res = await fetch(`${getClientSideURL()}/next/symbol-generate/save`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ generationId: pending.generationId, image: pending.dataURL }),
+        })
+        const json = (await res.json().catch(() => ({}))) as SaveGeneratedResponse
+        if (!res.ok || !json.media?.id) {
           toast.error('AI-pildi salvestamine ebaõnnestus.')
           return
         }
-        patch.image = media
+        patch.image = { id: json.media.id, url: json.media.url ?? undefined }
         patch.externalImageURL = ''
+        if (json.shared) {
+          toast.success('AI-pilt lisati ka Suhtleja ühisesse kogusse.')
+        }
       } catch (e) {
         console.error('Saving the generated image failed', e)
         toast.error('AI-pildi salvestamine ebaõnnestus.')
@@ -446,20 +379,68 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     onOpenChange(false)
   }
 
-  const imageButtonClass = (src: string) =>
+  const tileClass = (src: string) =>
     cn(
-      'relative block aspect-square h-auto overflow-hidden rounded-lg border bg-white p-0 hover:border-primary focus:outline-none',
+      'relative flex aspect-square h-auto flex-col overflow-hidden rounded-lg border bg-white p-0 hover:border-primary focus:outline-none',
       selectedSrc === src && 'border-primary ring-2 ring-primary',
     )
 
+  const renderTiles = (items: PictureItem[]) => (
+    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+      {items.map((item) => (
+        <Button
+          key={item.id}
+          type="button"
+          variant="outline"
+          onClick={() => pickItem(item)}
+          className={tileClass(item.preview)}
+          title={item.title}
+          aria-pressed={selectedSrc === item.preview}
+        >
+          <span className="relative w-full flex-1">
+            <Image
+              src={item.preview}
+              alt={item.title}
+              fill
+              sizes="96px"
+              className="object-contain p-1"
+              loading="lazy"
+              unoptimized
+            />
+          </span>
+          <span className="w-full truncate px-1 pb-1 text-[10px] font-normal opacity-70">
+            {item.title}
+          </span>
+        </Button>
+      ))}
+    </div>
+  )
+
+  const hasQuery = query.trim().length > 0
+  const searched = searchedKey === searchKey
+  const sections: Array<{ key: string; heading: string; items: PictureItem[] }> = [
+    { key: 'mine', heading: hasQuery ? 'Minu pildid' : 'Minu viimased pildid', items: results.mine },
+    {
+      key: 'library',
+      heading: hasQuery ? 'Suhtleja kogu' : 'Suhtleja kogu, uusimad',
+      items: results.library,
+    },
+    {
+      key: 'symbols',
+      heading: BANK_HEADINGS[scope] ?? 'ARASAAC',
+      items: results.symbols,
+    },
+  ].filter((section) => section.items.length > 0)
+  const ownAndLibraryCount = results.mine.length + results.library.length
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[720px] max-w-[94vw] overflow-y-auto rounded-2xl p-4 shadow-md">
+      <DialogContent className="max-h-[92vh] w-[760px] max-w-[94vw] overflow-y-auto rounded-2xl p-4 shadow-md">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Muuda</DialogTitle>
         </DialogHeader>
 
-        <div className="mt-4 flex flex-col gap-6">
+        <div className="mt-4 flex flex-col gap-5">
           <div className="flex items-end gap-4">
             {previewSrc && (
               <div className="relative aspect-square w-28 shrink-0 rounded-lg border bg-white">
@@ -491,10 +472,10 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                   type="button"
                   size="icon"
                   variant="outline"
-                  onClick={() => setSymQ(title)}
-                  disabled={tab !== 'symbols' || !title.trim()}
-                  title="Kopeeri tekst sümbolite otsingusse"
-                  aria-label="Kopeeri tekst sümbolite otsingusse"
+                  onClick={() => setQuery(title)}
+                  disabled={!title.trim()}
+                  title="Otsi pilti selle tekstiga"
+                  aria-label="Otsi pilti selle tekstiga"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -502,196 +483,177 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
             </div>
           </div>
 
-          {/* Tabs */}
-          <Tabs
-            value={tab}
-            onValueChange={(value) => setTab(value as TabKey)}
-            className="flex flex-col gap-4"
-          >
-            <TabsList>
-              <TabsTrigger value="symbols">Sümbolid</TabsTrigger>
-              <TabsTrigger value="generate">AI-pilt</TabsTrigger>
-              <TabsTrigger value="upload">Lae üles</TabsTrigger>
-              <TabsTrigger value="media">Meedia</TabsTrigger>
-            </TabsList>
-
-            {/* Upload */}
-            <TabsContent value="upload">
-              <div className="flex flex-col gap-1 text-sm">
-                <Label htmlFor="cell-image-upload" className="text-sm">
-                  Lae pilt üles
-                </Label>
+          {/* Picture search */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 <Input
-                  id="cell-image-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) void handleUpload(file)
+                  id="cell-picture-search"
+                  value={query}
+                  placeholder="Otsi pilti eesti või inglise keeles… (nt koer, sööma, dog)"
+                  aria-label="Otsi pilti"
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Search runs while typing; Enter must not submit or close anything.
+                    if (e.key === 'Enter') e.preventDefault()
                   }}
-                  disabled={uploading}
-                  className="cursor-pointer text-sm"
                 />
-                {uploading && (
-                  <p className="text-xs text-slate-500">Laen üles…</p>
-                )}
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setTitle(query)}
+                  disabled={!query.trim()}
+                  title="Kopeeri otsing tekstiväljale"
+                  aria-label="Kopeeri otsing tekstiväljale"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
               </div>
-            </TabsContent>
+              <Select value={scope} onValueChange={(value: SearchScope) => setScope(value)}>
+                <SelectTrigger className="w-[170px] rounded-xl text-sm" aria-label="Pildi allikas">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(SCOPE_LABELS) as SearchScope[]).map((key) => (
+                    <SelectItem key={key} value={key}>
+                      {SCOPE_LABELS[key]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            {/* Symbols */}
-            <TabsContent value="symbols">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <Input
-                      id="cell-symbol-search"
-                      value={symQ}
-                      placeholder="Otsi sümboleid eesti või inglise keeles… (nt kass, koer, dog, eat, play)"
-                      onChange={(e) => setSymQ(e.target.value)}
-                      onKeyDown={(e) => {
-                        // Search runs while typing; Enter must not submit or close anything.
-                        if (e.key === 'Enter') e.preventDefault()
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={() => setTitle(symQ)}
-                      disabled={tab !== 'symbols' || !symQ.trim()}
-                      title="Kopeeri sümbolite otsing tekstiväljale"
-                      aria-label="Kopeeri sümbolite otsing tekstiväljale"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <Select
-                    value={symSource}
-                    onValueChange={(value: SymbolSource) => setSymSource(value)}
-                  >
-                    <SelectTrigger className="w-[170px] rounded-xl text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="arasaac">ARASAAC (et + en)</SelectItem>
-                      <SelectItem value="mulberry">Mulberry (en)</SelectItem>
-                      <SelectItem value="openmoji">OpenMoji</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            {searchError && <p className="text-xs text-red-500">{searchError}</p>}
 
-                {hasSymbolQuery && symError && (
-                  <p className="text-xs text-red-500">{symError}</p>
-                )}
-                {!hasSymbolQuery ? null : symLoading ? (
-                  <p className="flex items-center gap-2 text-xs text-slate-500">
-                    <Spinner /> Otsin…
-                  </p>
-                ) : symbols.length ? (
-                  <>
-                    {symAiTerms.length > 0 && (
+            {searching ? (
+              <p className="flex items-center gap-2 text-xs text-slate-500">
+                <Spinner /> Otsin…
+              </p>
+            ) : sections.length ? (
+              <div className="flex max-h-80 flex-col gap-4 overflow-y-auto p-1">
+                {sections.map((section) => (
+                  <section key={section.key} className="flex flex-col gap-2">
+                    <h3 className="text-sm font-semibold">{section.heading}</h3>
+                    {section.key === 'symbols' && results.aiTerms?.length ? (
                       <p className="text-xs text-slate-500">
-                        Otsest vastet ei olnud, AI otsis: {symAiTerms.join(', ')}
+                        Otsest vastet ei olnud, AI otsis: {results.aiTerms.join(', ')}
                       </p>
-                    )}
-                    <div className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto p-1 sm:grid-cols-6">
-                      {symbols.map((s) => (
-                        <Button
-                          key={s.id}
-                          type="button"
-                          variant="outline"
-                          onClick={() => setPending({ kind: 'external', url: s.preview })}
-                          className={cn(imageButtonClass(s.preview), 'flex flex-col')}
-                          title={`${s.title} · ${s.source}`}
-                          aria-pressed={selectedSrc === s.preview}
-                        >
-                          <span className="relative w-full flex-1">
-                            <Image
-                              src={s.preview}
-                              alt={s.title}
-                              fill
-                              sizes="96px"
-                              className="object-contain p-1"
-                              loading="lazy"
-                              unoptimized
-                            />
-                          </span>
-                          <span className="w-full truncate px-1 pb-1 text-[10px] font-normal opacity-70">
-                            {s.title}
-                          </span>
-                        </Button>
-                      ))}
-                    </div>
-                  </>
-                ) : symSearchedKey === symSearchKey && !symError ? (
-                  <p className="text-sm text-slate-500">Sobivat pilti ei leitud.</p>
-                ) : null}
-
-                {hasSymbolQuery &&
-                  (symbols.length > 0 || symSearchedKey === symSearchKey) &&
-                  !symLoading && (
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[10px] text-slate-400">
-                      ARASAAC: CC BY-NC-SA 4.0 · Mulberry: CC BY-SA 4.0 · OpenMoji: CC BY-SA 4.0
-                    </p>
-                    <Button type="button" size="sm" variant="outline" onClick={openGenerate}>
-                      <Sparkles className="h-4 w-4" />
-                      Ei leidnud sobivat? Loo AI-ga
-                    </Button>
-                  </div>
-                )}
+                    ) : null}
+                    {renderTiles(section.items)}
+                  </section>
+                ))}
               </div>
-            </TabsContent>
+            ) : searched && !searchError ? (
+              <p className="text-sm text-slate-500">
+                {hasQuery ? 'Sobivat pilti ei leitud.' : 'Sul pole veel oma pilte.'}
+              </p>
+            ) : null}
 
-            {/* AI generation */}
-            <TabsContent value="generate">
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Input
-                    value={genLabel}
-                    maxLength={80}
-                    onChange={(e) => setGenLabel(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
-                      e.preventDefault()
-                      void runGenerate()
-                    }}
-                    className="min-w-0 flex-1"
-                    placeholder="Mida pilt näitab? nt koer, jooma, veel"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={runGenerate}
-                    disabled={genLoading || !genLabel.trim() || genQuota?.remaining === 0}
-                  >
-                    {genLoading ? <Spinner /> : <Sparkles className="h-4 w-4" />}
-                    Loo pildid
-                  </Button>
-                </div>
-
-                <p className="text-xs text-slate-500">
-                  AI loob 4 pilti ühtses piktogrammi stiilis. Valitud pilt salvestub sinu meediasse,
-                  kui vajutad „Salvesta“.
-                  {genQuota && ` Sel kuul alles ${genQuota.remaining}/${genQuota.limit} korda.`}
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void handleUpload(file)
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Spinner /> : <Upload className="h-4 w-4" />}
+                Lae üles
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={showGenerate ? 'secondary' : 'outline'}
+                onClick={openGenerate}
+              >
+                <Sparkles className="h-4 w-4" />
+                Loo AI-ga
+              </Button>
+              {results.symbols.length > 0 && (
+                <p className="ml-auto text-[10px] text-slate-400">
+                  ARASAAC: CC BY-NC-SA 4.0 · Mulberry: CC BY-SA 4.0 · OpenMoji: CC BY-SA 4.0
                 </p>
+              )}
+            </div>
+          </div>
 
-                {genError && <p className="text-xs text-red-500">{genError}</p>}
+          {/* AI generation */}
+          {showGenerate && (
+            <div className="flex flex-col gap-3 rounded-xl border bg-slate-50 p-3">
+              {hasQuery && ownAndLibraryCount > 0 && (
+                <p className="text-xs text-slate-600">
+                  Sellele otsingule on juba {ownAndLibraryCount}{' '}
+                  {ownAndLibraryCount === 1 ? 'pilt' : 'pilti'} sinu piltides või Suhtleja kogus
+                  (üleval). Vali neist, kui mõni sobib.
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={genLabel}
+                  maxLength={80}
+                  aria-label="Mida AI-pilt näitab"
+                  onChange={(e) => setGenLabel(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+                    e.preventDefault()
+                    void runGenerate()
+                  }}
+                  className="min-w-0 flex-1 bg-white"
+                  placeholder="Mida pilt näitab? nt koer, jooma, veel"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={runGenerate}
+                  disabled={genLoading || !genLabel.trim() || genQuota?.remaining === 0}
+                >
+                  {genLoading ? <Spinner /> : <Sparkles className="h-4 w-4" />}
+                  Loo pildid
+                </Button>
+              </div>
 
-                {genLoading ? (
-                  <p className="flex items-center gap-2 text-xs text-slate-500">
-                    <Spinner /> Loon pilte… see võtab mõne sekundi.
-                  </p>
-                ) : genImages.length ? (
+              <p className="text-xs text-slate-500">
+                AI loob 4 pilti ühtses piktogrammi stiilis. Valitud pilt salvestub „Salvesta“
+                vajutamisel sinu piltide hulka ja ühisesse Suhtleja kogusse, et ka teised
+                pered saaksid seda kasutada. Nime või muu isikliku tekstiga pilte ei jagata.
+                {genQuota && ` Sel kuul alles ${genQuota.remaining}/${genQuota.limit} korda.`}
+              </p>
+
+              {genError && <p className="text-xs text-red-500">{genError}</p>}
+
+              {genLoading ? (
+                <p className="flex items-center gap-2 text-xs text-slate-500">
+                  <Spinner /> Loon pilte… see võtab mõne sekundi.
+                </p>
+              ) : genImages.length && genGenerationId !== null ? (
+                <>
+                  {genPersonal && (
+                    <p className="text-xs text-slate-500">
+                      Tekst tundub isiklik, seega jääb see pilt ainult sinu piltide hulka.
+                    </p>
+                  )}
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {genImages.map((src, index) => (
                       <Button
                         key={index}
                         type="button"
                         variant="outline"
-                        onClick={() => setPending({ kind: 'generated', dataURL: src })}
-                        className={imageButtonClass(src)}
+                        onClick={() =>
+                          setPending({ kind: 'generated', dataURL: src, generationId: genGenerationId })
+                        }
+                        className={tileClass(src)}
                         aria-label={`AI-pilt ${index + 1}`}
                         aria-pressed={selectedSrc === src}
                       >
@@ -706,104 +668,10 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                       </Button>
                     ))}
                   </div>
-                ) : null}
-              </div>
-            </TabsContent>
-
-            {/* Media */}
-            <TabsContent value="media">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={mediaQ}
-                    onChange={(e) => setMediaQ(e.target.value)}
-                    className="flex-1"
-                    placeholder="Otsi meediumist… (alt või failinimi) — jäta tühjaks, et näha viimaseid"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setMediaPage(1)}
-                    title="Otsi"
-                  >
-                    Otsi
-                  </Button>
-                </div>
-
-                {mediaError && (
-                  <p className="text-xs text-red-500">{mediaError}</p>
-                )}
-                {mediaLoading ? (
-                  <p className="text-xs text-slate-500">Laen…</p>
-                ) : mediaItems.length ? (
-                  <>
-                    <div className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto p-1 sm:grid-cols-6">
-                      {mediaItems.map((m) => {
-                        const thumb =
-                          m.sizes?.thumbnail?.url ||
-                          m.sizes?.small?.url ||
-                          m.sizes?.medium?.url ||
-                          m.url
-                        if (!thumb) return null
-                        return (
-                          <Button
-                            key={String(m.id)}
-                            type="button"
-                            variant="outline"
-                            onClick={() => pickMedia(m)}
-                            className={imageButtonClass(thumb)}
-                            title={m.alt || m.filename || ''}
-                            aria-pressed={selectedSrc === thumb}
-                          >
-                            <Image
-                              src={thumb}
-                              alt={m.alt || ''}
-                              fill
-                              sizes="96px"
-                              className="object-contain p-1"
-                              loading="lazy"
-                              unoptimized
-                            />
-                          </Button>
-                        )
-                      })}
-                    </div>
-
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-xs text-slate-500">
-                        Leht {mediaPage} / {mediaTotalPages}
-                      </span>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={mediaPage <= 1}
-                          onClick={() =>
-                            setMediaPage((p) => Math.max(1, p - 1))
-                          }
-                        >
-                          Eelmine
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={mediaPage >= mediaTotalPages}
-                          onClick={() => setMediaPage((p) => p + 1)}
-                        >
-                          Järgmine
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-xs text-slate-500">Tulemusi pole.</p>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+                </>
+              ) : null}
+            </div>
+          )}
         </div>
 
         <DialogFooter className="mt-6 flex justify-end gap-2">

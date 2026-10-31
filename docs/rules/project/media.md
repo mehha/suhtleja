@@ -25,6 +25,7 @@ tags: [suhtleja, media, payload, access-control]
 - Admin users may update/delete all media, including legacy media rows where `owner` is still empty.
 - Non-admin users must not be able to transfer media ownership to another user.
 - Non-admin users must not be able to put media in a folder or take it out of one: folders make the shared library (see `access-control.md`).
+- Saved AI pictures belong to the member who made them and are filed into the `AI-pildid` folder by server code (`symbol-generations` hooks, `context.fileIntoLibrary`), unless the label was personal (see `symbols-ai.md`).
 - Legacy media with no owner should be treated as admin-managed until a deliberate backfill or reassignment is performed.
 
 ## Change Checklist

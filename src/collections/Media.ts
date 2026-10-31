@@ -68,7 +68,7 @@ export const Media: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      ({ data, operation, originalDoc, req }) => {
+      ({ context, data, operation, originalDoc, req }) => {
         if (operation === 'create' && req.user) {
           if (req.user.role !== 'admin' || !data.owner) {
             data.owner = req.user.id
@@ -76,8 +76,14 @@ export const Media: CollectionConfig = {
         }
 
         // A folder makes a file part of the shared library, which every member sees in the picture
-        // search and bulk add. Only admins (and server code without a user) may put files there.
-        if (req.user && req.user.role !== 'admin' && 'folder' in data) {
+        // search and bulk add. Only admins and server code may put files there (`fileIntoLibrary` is
+        // set by the AI picture hooks in SymbolGenerations, which run inside a member's request).
+        if (
+          req.user &&
+          req.user.role !== 'admin' &&
+          !context?.fileIntoLibrary &&
+          'folder' in data
+        ) {
           const original = originalDoc?.folder
           data.folder =
             operation === 'create'

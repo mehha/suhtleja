@@ -13,6 +13,7 @@ import {
   base64ImageToDataURL,
   buildPictogramPrompt,
   countSymbolGenerationsThisMonth,
+  sha256Hex,
 } from '@/utilities/symbolGeneration'
 import { getWorkersAI, type WorkersAI } from '@/utilities/workersAI'
 
@@ -39,7 +40,7 @@ function remainingFor(user: User, used: number) {
   return Math.max(0, SYMBOL_GENERATIONS_PER_MONTH - used)
 }
 
-async function generateImage(ai: WorkersAI, prompt: string, seed: number): Promise<string> {
+async function generateImage(ai: WorkersAI, prompt: string, seed: number): Promise<{ base64: string; hash: string }> {
   // FLUX.2 takes multipart form data even for a prompt alone. Passing the form through a Response
   // serialises it and gives the content type with its boundary.
   const form = new FormData()
@@ -60,7 +61,7 @@ async function generateImage(ai: WorkersAI, prompt: string, seed: number): Promi
     throw new Error('empty_image')
   }
 
-  return base64ImageToDataURL(result.image)
+  return { base64: result.image, hash: sha256Hex(Buffer.from(result.image, 'base64')) }
 }
 
 export async function GET(req: Request) {
@@ -104,13 +105,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'ai_unavailable' }, { status: 503 })
   }
 
-  const subject = await getPictogramSubject(label)
+  const { personal, subject } = await getPictogramSubject(label)
   const prompt = buildPictogramPrompt(subject)
 
   // Count the request before generating, so parallel requests can't run past the limit.
   const log = await payload.create({
     collection: 'symbol-generations',
-    data: { label, prompt, user: user.id },
+    data: { label, personal, prompt, user: user.id },
     overrideAccess: true,
   })
 
@@ -132,13 +133,15 @@ export async function POST(req: Request) {
   await payload.update({
     collection: 'symbol-generations',
     id: log.id,
-    data: { images: images.length },
+    data: { imageHashes: images.map((image) => image.hash), images: images.length },
     overrideAccess: true,
   })
 
   return NextResponse.json({
-    images,
+    generationId: log.id,
+    images: images.map((image) => base64ImageToDataURL(image.base64)),
     limit: SYMBOL_GENERATIONS_PER_MONTH,
+    personal,
     remaining: remainingFor(user, used + 1),
   })
 }

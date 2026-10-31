@@ -10,18 +10,19 @@ tags: [suhtleja, frontend, symbols, groq, api]
 - Routes in `src/app/(frontend)/next/`:
   - `symbols/route.ts` (`GET /next/symbols`)
   - `symbol-image/route.ts` (`GET /next/symbol-image`)
-  - `symbol-generate/route.ts` (`GET`/`POST /next/symbol-generate`)
+  - `image-search/route.ts` (`GET /next/image-search`)
+  - `symbol-generate/route.ts` (`GET`/`POST /next/symbol-generate`), `symbol-generate/save/route.ts` (`POST /next/symbol-generate/save`)
   - `groq/route.ts` (`POST /next/groq`)
-- Helpers: `src/utilities/symbolProxy.ts`, `src/utilities/membershipStatus.ts`, `src/utilities/groq.ts` (Groq calls shared by the routes), `src/utilities/symbolGeneration.ts` (limits, prompt), `src/utilities/workersAI.ts` (Workers AI binding)
+- Helpers: `src/utilities/symbolProxy.ts`, `src/utilities/membershipStatus.ts`, `src/utilities/groq.ts` (Groq calls shared by the routes), `src/utilities/symbolSources.ts` (ARASAAC, Mulberry, OpenMoji searches and the Groq-term fallback), `src/utilities/findLibraryMedia.ts` (own and library pictures, the `AI-pildid` folder), `src/utilities/symbolGeneration.ts` (limits, prompt, saving AI pictures), `src/utilities/workersAI.ts` (Workers AI binding)
 - Collection: `src/collections/SymbolGenerations.ts` (`symbol-generations`)
 - Consumers:
-  - `boards/[id]/edit/BoardEditor/Toolbar.tsx` (symbols, groq), `CellEditModal.tsx` (symbols with AI fallback, symbol-generate)
+  - `boards/[id]/edit/BoardEditor/Toolbar.tsx` (symbols with `preferLocal`, groq), `CellEditModal.tsx` (image-search, symbol-generate, symbol-generate/save)
   - `boards/[id]/Runner.tsx` (groq surface-form correction)
   - `src/components/ConnectDots/ConnectDotsEditorField.tsx`, `ConnectDotsFrontendEditor.tsx` (symbols)
 
 ## Auth Gate
 - All routes call `payload.auth({ headers })` and return `401 { error: 'unauthorized' }` without a user.
-- `symbols`, `symbol-generate` and `groq` also require `hasActiveMembership(user)` and return `402 { error: 'membership_required' }` otherwise.
+- `symbols`, `image-search`, `symbol-generate` (and `save`) and `groq` also require `hasActiveMembership(user)` and return `402 { error: 'membership_required' }` otherwise.
 - `symbol-image` requires login only (no membership check), because already-saved board/puzzle images must keep rendering.
 
 ## `GET /next/symbols`
@@ -30,11 +31,21 @@ tags: [suhtleja, frontend, symbols, groq, api]
   - ARASAAC (external API). Without `locale`, searches `et` and `en` and de-duplicates. With `locale`, falls back to `en` when empty.
   - Mulberry Symbols through the Global Symbols API (`globalsymbols.com/api/v1/labels/search`, `symbolset=mulberry`, `language=eng`, no API key). Labels are English only; Global Symbols has Estonian labels only for ARASAAC, so Estonian words reach Mulberry through `aiFallback`. Images are PNGs under `globalsymbols.com/uploads/production/image/`.
   - OpenMoji (fetched from unpkg, filtered by annotation/tags).
-  - Local `media` collection when `preferLocal=true`: only media library files (in a folder), and only when `alt` or the file name without its extension is exactly `q` (`src/utilities/findLibraryMedia.ts`). Never match loosely or outside the library: that picked homepage screenshots for "mina" and "ema", and would show one customer's uploads on another customer's board.
+  - Local `media` collection when `preferLocal=true` (bulk add), only when `alt` or the file name without its extension is exactly `q` (`src/utilities/findLibraryMedia.ts`): first the member's own picture (`findOwnMedia`), then a media library file (in a folder; admin folders before `AI-pildid`, `findLibraryMedia`). Never match loosely or take another customer's files outside the library: that picked homepage screenshots for "mina" and "ema", and would show one customer's uploads on another customer's board.
 - `aiFallback=true`: when the query itself finds nothing, the route asks Groq for English search terms (`getSymbolSearchTerms`), searches each term in the same source (ARASAAC in `en`), gives each term an equal share of `limit` (the sources match prefixes, so "break" would otherwise fill the list with "breakfast"), and returns `{ items, aiTerms }`. A Groq failure returns `{ items: [], aiError }`.
 - Every item carries `license` and `attribution`. Keep them; attribution is a license requirement for all three sources.
 - Licenses: ARASAAC is CC BY-NC-SA 4.0, and ARASAAC's terms exclude use in commercial products. Suhtleja is a paid membership, so ARASAAC needs written permission from ARASAAC (Gobierno de Aragón) or has to stop being the default. Mulberry (CC BY-SA 4.0, © Steve Lee) and OpenMoji (CC BY-SA 4.0) allow commercial use with attribution. Before adding a Global Symbols set, check its license in `/api/v1/symbolsets`: many are NC or ND.
 - Upstream failures return `{ items: [] }`, never a 5xx.
+
+## `GET /next/image-search` (card editor)
+- Params: `q` (trimmed, at most 80 characters; may be empty), `scope` (`all` default, `mine`, `library`, `arasaac`, `mulberry`, `openmoji`).
+- Returns `{ mine, library, symbols, aiTerms?, aiError? }`. `mine` and `library` items carry `mediaId`; the editor sets those as the card's `image`, symbols as `externalImageURL`.
+  - `mine`: the member's own image media (`owner` = user), `alt` or file name containing `q`, newest first.
+  - `library`: image media in any folder (the shared library), same match, without the member's own files (they are in `mine`).
+  - `symbols`: the bank for the scope (`all` uses ARASAAC). Nothing without a query.
+- `all` returns at most 12 per picture group; a single scope up to 40. Without a query, `mine` and `library` list the newest files.
+- Groq's English terms are only tried when every group is empty (`searchSymbolBankWithAiTerms`).
+- Media is publicly readable, so the route's `where` (owner or folder) is what keeps other customers' files out. Keep it that way.
 
 ## `GET /next/symbol-image`
 - Proxies a symbol image so the client does not hit third-party hosts directly.
@@ -45,11 +56,15 @@ tags: [suhtleja, frontend, symbols, groq, api]
 ## `/next/symbol-generate` (AI pictograms)
 - `GET` returns `{ limit, remaining }` for the current member.
 - `POST { label }` (trimmed, 1-80 characters) generates `SYMBOL_GENERATION_VARIANTS` (4) images and returns `{ images: dataURL[], limit, remaining }`. The client keeps them in memory; only the one the user saves is uploaded to `media`.
-- Limit: `SYMBOL_GENERATIONS_PER_MONTH` (30) requests per member per calendar month (UTC), counted from `symbol-generations` rows. Admins are not limited. Over the limit: `429 { error: 'limit_reached' }`. The row is created before generating so parallel requests can't run past the limit, deleted again if every image fails (`502 generation_failed`), and gets the image count afterwards. Admins can see the rows (label, prompt, user) in the admin panel.
+- `POST` returns `{ generationId, images, personal, limit, remaining }`.
+- Limit: `SYMBOL_GENERATIONS_PER_MONTH` (30) requests per member per calendar month (UTC), counted from `symbol-generations` rows. Admins are not limited. Over the limit: `429 { error: 'limit_reached' }`. The row is created before generating so parallel requests can't run past the limit, deleted again if every image fails (`502 generation_failed`), and gets the image count and each image's SHA-256 (`imageHashes`) afterwards.
+- `POST /next/symbol-generate/save { generationId, image }` (`saveGeneratedPicture`) stores the chosen data URL as the member's media (`alt` = label, file `ai-<label>-<id>.<ext>`) and links it to the generation. It accepts only the member's own generation, once (`409 already_saved`), and only an image whose hash is on the generation (`400 unknown_image`): a saved picture joins the shared library, so arbitrary uploads must not get in that way. JPEG, PNG or WebP up to 3 MB.
+- Sharing: a saved AI picture joins the shared library at once (`shared` = true), filed into the `AI-pildid` folder by the collection's `afterChange` hook, unless Groq marked the label personal (a name of a person, pet, school or place). If Groq fails, the label counts as personal, so nothing is shared by mistake. The modal tells the member before generating and in a toast after saving.
+- Admins review them in the admin panel's `AI-pildid` list (`symbol-generations`, with the picture as a thumbnail). Unticking `Ühises kogus` (also as a bulk edit) or deleting the row takes the picture out of the folder; the media stays, so the boards it is on keep it. A picture an admin moved to another folder stays there.
 - Prompt: Groq turns the label into a short English scene (`getPictogramSubject`, falls back to the label), and `buildPictogramPrompt` wraps it in one fixed style (flat colours, thick black outlines, white background, at most two figures, no text). Keep that style fixed so generated cards look alike on a board.
 - Model: Workers AI `@cf/black-forest-labs/flux-2-klein-4b`, 768x768, a different seed per image. FLUX.2 takes multipart form data even for a prompt alone (see `generateImage`). Cost on 2026-10-31: $0.000287 per output 512x512 tile, about $0.001 per image and $0.005 per request.
 - Binding: `ai` (`AI`) in `wrangler.jsonc`. Production reads it from the Worker env. Local dev can't use the app's platform proxy (remote bindings are off there so D1 and R2 stay local, and Workers AI only runs remotely), so `getWorkersAI()` opens a second proxy from `wrangler.ai-dev.jsonc`, which holds only the AI binding. It needs `wrangler login` and bills the account. Without the binding the route answers `503 ai_unavailable`.
-- The label is a card text; don't add user data to the prompt.
+- The label is a card text; don't add user data to the prompt. `getPictogramSubject` returns `{ subject, personal }`.
 
 ## `POST /next/groq`
 - Env: `GROQ_API_KEY` (missing returns 500), `GROQ_MODEL` (default `openai/gpt-oss-120b`, also set in `wrangler.jsonc` vars).

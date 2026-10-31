@@ -358,7 +358,7 @@ describe('media', () => {
 })
 
 describe('symbol generations', () => {
-  it('only the server records them and only admins read them', async () => {
+  it('only the server records them and only admins read or change them', async () => {
     const generation = track(
       'symbol-generations',
       await payload.create({ collection: 'symbol-generations', data: { label: 'koer', user: alice.id }, overrideAccess: true }),
@@ -366,10 +366,14 @@ describe('symbol generations', () => {
 
     await expect(payload.create({ collection: 'symbol-generations', data: { label: 'koer', user: alice.id }, ...as(alice) })).rejects.toThrow()
     await expect(payload.find({ collection: 'symbol-generations', ...as(alice) })).rejects.toThrow()
-    await expect(payload.update({ collection: 'symbol-generations', id: generation.id, data: { label: 'x' }, ...as(alice) })).rejects.toThrow()
+    await expect(payload.update({ collection: 'symbol-generations', id: generation.id, data: { shared: true }, ...as(alice) })).rejects.toThrow()
     await expect(payload.delete({ collection: 'symbol-generations', id: generation.id, ...as(alice) })).rejects.toThrow()
 
     const found = await payload.find({ collection: 'symbol-generations', where: { id: { equals: generation.id } }, ...as(admin) })
     expect(found.docs).toHaveLength(1)
+
+    // Admins take pictures out of the shared library by unticking "Ühises kogus".
+    const updated = await payload.update({ collection: 'symbol-generations', id: generation.id, data: { shared: false }, ...as(admin) })
+    expect(updated.shared).toBe(false)
   })
 })

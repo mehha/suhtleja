@@ -1,4 +1,7 @@
+import { createHash } from 'crypto'
 import type { Payload } from 'payload'
+
+import { slugify } from './slugify'
 
 /** "Loo pilt" requests a member may make per calendar month (UTC). Each request makes several images. */
 export const SYMBOL_GENERATIONS_PER_MONTH = 30
@@ -49,4 +52,80 @@ export function base64ImageToDataURL(base64: string): string {
       : 'image/jpeg'
 
   return `data:${mimeType};base64,${base64}`
+}
+
+export function sha256Hex(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex')
+}
+
+const SAVABLE_IMAGE_TYPES: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+}
+const MAX_SAVED_IMAGE_BYTES = 3 * 1024 * 1024
+
+export function parseImageDataURL(dataURL: string): { bytes: Buffer; mimeType: string } | null {
+  const match = /^data:([a-z/]+);base64,([A-Za-z0-9+/=]+)$/.exec(dataURL)
+  if (!match?.[1] || !match[2] || !SAVABLE_IMAGE_TYPES[match[1]]) return null
+
+  const bytes = Buffer.from(match[2], 'base64')
+  if (!bytes.length || bytes.length > MAX_SAVED_IMAGE_BYTES) return null
+
+  return { bytes, mimeType: match[1] }
+}
+
+type SaveResult =
+  | { ok: true; media: { id: number; url: string | null }; shared: boolean }
+  | { ok: false; error: 'already_saved' | 'invalid_image' | 'not_found' | 'unknown_image'; status: number }
+
+/**
+ * Stores one of a generation's images as the member's media and links it to the generation. Only an
+ * image the server generated for this member can be stored (its hash is on the generation), because a
+ * saved picture joins the shared library: the generation's hook files it into "AI-pildid" unless the
+ * label was personal.
+ */
+export async function saveGeneratedPicture(
+  payload: Payload,
+  { dataURL, generationId, userId }: { dataURL: string; generationId: number; userId: number },
+): Promise<SaveResult> {
+  const generation = await payload
+    .findByID({ collection: 'symbol-generations', id: generationId, depth: 0, overrideAccess: true })
+    .catch(() => null)
+  const ownerId =
+    typeof generation?.user === 'object' && generation.user ? generation.user.id : generation?.user
+  if (!generation || ownerId !== userId) {
+    return { ok: false, error: 'not_found', status: 404 }
+  }
+  if (generation.media) {
+    return { ok: false, error: 'already_saved', status: 409 }
+  }
+
+  const image = parseImageDataURL(dataURL)
+  if (!image) {
+    return { ok: false, error: 'invalid_image', status: 400 }
+  }
+
+  const hashes = Array.isArray(generation.imageHashes) ? generation.imageHashes : []
+  if (!hashes.includes(sha256Hex(image.bytes))) {
+    return { ok: false, error: 'unknown_image', status: 400 }
+  }
+
+  const name = `ai-${slugify(generation.label) || 'pilt'}-${generation.id}.${SAVABLE_IMAGE_TYPES[image.mimeType]}`
+  const media = await payload.create({
+    collection: 'media',
+    data: { alt: generation.label, owner: userId },
+    file: { data: image.bytes, mimetype: image.mimeType, name, size: image.bytes.length },
+    overrideAccess: true,
+  })
+
+  const shared = !generation.personal
+  await payload.update({
+    collection: 'symbol-generations',
+    id: generation.id,
+    data: { media: media.id, shared },
+    overrideAccess: true,
+  })
+
+  return { ok: true, media: { id: media.id, url: media.url ?? null }, shared }
 }

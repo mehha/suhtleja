@@ -1312,11 +1312,22 @@ export interface ConnectDotsPuzzle {
   createdAt: string;
 }
 /**
+ * AI-ga loodud kaardipildid. Salvestatud pilt läheb ühisesse kogusse (kaust „AI-pildid“), kus kõik liikmed seda otsingus ja hulgilisamises näevad. Eemalda linnuke „Ühises kogus“, et pilt kogust ära võtta; tegija tahvlitele jääb see alles.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "symbol-generations".
  */
 export interface SymbolGeneration {
   id: number;
+  media?: (number | null) | Media;
+  /**
+   * Kõik liikmed näevad pilti otsingus ja hulgilisamises.
+   */
+  shared?: boolean | null;
+  /**
+   * Kaardi tekstis oli nimi või muu isiklik, seega pilti ei jagatud.
+   */
+  personal?: boolean | null;
   user?: (number | null) | User;
   label: string;
   prompt?: string | null;
@@ -1324,6 +1335,15 @@ export interface SymbolGeneration {
    * Mitu pilti mudel tagastas.
    */
   images?: number | null;
+  imageHashes?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2294,10 +2314,14 @@ export interface ConnectDotsPuzzlesSelect<T extends boolean = true> {
  * via the `definition` "symbol-generations_select".
  */
 export interface SymbolGenerationsSelect<T extends boolean = true> {
+  media?: T;
+  shared?: T;
+  personal?: T;
   user?: T;
   label?: T;
   prompt?: T;
   images?: T;
+  imageHashes?: T;
   updatedAt?: T;
   createdAt?: T;
 }
