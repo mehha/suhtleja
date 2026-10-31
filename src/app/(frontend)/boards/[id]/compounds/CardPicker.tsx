@@ -206,7 +206,7 @@ export function CardPicker({
         </div>
 
         {mode === 'sequence' && (
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Tühista
             </Button>
