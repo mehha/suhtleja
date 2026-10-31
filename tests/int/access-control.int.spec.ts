@@ -8,7 +8,8 @@ import { getPayload, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import config from '@/payload.config'
-import type { User } from '@/payload-types'
+import type { Media, User } from '@/payload-types'
+import { findBoardForUser } from '@/utilities/findBoardForUser'
 
 const run = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 const email = (name: string) => `access-${name}-${run}@suhtleja.test`
@@ -239,6 +240,42 @@ describe('boards', () => {
     expect(ownerId(board.owner)).toBe(alice.id)
     const updated = await payload.update({ collection: 'boards', id: board.id, data: { owner: bob.id } as never, ...as(alice) })
     expect(ownerId(updated.owner)).toBe(alice.id)
+  })
+})
+
+// The board pages (/boards/[id] and its editor) load boards with findBoardForUser and hand them to
+// the browser, so it must follow the read rules and carry no user documents.
+describe('board pages', () => {
+  it("don't show another customer's private board", async () => {
+    expect(await findBoardForUser(payload, bob, aliceBoard.id)).toBeNull()
+    expect(await findBoardForUser(payload, bob, 999_999_999)).toBeNull()
+  })
+
+  it('show a shared board without its owner\'s account', async () => {
+    const board = await findBoardForUser(payload, bob, sharedBoard.id)
+    expect(board?.owner).toBe(admin.id)
+    expect(JSON.stringify(board)).not.toContain(admin.email)
+  })
+
+  it("show a board's pictures without who uploaded them", async () => {
+    const board = track(
+      'boards',
+      await payload.create({
+        collection: 'boards',
+        data: {
+          name: 'Alice pictures',
+          grid: { cols: 6, cells: [{ id: `cell-${run}`, x: 0, y: 0, w: 1, h: 1, title: 'pilt', image: aliceMedia.id }] },
+        } as never,
+        ...as(alice),
+      }),
+    )
+
+    const loaded = await findBoardForUser(payload, alice, board.id)
+    expect(loaded?.owner).toBe(alice.id)
+    const image = loaded?.grid?.cells?.[0]?.image as Media
+    expect(image.url).toBeTruthy()
+    expect(image.owner).toBe(alice.id)
+    expect(JSON.stringify(loaded)).not.toContain(alice.email)
   })
 })
 

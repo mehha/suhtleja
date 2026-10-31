@@ -22,6 +22,8 @@ tags: [suhtleja, frontend, boards, payload]
   - Admin may view all boards but must not edit another user's board content.
   - Admin may still manage board-level shared visibility as a moderation/oversight action.
   - Server actions that modify a board must enforce document-level permissions.
+  - The board pages (`/boards/[id]`, `/boards/[id]/edit`) load the board with `findBoardForUser` (`src/utilities/findBoardForUser.ts`): the collection's read access decides, so another user's private board is not found. The board goes to the browser, so it carries no user documents: the owner stays an id and depth 1 fills the cells' media but not their uploaders (a populated user has the email, PIN hash and Stripe ids). Tested in `tests/int/access-control.int.spec.ts`.
+  - The editor's `renameBoard` updates with `overrideAccess: false` and the current user, so only the owner can rename a board.
   - `/koduhaldus` is also the parent-mode management surface for connect-dots puzzles.
 - Board fields:
   - `name` is required.

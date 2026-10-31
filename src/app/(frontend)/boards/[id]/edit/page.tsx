@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import BoardEditor from './BoardEditor/index'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
 import type { Board, User } from '@/payload-types'
+import { findBoardForUser, getBoardOwnerId } from '@/utilities/findBoardForUser'
 import { requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
 import { ACTION_ERROR, type ActionResult } from '@/utilities/flashToast'
@@ -30,27 +31,15 @@ export default async function BoardEditPage({
   }
   requireActiveMembership(user)
 
-  const doc = await payload
-    .findByID({
-      collection: 'boards',
-      id,
-      depth: 2,
-    })
-    .catch(() => null)
+  const board = await findBoardForUser(payload, user, id)
 
-  if (!doc) {
+  if (!board) {
     notFound()
   }
 
-  const board = doc as Board
-
   const isAdmin = user.role === 'admin'
-  const ownerId =
-    typeof board.owner === 'object' && board.owner !== null
-      ? (board.owner as User).id
-      : board.owner
 
-  if (ownerId !== user.id) {
+  if (getBoardOwnerId(board) !== user.id) {
     redirect('/kodu')
   }
 
@@ -68,11 +57,14 @@ export default async function BoardEditPage({
     const rawName = (formData.get('name') as string) ?? ''
     const name = rawName.trim() || 'Nimetu tahvel'
 
+    // The collection's update access lets only the owner rename it.
     try {
       await payload.update({
         collection: 'boards',
-        id: boardId, // ei kasuta where, meil on id olemas
+        id: boardId,
         data: { name },
+        overrideAccess: false,
+        user,
       })
     } catch (error) {
       console.error('renameBoard failed', error)

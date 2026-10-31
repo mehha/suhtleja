@@ -1,6 +1,7 @@
 // src/app/(frontend)/boards/[id]/page.tsx
 import { notFound, redirect } from 'next/navigation'
-import type { Board, User } from '@/payload-types'
+import type { User } from '@/payload-types'
+import { findBoardForUser, getBoardOwnerId } from '@/utilities/findBoardForUser'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
 import Runner from './Runner'
 import PageClient from './page.client'
@@ -28,23 +29,14 @@ export default async function BoardRunPage({ params: paramsPromise }: Args) {
 
   const isParentMode = await isParentModeUtil()
 
-  // will be filtered by access rules in Payload anyway
-  const doc = await payload.findByID({
-    collection: 'boards',
-    id,
-    depth: 2,
-  }).catch(() => null)
+  // Another user's private board is not found, the same as a missing one.
+  const board = await findBoardForUser(payload, user, id)
 
-  if (!doc) {
+  if (!board) {
     notFound()
   }
 
-  const board = doc as Board
-  const ownerId =
-    typeof board.owner === 'object' && board.owner !== null
-      ? (board.owner as User).id
-      : board.owner
-  const canEdit = ownerId === user.id
+  const canEdit = getBoardOwnerId(board) === user.id
 
   return (
     <>
