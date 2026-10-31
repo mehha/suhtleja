@@ -66,6 +66,13 @@ tags: [suhtleja, frontend, boards, payload]
   - In child mode, `/boards/[id]` must include minimal in-page controls for returning to `/kodu` and opening the parent PIN dialog because global header navigation is hidden.
   - The action bar holds only the child's controls (phrase, play, undo, clear), in both views, so the parent view shows the board the way the child gets it. The runner uses the board's saved AI setting (`extra.ai`); AI and compounds are set in the editor, not in the runner.
   - In parent mode, the board's name and, for the owner, a labelled `Muuda tahvlit` link sit above the board; a shared board says that only its creator can change it. The editor's header has `Vaata tahvlit` in the same place, so the two pages switch back and forth.
+- Compound rules (`/boards/[id]/compounds`, owner-only, parent mode):
+  - A compound is a run of at least 2 cells with a word, and optionally a speech form, for each cell: `kaks` + `kass` → "kaks kassi". The matching is in `compounds/applyCompounds.ts` and `compounds/getCompoundFormForLastToken.ts`, with tests in `tests/int/board-compounds.int.spec.ts`. The editor and the save action check compounds with the same `compounds/validateCompounds.ts`.
+  - When compounds overlap, the longer one sets a word's form; between two of the same length, the earlier one in the list.
+  - A tapped word that completes a compound is said in the form the whole phrase gives it (the tap takes it from `applyCompounds`), so the tap and "play all" agree. The phrase bar shows the same forms. The tapped tile shows the written form, never the speech form.
+  - Only whole compounds change a word. A word tapped while its compound is only started (`kaks`, `suur` of `kaks` + `suur` + `kass`) is said as tapped; it takes the compound's form in the phrase and in "play all" once the compound is complete.
+  - Compounds are off when the board's AI setting is on.
+  - In the editor, `Salvesta kõik` stays disabled until the save returns, leaving with unsaved changes asks first (`useUnsavedChangesGuard`), and a compound with a cell that was removed from the board is marked `Kustutatud cell` (it can never match). The save action returns an `ActionResult`, so its messages reach the editor in production.
 - Boards management rules:
   - `/koduhaldus` must include a separate connect-dots puzzles table.
   - Non-admin users must see their own rows plus rows shared via `visibleToAllUsers`.

@@ -169,16 +169,11 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     [sequence],
   )
 
-  const compoundsResult = useMemo(() => {
-    // AI sees: compounds ei kasutata, lihtsalt toores jada
-    if (aiEnabled) {
-      const base = tokens.map((t) => t.text).join(' ')
-      return { display: base, tts: base }
-    }
-
-    // AI väljas: rakenda compounds
-    return applyCompounds(tokens, board.compounds)
-  }, [tokens, board.compounds, aiEnabled])
+  // AI sees: sõnaühendeid ei kasutata, jada jääb nagu on. AI väljas: rakenda sõnaühendid.
+  const compoundsResult = useMemo(
+    () => applyCompounds(tokens, aiEnabled ? null : board.compounds),
+    [tokens, board.compounds, aiEnabled],
+  )
 
   const phrase = compoundsResult.display
   const ttsAll = compoundsResult.tts
@@ -378,13 +373,15 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
         : null
 
       const spoken = compoundForm ? compoundForm.tts : surface
+      // The tile shows the written form; the speech form may be spelled for the voice.
+      const shown = compoundForm ? compoundForm.surface : surface
 
       // 4) Uuenda jada state
       setSequence(nextSequence)
 
       const cellId = String(cell.id)
       setActiveCellId(cellId)
-      setTempLabel({ id: cellId, text: spoken })
+      setTempLabel({ id: cellId, text: shown })
 
       // 5) Loeme ainult selle sõna vormi
       if (!(await playSpeech(spoken))) notifySpeechFailed()
@@ -450,13 +447,15 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   }
 
 
+  // The phrase shows each word in the form "play all" says it (a compound's form, e.g. "kassi").
   const sequenceCells = useMemo(
     () =>
-      sequence.map((item) => ({
+      sequence.map((item, index) => ({
         ...item,
+        text: compoundsResult.tokens[index]?.surface ?? item.text,
         cell: cells.find((c) => String(c.id) === item.cellId) ?? null,
       })),
-    [sequence, cells],
+    [sequence, cells, compoundsResult.tokens],
   )
 
   useEffect(() => {

@@ -68,7 +68,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 - `pnpm test:int`, `pnpm test:e2e`, `pnpm test`.
 - `pnpm test:e2e` runs against `pnpm dev` by default:
   - Smoke tests (`tests/e2e/smoke.e2e.spec.ts`) only read public pages. `SMOKE_BASE_URL=https://suhtleja.ee pnpm test:e2e` runs them against a deployed site. CI runs them against production after every deploy.
-  - The member flow test (`tests/e2e/member-flow.e2e.spec.ts`) registers an account, starts a trial with a signed Stripe webhook event, unlocks the parent view with a PIN, puts a board on the child home and checks that it speaks. It needs the server's `STRIPE_WEBHOOK_SECRET` (read from the same `.env*` files) and skips itself against a deployed site. The global teardown deletes the `e2e-*@suhtleja.test` accounts it creates. CI runs it before deploying, on a throwaway local D1.
+  - The member flow test (`tests/e2e/member-flow.e2e.spec.ts`) registers an account, starts a trial with a signed Stripe webhook event, unlocks the parent view with a PIN, puts a board on the child home, gives it a compound and checks that it speaks. It needs the server's `STRIPE_WEBHOOK_SECRET` (read from the same `.env*` files) and skips itself against a deployed site. The global teardown deletes the `e2e-*@suhtleja.test` accounts it creates. CI runs it before deploying, on a throwaway local D1.
 - `pnpm generate:types`, `pnpm generate:importmap`.
 
 ## Coding and PR Conventions

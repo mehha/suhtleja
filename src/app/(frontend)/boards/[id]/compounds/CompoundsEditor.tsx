@@ -20,8 +20,12 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
+import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog'
 import type { Board } from '@/payload-types'
+import type { ActionResult } from '@/utilities/flashToast'
+import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
 import { toast } from 'sonner'
+import { findCompoundsProblem, getCompoundProblem } from './validateCompounds'
 
 type CellOption = {
   id: string
@@ -34,34 +38,24 @@ type CompoundsEditorProps = {
   boardId: string
   initialCompounds: Compound[] | null | undefined
   cells: CellOption[]
-  onSave: (boardId: string, compounds: Compound[]) => Promise<void>
+  onSave: (boardId: string, compounds: Compound[]) => Promise<ActionResult>
 }
 
-// Hoia cells/parts sama pikkusega
+// Hoia cells/parts sama pikkusega. Lisasõnad (nt adminis lisatud) lõigatakse ära, sest
+// redaktor näitab ridu cellide järgi ja neid ei saaks muidu eemaldada.
 function normalizeCompoundStructure(c: Compound): Compound {
   const cells = c.cells ?? []
-  const parts = c.parts ?? []
-  const paddedParts = [...parts]
+  const parts = (c.parts ?? []).slice(0, cells.length)
 
-  if (paddedParts.length < cells.length) {
-    for (let i = paddedParts.length; i < cells.length; i++) {
-      paddedParts.push({ surface: '', tts: '' })
-    }
+  for (let i = parts.length; i < cells.length; i++) {
+    parts.push({ surface: '', tts: '' })
   }
 
   return {
     ...c,
     cells,
-    parts: paddedParts,
+    parts,
   }
-}
-
-function isCompoundValid(c: Compound): boolean {
-  if (!c.id || !c.id.trim()) return false
-  if (!c.cells || c.cells.length < 2) return false // ← vähemalt 2 rida
-  if (!c.parts || c.parts.length !== c.cells.length) return false
-  if (c.parts.some((p) => !p.surface || !p.surface.trim())) return false
-  return true
 }
 
 function getCompoundPreview(
@@ -115,13 +109,21 @@ export function CompoundsEditor({
   const [compounds, setCompounds] = useState<Compound[]>(() =>
     (initialCompounds ?? []).map(normalizeCompoundStructure),
   )
+  // Viimati salvestatud seis: lahkumisel hoiatatakse, kui see erineb.
+  const [savedJson, setSavedJson] = useState(() => JSON.stringify(compounds))
+  const dirty = JSON.stringify(compounds) !== savedJson
+  const [openId, setOpenId] = useState('')
+
+  const {
+    dialogOpen: leaveDialogOpen,
+    setDialogOpen: setLeaveDialogOpen,
+    confirmNavigation: confirmLeave,
+  } = useUnsavedChangesGuard({ enabled: dirty })
 
   const addCompound = () => {
-    const defaultCellId = cells[0]?.id ?? ''
-    const defaultTitle =
-      defaultCellId && cellTitleById.get(defaultCellId)
-        ? (cellTitleById.get(defaultCellId) as string)
-        : defaultCellId
+    // Uus sõnaühend algab kahe reaga (vähim lubatud) ja avatakse kohe.
+    const firstCells = cells.slice(0, 2)
+    while (firstCells.length && firstCells.length < 2) firstCells.push(firstCells[0])
 
     const id =
       typeof crypto !== 'undefined' && crypto.randomUUID
@@ -130,13 +132,13 @@ export function CompoundsEditor({
 
     const newCompound: Compound = normalizeCompoundStructure({
       id,
-      cells: defaultCellId ? [{ cellId: defaultCellId }] : [],
-      parts: defaultCellId
-        ? [{ surface: defaultTitle, tts: defaultTitle }]
-        : [],
+      cells: firstCells.map((cell) => ({ cellId: cell.id })),
+      parts: firstCells.map((cell) => ({ surface: cell.title, tts: cell.title })),
     })
 
     setCompounds((prev) => [...prev, newCompound])
+    setOpenId(id)
+    setFilter('')
     setStatus(null)
     setError(null)
   }
@@ -293,41 +295,36 @@ export function CompoundsEditor({
     setStatus(null)
     setError(null)
 
-    const invalid = compounds.find((c) => !isCompoundValid(c))
+    const problem = findCompoundsProblem(compounds)
 
-    if (invalid) {
-      const rowCount = invalid.cells?.length ?? 0
-
-      let message =
-        'Kõik sõnaühendid vajavad vähemalt ühte celli ja igale positsioonile surface väärtust.'
-
-      // UUS: konkreetne sõnum, kui ainult 1 rida
-      if (rowCount < 2) {
-        message =
-          'Iga sõnaühend peab sisaldama vähemalt kahte rida (vähemalt 2 celli).'
-      }
-
-      toast.error(message)
-      setError(message)
+    if (problem) {
+      toast.error(problem)
+      setError(problem)
       return
     }
 
-    startTransition(() => {
-      onSave(boardId, compounds)
-        .then(() => {
-          const msg = 'Sõnaühendid salvestatud.'
-          setStatus(msg)
-          toast.success(msg)
-        })
-        .catch((err) => {
-          console.error(err)
-          const msg =
-            err instanceof Error && err.message
-              ? err.message
-              : 'Salvestamine ebaõnnestus.'
-          setError(msg)
-          toast.error(msg)
-        })
+    const toSave = compounds
+
+    // The transition stays pending until the save returns, so the button can't save twice.
+    startTransition(async () => {
+      let result: ActionResult
+      try {
+        result = await onSave(boardId, toSave)
+      } catch (err) {
+        console.error(err)
+        result = { ok: false, error: 'Salvestamine ebaõnnestus. Proovi uuesti.' }
+      }
+
+      if (!result.ok) {
+        setError(result.error)
+        toast.error(result.error)
+        return
+      }
+
+      const msg = 'Sõnaühendid salvestatud.'
+      setSavedJson(JSON.stringify(toSave))
+      setStatus(msg)
+      toast.success(msg)
     })
   }
 
@@ -395,11 +392,17 @@ export function CompoundsEditor({
       <Accordion
         type="single"
         collapsible
+        value={openId}
+        onValueChange={setOpenId}
         className="w-full space-y-2"
       >
         {filteredCompounds.map(({ compound, index, preview }) => {
           const rowCount = compound.cells?.length ?? 0
-          const valid = isCompoundValid(compound)
+          const valid = !getCompoundProblem(compound)
+          // Tahvlilt kustutatud cell: reegel ei saa enam kunagi sobida.
+          const hasDeletedCell = (compound.cells ?? []).some(
+            ({ cellId }) => !cellTitleById.has(cellId),
+          )
 
           return (
             <AccordionItem
@@ -407,54 +410,63 @@ export function CompoundsEditor({
               value={compound.id || String(index)}
               className="rounded-xl border bg-card px-3"
             >
-              <div className="">
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium uppercase text-muted-foreground">
-                        Sõnaühend #{index + 1}
-                      </span>
-                      {compound.id && (
-                        <span
-                          className="truncate text-[10px] text-muted-foreground"
-                          title={compound.id}
-                        >
-                          ID: {compound.id}
+              {/* min-w-0 all the way down lets the long ID truncate, so the page doesn't
+                  scroll sideways on phones. */}
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <AccordionTrigger className="min-w-0 hover:no-underline">
+                    <div className="flex min-w-0 flex-col gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="shrink-0 text-xs font-medium uppercase text-muted-foreground">
+                          Sõnaühend #{index + 1}
                         </span>
-                      )}
+                        {compound.id && (
+                          <span
+                            className="min-w-0 truncate text-[10px] text-muted-foreground"
+                            title={compound.id}
+                          >
+                            ID: {compound.id}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="min-w-0 truncate text-xs md:text-sm">
+                          {preview}
+                        </span>
+                        <Badge
+                          variant={valid ? 'outline' : 'destructive'}
+                          className="h-5 text-[10px]"
+                        >
+                          {valid ? 'Valiidne' : 'Puuduvad väljad'}
+                        </Badge>
+                        {hasDeletedCell && (
+                          <Badge
+                            variant="destructive"
+                            className="h-5 text-[10px]"
+                          >
+                            Kustutatud cell
+                          </Badge>
+                        )}
+                        <Badge
+                          variant="secondary"
+                          className="h-5 text-[10px]"
+                        >
+                          {rowCount} rida
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-xs md:text-sm">
-                        {preview}
-                      </span>
-                      <Badge
-                        variant={valid ? 'outline' : 'destructive'}
-                        className="h-5 text-[10px]"
-                      >
-                        {valid ? 'Valiidne' : 'Puuduvad väljad'}
-                      </Badge>
-                      <Badge
-                        variant="secondary"
-                        className="h-5 text-[10px]"
-                      >
-                        {rowCount} rida
-                      </Badge>
-                    </div>
-                  </div>
+                  </AccordionTrigger>
+                </div>
 
-                  {/* Delete “nupp” – stiliseeritud span, mitte <button> */}
-                  <Button
-                    asChild
-                    size="xs"
-                    variant="destructive"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      removeCompound(index)
-                    }}
-                  >
-                    <span>Kustuta</span>
-                  </Button>
-                </AccordionTrigger>
+                {/* Trigger'i kõrval, mitte sees: nupp nupu sees ei ole klaviatuuriga kättesaadav. */}
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="destructive"
+                  onClick={() => removeCompound(index)}
+                >
+                  Kustuta
+                </Button>
               </div>
 
               <AccordionContent className="pb-3">
@@ -508,6 +520,11 @@ export function CompoundsEditor({
                                   <SelectValue placeholder="Vali cell" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                  {!cellTitleById.has(cc.cellId) && (
+                                    <SelectItem value={cc.cellId} disabled>
+                                      Kustutatud cell
+                                    </SelectItem>
+                                  )}
                                   {cells.map((cell) => (
                                     <SelectItem
                                       key={cell.id}
@@ -628,13 +645,19 @@ export function CompoundsEditor({
           >
             {isPending ? 'Salvestan…' : 'Salvesta kõik'}
           </Button>
-          <Link href={`/boards/${boardId}`}>
-            <Button variant="positive" size="sm">
+          <Button asChild variant="positive" size="sm">
+            <Link href={`/boards/${boardId}`} aria-label="Vaata tahvlit">
               <Play className="h-5 w-5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
+
+      <UnsavedChangesDialog
+        open={leaveDialogOpen}
+        onOpenChange={setLeaveDialogOpen}
+        onConfirm={confirmLeave}
+      />
     </div>
   )
 }

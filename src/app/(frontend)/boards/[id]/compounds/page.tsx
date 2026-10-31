@@ -11,6 +11,8 @@ import { ArrowLeft } from 'lucide-react'
 import { requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
 import { revalidatePath } from 'next/cache'
+import { ACTION_ERROR, type ActionResult } from '@/utilities/flashToast'
+import { findCompoundsProblem } from './validateCompounds'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +50,12 @@ export default async function BoardCompoundsPage({ params }: any) {
       title: cell.title || cell.id,
     })) ?? []
 
-  async function saveCompounds(boardId: string, compounds: Board['compounds'] | null) {
+  // Returns the outcome instead of throwing: a thrown error's message doesn't reach the client in
+  // production, so the editor could only say that saving failed.
+  async function saveCompounds(
+    boardId: string,
+    compounds: Board['compounds'] | null,
+  ): Promise<ActionResult> {
     'use server'
 
     const payload = await getPayload({ config: configPromise })
@@ -57,34 +64,38 @@ export default async function BoardCompoundsPage({ params }: any) {
     if (!user) redirect('/admin')
     requireActiveMembership(user)
 
-    const existing = (await payload.findByID({
-      collection: 'boards',
-      id: boardId,
-    })) as Board
+    const problem = findCompoundsProblem(compounds ?? [])
+    if (problem) return { ok: false, error: problem }
 
-    const existingOwnerId =
-      typeof existing.owner === 'object' && existing.owner !== null
-        ? (existing.owner as User).id
-        : existing.owner
+    try {
+      const existing = (await payload.findByID({
+        collection: 'boards',
+        id: boardId,
+      })) as Board
 
-    if (existingOwnerId !== user.id) {
-      throw new Error('No access')
+      const existingOwnerId =
+        typeof existing.owner === 'object' && existing.owner !== null
+          ? (existing.owner as User).id
+          : existing.owner
+
+      if (existingOwnerId !== user.id) {
+        return { ok: false, error: 'Sõnaühendeid saab muuta ainult tahvli looja.' }
+      }
+
+      await payload.update({
+        collection: 'boards',
+        id: boardId,
+        data: {
+          compounds: compounds ?? [],
+        },
+      })
+    } catch (error) {
+      console.error('saveCompounds failed', error)
+      return { ok: false, error: ACTION_ERROR }
     }
 
-    if (compounds && compounds.some((c) => (c?.cells?.length ?? 0) < 2)) {
-      throw new Error('Iga sõnaühend peab sisaldama vähemalt kahte rida (vähemalt 2 celli).')
-    }
-
-    await payload.update({
-      collection: 'boards',
-      id: boardId,
-      data: {
-        compounds: compounds ?? [],
-      },
-    })
-
-    // soovi korral:
     revalidatePath(`/boards/${boardId}/compounds`)
+    return { ok: true }
   }
 
   return (

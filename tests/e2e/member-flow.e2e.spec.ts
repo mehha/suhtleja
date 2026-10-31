@@ -4,7 +4,7 @@ import { expect as baseExpect, test, type Page } from '@playwright/test'
 import { testAccountEmail } from './testAccounts'
 
 // A new customer's main path: register, start a trial, unlock the parent view with a PIN, put a
-// board on the child home and hear it speak. It creates an account and a board, so it runs only
+// board on the child home, give it a compound and hear it speak. It creates an account and a board, so it runs only
 // against a local server; Playwright's global teardown deletes the account afterwards.
 
 test.skip(!!process.env.SMOKE_BASE_URL, 'Creates an account, so it never runs against a deployed site.')
@@ -72,7 +72,8 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   const password = `e2e-${run}-Passw0rd`
   const pin = '2580'
   const boardName = `Testtahvel ${run}`
-  const words = ['tere', 'aitäh']
+  // The compound step makes "kass" after "kaks" into "kassi".
+  const words = ['kaks', 'kass']
   const playedAudio = await countPlayedAudio(page)
 
   const speech: Array<{ path: string; status: number }> = []
@@ -198,6 +199,40 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     await expect(page).toHaveURL(new RegExp(`/boards/${boardId}$`))
   })
 
+  await test.step('add a compound', async () => {
+    await page.goto(`/boards/${boardId}/compounds`)
+    await page.getByRole('button', { name: 'Lisa sõnaühend' }).first().click()
+
+    // A new compound opens with the board's first two cells.
+    const compoundWords = page.getByPlaceholder('nt kaks / kassi')
+    await expect(compoundWords).toHaveCount(2)
+    await expect(compoundWords.nth(0)).toHaveValue('kaks')
+    await expect(compoundWords.nth(1)).toHaveValue('kass')
+    await compoundWords.nth(1).fill('kassi')
+
+    // Leaving with unsaved changes asks first.
+    await page.getByRole('link', { name: 'Tagasi seadetesse' }).click()
+    const leave = page.getByRole('dialog', { name: 'Salvestamata muudatused' })
+    await leave.getByRole('button', { name: 'Jää lehele' }).click()
+    await expect(leave).toBeHidden()
+
+    // The save button stays locked until the save returns. The save (a server action, a POST to
+    // this page) is held back a second, so the check doesn't depend on how fast the server is.
+    const compoundsPage = new RegExp(`/boards/${boardId}/compounds$`)
+    await page.route(compoundsPage, async (route) => {
+      if (route.request().method() === 'POST') await new Promise((resolve) => setTimeout(resolve, 1000))
+      await route.continue()
+    })
+    await page.getByRole('button', { name: 'Salvesta kõik' }).click()
+    await expect(page.getByRole('button', { name: 'Salvestan…' })).toBeDisabled()
+    // Saving synthesizes the compound's speech, so it can take a while.
+    await expect(page.getByText('Sõnaühendid salvestatud.').first()).toBeVisible({ timeout: 60_000 })
+    await page.unroute(compoundsPage)
+
+    await page.getByRole('link', { name: 'Vaata tahvlit' }).click()
+    await expect(page).toHaveURL(new RegExp(`/boards/${boardId}$`))
+  })
+
   await test.step('put the board on the child home', async () => {
     await page.goto('/koduhaldus')
     const row = page.getByRole('row').filter({ hasText: boardName })
@@ -222,14 +257,19 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
       await page.getByRole('button', { name: word, exact: true }).click()
       await expect.poll(playedAudio, { message: `"${word}" should play` }).toBe(index + 1)
     }
-    await expect(page.locator('.actionbar-container')).toContainText(new RegExp(words.join('.*')))
+    // The compound: the tapped "kass" tile and the phrase show "kassi", and the sentence says it.
+    await expect(page.getByRole('button', { name: 'kassi', exact: true })).toBeVisible()
+    await expect(page.locator('.actionbar-container')).toContainText(/kaks.*kassi/)
 
+    const sentence = page.waitForRequest((request) => new URL(request.url()).pathname === '/next/tts-ms')
     await page.getByRole('button', { name: 'Esita kogu fraas' }).click()
+    expect((await sentence).postDataJSON()).toEqual({ text: 'kaks kassi.' })
     await expect.poll(playedAudio, { message: 'the sentence should play' }).toBe(words.length + 1)
 
-    // Single words come from the board's saved speech, the sentence is synthesized on demand.
+    // Single words come from the board's saved speech (the runner loads all of it: both words and
+    // the compound's "kassi"), the sentence is synthesized on demand.
     const saved = speech.filter((entry) => entry.path.startsWith(`/next/tts-cache/${boardId}/`))
-    expect(new Set(saved.map((entry) => entry.path)).size, 'saved words loaded').toBe(words.length)
+    expect(new Set(saved.map((entry) => entry.path)).size, 'saved words loaded').toBe(words.length + 1)
     expect(saved.every((entry) => entry.status === 200), JSON.stringify(saved)).toBe(true)
     expect(speech.filter((entry) => entry.path === '/next/tts-ms')).toEqual([{ path: '/next/tts-ms', status: 200 }])
   })
