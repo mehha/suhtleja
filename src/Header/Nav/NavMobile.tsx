@@ -45,7 +45,7 @@ export function NavMobile({ data, account, className }: Props) {
     <div className={className}>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Open menu">
+          <Button variant="ghost" size="icon" aria-label="Ava menüü">
             <Menu className="h-6 w-6" />
           </Button>
         </SheetTrigger>

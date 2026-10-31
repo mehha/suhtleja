@@ -165,16 +165,17 @@ export function BoardsList({
 
                     <TableCell className="px-3 py-2 align-middle">
                       <div className="flex flex-col gap-0.5">
+                        {/* The links are at least 24px tall, so a finger finds them on a tablet. */}
                         <Link
                           href={`/boards/${board.id}`}
-                          className="font-medium underline-offset-2 hover:underline"
+                          className="inline-block py-0.5 font-medium underline-offset-2 hover:underline"
                         >
                           {boardName}
                         </Link>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Link
                             href={`/boards/${board.id}`}
-                            className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
+                            className="inline-flex items-center gap-1 py-1.5 underline-offset-2 hover:underline"
                           >
                             <Monitor className="h-3 w-3" />
                             <span>Vaata</span>
@@ -184,7 +185,7 @@ export function BoardsList({
                               <span aria-hidden="true">·</span>
                               <Link
                                 href={`/boards/${board.id}/edit`}
-                                className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
+                                className="inline-flex items-center gap-1 py-1.5 underline-offset-2 hover:underline"
                               >
                                 <Edit3 className="h-3 w-3" />
                                 <span>Muuda</span>
@@ -261,6 +262,7 @@ export function BoardsList({
                                 type="submit"
                                 size="icon"
                                 variant="ghost"
+                                aria-label="Kustuta tahvel"
                                 className="h-7 w-7 text-red-600 hover:bg-red-50 hover:text-red-700"
                               >
                                 <Trash2 className="h-4 w-4" />

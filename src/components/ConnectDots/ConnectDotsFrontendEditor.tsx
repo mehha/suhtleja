@@ -482,11 +482,12 @@ export function ConnectDotsFrontendEditor({
             <h1 className="text-2xl font-semibold">Halda mängu „Ühenda punktid“</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Vali pilt, lisa punktid õiges järjekorras ja salvesta puzzle oma kogusse.
+            Vali pilt, lisa punktid õiges järjekorras ja salvesta mäng oma kogusse.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Wraps on a phone, where the switch and the save button don't fit side by side. */}
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-3 rounded-full border bg-card px-4 py-2">
             <span className="text-sm font-medium text-muted-foreground">Muuda</span>
             <Switch

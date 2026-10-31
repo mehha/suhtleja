@@ -117,7 +117,8 @@ function SortableBoardCard({
                 e.preventDefault()
                 e.stopPropagation()
               }}
-              className="cursor-grab active:cursor-grabbing touch-none hover:bg-muted"
+              // 32px for a finger around the 20px icon; the margins keep the row and the icon in place.
+              className="inline-flex h-8 w-8 -my-1.5 items-center justify-center rounded-lg hover:bg-muted -ml-1.5 cursor-grab touch-none active:cursor-grabbing"
               aria-label="Muuda tahvli järjekorda"
             >
               <GripVertical className="w-5 h-5" />
@@ -158,6 +159,8 @@ function SortableBoardCard({
                   <TooltipTrigger asChild>
                     <Link
                       href={`/boards/${board.id}/edit`}
+                      aria-label="Muuda tahvlit"
+                      className="inline-flex h-8 w-8 -my-1.5 items-center justify-center rounded-lg hover:bg-muted"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Edit className="w-5 h-5" />
@@ -173,7 +176,7 @@ function SortableBoardCard({
                 <TooltipTrigger asChild>
                   <button
                     aria-label={board.unpinLabel ?? 'Eemalda koduvaatest'}
-                    className="flex items-center"
+                    className="inline-flex h-8 w-8 -my-1.5 items-center justify-center rounded-lg hover:bg-muted -mr-1.5"
                     onClick={(e) => {
                       e.stopPropagation()
                       onUnpin(board)

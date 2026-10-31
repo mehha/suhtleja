@@ -238,12 +238,12 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
               .
             </p>
 
-            <div className="mt-2 text-center text-sm text-muted-foreground">
+            <p className="mt-2 text-center text-sm text-muted-foreground">
               Juba konto olemas?{' '}
               <Link href="/login" className="underline underline-offset-4">
                 Logi sisse
               </Link>
-            </div>
+            </p>
             <p className="text-xs text-muted-foreground">
               Vaikimisi vanema PIN on <span className="font-mono font-semibold">0000</span>.
               Soovi korral saad selle hiljem seadetes muuta.

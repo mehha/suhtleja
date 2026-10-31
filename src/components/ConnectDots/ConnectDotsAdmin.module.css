@@ -103,6 +103,9 @@
   position: relative;
   overflow: hidden;
   min-height: 360px;
+  /* Safari turns the min-height into a min-width through the aspect ratio (480px at 4:3), wider
+     than a phone; the board stays within its column instead. */
+  max-width: 100%;
   border-radius: var(--style-radius-s);
   border: 1px solid #d7dee7;
   background: #f8fafc;

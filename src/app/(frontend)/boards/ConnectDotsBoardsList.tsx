@@ -142,13 +142,14 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                             <Badge variant="outline">Ühenda punktid</Badge>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Link className="hover:underline" href={`/connect-dots?puzzle=${puzzle.id}`}>
+                            {/* At least 24px tall, so a finger finds them on a tablet. */}
+                            <Link className="py-1.5 hover:underline" href={`/connect-dots?puzzle=${puzzle.id}`}>
                               Ava mäng
                             </Link>
                             {canManagePuzzle ? (
                               <>
                                 <span aria-hidden="true">·</span>
-                                <Link className="hover:underline" href={`/connect-dots/manage/${puzzle.id}`}>
+                                <Link className="py-1.5 hover:underline" href={`/connect-dots/manage/${puzzle.id}`}>
                                   Muuda
                                 </Link>
                               </>
@@ -192,7 +193,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button asChild size="icon" variant="ghost">
-                                  <Link href={`/connect-dots/manage/${puzzle.id}`}>
+                                  <Link aria-label="Muuda mängu" href={`/connect-dots/manage/${puzzle.id}`}>
                                     <Pencil className="h-4 w-4" />
                                   </Link>
                                 </Button>
@@ -205,12 +206,12 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span>
-                                  <Button disabled size="icon" type="button" variant="ghost">
+                                  <Button aria-label="Kõigile nähtav" disabled size="icon" type="button" variant="ghost">
                                     <Globe2 className="h-4 w-4" />
                                   </Button>
                                 </span>
                               </TooltipTrigger>
-                              <TooltipContent>See puzzle on juba kõigile nähtav</TooltipContent>
+                              <TooltipContent>See mäng on juba kõigile nähtav</TooltipContent>
                             </Tooltip>
                           ) : null}
 
@@ -232,6 +233,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
+                                    aria-label="Kustuta mäng"
                                     className="text-red-600 hover:bg-red-50 hover:text-red-700"
                                     size="icon"
                                     type="submit"
@@ -240,7 +242,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Kustuta puzzle</TooltipContent>
+                                <TooltipContent>Kustuta mäng</TooltipContent>
                               </Tooltip>
                             </form>
                           ) : (

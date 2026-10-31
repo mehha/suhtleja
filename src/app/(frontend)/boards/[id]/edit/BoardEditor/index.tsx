@@ -255,7 +255,7 @@ export default function BoardEditor({
                     className="h-9 w-64 text-lg font-semibold"
                     placeholder="Nimetu tahvel"
                   />
-                  <Button type="submit" size="icon" variant="ghost" className="h-8 w-8">
+                  <Button type="submit" size="icon" variant="ghost" className="h-8 w-8" aria-label="Salvesta nimi">
                     <Check className="h-4 w-4" />
                   </Button>
                   <Button
@@ -263,6 +263,7 @@ export default function BoardEditor({
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8"
+                    aria-label="Tühista"
                     onClick={() => {
                       setIsEditingTitle(false)
                       setTitleDraft(board.name ?? '')
@@ -279,6 +280,7 @@ export default function BoardEditor({
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8"
+                    aria-label="Muuda nime"
                     onClick={() => setIsEditingTitle(true)}
                   >
                     <Edit3 className="h-4 w-4" />

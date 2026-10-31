@@ -305,8 +305,9 @@ export function ProfilePageClient({
               </div>
             )}
             <div className="space-y-2">
-              <Label>Uus PIN (4 numbrit)</Label>
+              <Label htmlFor="profile-pin">Uus PIN (4 numbrit)</Label>
               <InputOTP
+                id="profile-pin"
                 maxLength={4}
                 value={pin}
                 onChange={setPin}

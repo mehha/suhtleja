@@ -18,6 +18,15 @@ tags: [suhtleja, ui, shadcn]
 - Duplicating primitives already covered by shadcn/ui (buttons, dialogs, tabs, selects, etc.).
 - Creating one-off variants that should be shared under `src/components/ui`.
 
+## Touch Screens
+- Most use is on tablets, then phones; `tests/e2e/touch.ts` (`expectTouchFriendly`) checks every page the device tests open, upright and sideways.
+- Every button and link has a name. Icon-only controls get an `aria-label`: a tooltip never shows on a touch screen, and VoiceOver and TalkBack read the name.
+- Targets are at least 24 x 24 px (WCAG 2.2 AA), the child's at least 44 px. A link in a sentence (`<p>`) and a control with a `<label>` that takes the tap too are exceptions. For a small icon, grow the button around it (negative margins keep the layout) rather than the icon.
+- Text fields have 16px text on touch screens (`Input` and `Textarea`: `text-base [@media(pointer:fine)]:text-sm`): iPhone Safari zooms the page in when a field with smaller text gets focus. Don't set a smaller `text-*` on a field.
+- Hover-only styles that should not stick after a tap go behind `[@media(hover:hover)]:hover:` (a touch screen keeps `:hover` on the last tapped element).
+- The dialog close button is 36px and named `Sulge`; the sheet's is 44px. Labels in the UI are Estonian, also for screen readers (`Ava menüü`, not "Open menu").
+- Safari turns a `min-height` into a `min-width` through `aspect-ratio`; give such boxes `max-width: 100%` so they stay within a phone's width.
+
 ## Viewport-Sized Overlays
 - For shared sheets, drawers, and mobile menus, prefer stable viewport height units (`svh`) over dynamic viewport height (`dvh`) so Safari on iPad/iOS does not jump when browser chrome changes.
 - For mobile menu widths, keep a normal `vw` fallback and use `dvw` only as a supported enhancement.

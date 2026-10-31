@@ -149,8 +149,9 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
             className="space-y-4"
           >
             <div className="space-y-2">
-              <Label>PIN (4 numbrit)</Label>
+              <Label htmlFor="parent-unlock-pin">PIN (4 numbrit)</Label>
               <InputOTP
+                id="parent-unlock-pin"
                 maxLength={4}
                 value={pin}
                 onChange={setPin}

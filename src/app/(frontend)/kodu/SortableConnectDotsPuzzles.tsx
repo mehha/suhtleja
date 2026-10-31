@@ -96,7 +96,8 @@ function SortablePuzzleCard({
                 e.preventDefault()
                 e.stopPropagation()
               }}
-              className="cursor-grab touch-none hover:bg-muted active:cursor-grabbing"
+              // 32px for a finger around the 20px icon; the margins keep the row and the icon in place.
+              className="inline-flex h-8 w-8 -my-1.5 items-center justify-center rounded-lg hover:bg-muted -ml-1.5 cursor-grab touch-none active:cursor-grabbing"
               aria-label="Muuda mängude järjekorda"
             >
               <GripVertical className="h-5 w-5" />
@@ -153,6 +154,8 @@ function SortablePuzzleCard({
                     <TooltipTrigger asChild>
                       <Link
                         href={`/connect-dots/manage/${puzzle.id}`}
+                        aria-label="Muuda mängu"
+                        className="inline-flex h-8 w-8 -my-1.5 items-center justify-center rounded-lg hover:bg-muted"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Edit className="h-5 w-5" />
@@ -168,7 +171,7 @@ function SortablePuzzleCard({
                   <TooltipTrigger asChild>
                     <button
                       aria-label={puzzle.unpinLabel ?? 'Eemalda koduvaatest'}
-                      className="flex items-center"
+                      className="inline-flex h-8 w-8 -my-1.5 items-center justify-center rounded-lg hover:bg-muted -mr-1.5"
                       onClick={(e) => {
                         e.stopPropagation()
                         onUnpin(puzzle)

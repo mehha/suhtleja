@@ -130,12 +130,12 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
               {loading ? 'Sisselogimine…' : 'Logi sisse'}
             </Button>
 
-            <div className="mt-2 text-center text-sm text-muted-foreground">
+            <p className="mt-2 text-center text-sm text-muted-foreground">
               Pole kontot?{' '}
               <Link href='/register' className="underline underline-offset-4">
                 Registreeru
               </Link>
-            </div>
+            </p>
           </form>
         </CardContent>
       </Card>
