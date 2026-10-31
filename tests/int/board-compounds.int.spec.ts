@@ -28,6 +28,13 @@ const kaksKassi = compound('kaks-kass', [
   ['kass', 'kassi'],
 ])
 
+// The case from the board: "poiss" + "mängima" + "korvpall".
+const poissMangibKorvpalli = compound('poiss-mangib-korvpalli', [
+  ['poiss', 'poiss'],
+  ['mängima', 'mängib'],
+  ['korvpall', 'korvpalli'],
+])
+
 const kaksSuurtKassi = compound('kaks-suur-kass', [
   ['kaks', 'kaks'],
   ['suur', 'suurt'],
@@ -96,6 +103,27 @@ describe('applyCompounds', () => {
     }
   })
 
+  it('gives a started compound its forms at the end of the sentence', () => {
+    expect(applyCompounds(tap('poiss', 'mängima'), [poissMangibKorvpalli]).display).toBe('poiss mängib')
+    expect(applyCompounds(tap('mina', 'poiss', 'mängima'), [poissMangibKorvpalli]).display).toBe(
+      'mina poiss mängib',
+    )
+    // The sentence went another way: the words are as tapped again.
+    expect(applyCompounds(tap('poiss', 'mängima', 'jalgpall'), [poissMangibKorvpalli]).display).toBe(
+      'poiss mängima jalgpall',
+    )
+  })
+
+  it("doesn't change a lone word because a compound begins with it", () => {
+    const suureKassi = compound('suure-kassi', [
+      ['suur', 'suure'],
+      ['kass', 'kassi'],
+    ])
+    expect(applyCompounds(tap('suur'), [suureKassi]).display).toBe('suur')
+    expect(applyCompounds(tap('poiss'), [poissMangibKorvpalli]).display).toBe('poiss')
+    expect(applyCompounds(tap('suur', 'kass'), [suureKassi]).display).toBe('suure kassi')
+  })
+
   it('lets the earlier of two equally long compounds win', () => {
     const kaksKasse = compound('kaks-kasse', [
       ['kaks', 'kaks'],
@@ -125,12 +153,22 @@ describe('getCompoundFormForLastToken', () => {
     })
   })
 
-  it('says a word as tapped while its compound is only started', () => {
-    expect(getCompoundFormForLastToken(tap('kaks'), [kaksSuurtKassi])).toBeNull()
-    expect(getCompoundFormForLastToken(tap('kaks', 'suur'), [kaksSuurtKassi])).toBeNull()
-    expect(getCompoundFormForLastToken(tap('kaks', 'suur', 'kass'), [kaksSuurtKassi])).toEqual({
-      surface: 'kassi',
-      tts: 'kassi',
+  it('says each word in its form once two words of a compound are tapped', () => {
+    const rules = [poissMangibKorvpalli]
+    expect(getCompoundFormForLastToken(tap('poiss'), rules)).toBeNull()
+    expect(getCompoundFormForLastToken(tap('poiss', 'mängima'), rules)).toEqual({
+      surface: 'mängib',
+      tts: 'mängib',
+    })
+    expect(getCompoundFormForLastToken(tap('poiss', 'mängima', 'korvpall'), rules)).toEqual({
+      surface: 'korvpalli',
+      tts: 'korvpalli',
+    })
+    // A word in the middle of a compound needs the words before it.
+    expect(getCompoundFormForLastToken(tap('mängima'), rules)).toBeNull()
+    expect(getCompoundFormForLastToken(tap('kaks', 'suur'), [kaksSuurtKassi])).toEqual({
+      surface: 'suurt',
+      tts: 'suurt',
     })
   })
 

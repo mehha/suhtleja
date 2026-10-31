@@ -2,10 +2,10 @@ import type { Board } from '@/payload-types'
 import { applyCompounds, type SelectedToken } from './applyCompounds'
 
 /**
- * The form in which the runner says the word just tapped (the last token): when a whole compound
- * ends with this word, the form it has in the sentence, from `applyCompounds`, so the tap and
- * "play all" say it the same way. A compound that is only started changes nothing: the word is
- * said as tapped until the whole compound is there.
+ * The form in which the runner says the word just tapped (the last token): the form it has in the
+ * sentence, from `applyCompounds`, so the tap and "play all" say it the same way. That is a whole
+ * compound's form, or that of a compound the sentence has started (two or more of its first words
+ * tapped).
  *
  * Returns null when no compound applies, and the word is said as it is.
  */
