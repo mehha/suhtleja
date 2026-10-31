@@ -9,6 +9,19 @@ interface Props {
   priority?: 'auto' | 'high' | 'low'
 }
 
+// The house from the logo's blue tile; the child view's Kodu button uses it too.
+export const LogoHouse = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="M20 20C20 20.5523 19.5523 21 19 21H5C4.44772 21 4 20.5523 4 20V11L1 11L11.3273 1.6115C11.7087 1.26475 12.2913 1.26475 12.6727 1.6115L23 11L20 11V20ZM12 15C13.3807 15 14.5 13.8807 14.5 12.5C14.5 11.1193 13.3807 9.99998 12 9.99998C10.6193 9.99998 9.5 11.1193 9.5 12.5C9.5 13.8807 10.6193 15 12 15Z" />
+  </svg>
+)
+
 export const Logo = (props: Props) => {
   const { className, compact = false } = props
 
@@ -51,15 +64,7 @@ export const Logo = (props: Props) => {
 
         <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-[9px] bg-gradient-to-br from-[#29a1f7] via-[#1c79dd] to-[#1359b7] shadow-[0_7px_16px_rgba(19,89,183,0.3)] after:absolute after:-bottom-1 after:left-[7px] after:h-3 after:w-3 after:rotate-45 after:rounded-[2px] after:bg-[#1359b7]">
           <span className="absolute left-[3px] top-[3px] h-2 w-2 rounded-full bg-white/35 blur-[0.5px]" />
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="relative z-10 h-7 w-7 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.16)]"
-            aria-hidden="true"
-          >
-            <path d="M20 20C20 20.5523 19.5523 21 19 21H5C4.44772 21 4 20.5523 4 20V11L1 11L11.3273 1.6115C11.7087 1.26475 12.2913 1.26475 12.6727 1.6115L23 11L20 11V20ZM12 15C13.3807 15 14.5 13.8807 14.5 12.5C14.5 11.1193 13.3807 9.99998 12 9.99998C10.6193 9.99998 9.5 11.1193 9.5 12.5C9.5 13.8807 10.6193 15 12 15Z" />
-          </svg>
+          <LogoHouse className="relative z-10 h-7 w-7 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.16)]" />
         </span>
       </div>
 

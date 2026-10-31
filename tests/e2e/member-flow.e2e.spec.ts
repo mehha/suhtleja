@@ -224,4 +224,11 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     expect(saved.every((entry) => entry.status === 200), JSON.stringify(saved)).toBe(true)
     expect(speech.filter((entry) => entry.path === '/next/tts-ms')).toEqual([{ path: '/next/tts-ms', status: 200 }])
   })
+
+  await test.step('the Kodu button leads back to the child home', async () => {
+    await page.getByRole('link', { name: 'Kodu', exact: true }).click()
+    await expect(page).toHaveURL(/\/kodu$/)
+    // On the child home the same button stays in place as the page heading.
+    await expect(page.getByRole('heading', { level: 1, name: 'Kodu' })).toBeVisible()
+  })
 })

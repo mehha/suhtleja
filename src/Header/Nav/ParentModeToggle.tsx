@@ -18,7 +18,8 @@ const buttonClassName =
 
 // One labelled button for the view you can switch to. In the parent view, handing the device to the
 // child is the main action, so it gets the filled navy button; the child view's way back asks for
-// the PIN. Phones under 380px wide get the short label, so the header still fits.
+// the PIN. Phones under 380px wide show the short label, so the header still fits; the full label
+// stays for screen readers, so the button's name doesn't change with the width.
 export function ParentModeToggle({ isParentMode, hasPin }: ParentModeToggleProps) {
   const pathname = usePathname()
 
@@ -34,8 +35,10 @@ export function ParentModeToggle({ isParentMode, hasPin }: ParentModeToggleProps
           )}
         >
           <Smile aria-hidden="true" />
-          <span className="hidden min-[380px]:inline">Lapse vaade</span>
-          <span className="min-[380px]:hidden">Laps</span>
+          <span className="max-[379px]:sr-only">Lapse vaade</span>
+          <span aria-hidden="true" className="min-[380px]:hidden">
+            Laps
+          </span>
         </button>
       </form>
     )
@@ -50,8 +53,10 @@ export function ParentModeToggle({ isParentMode, hasPin }: ParentModeToggleProps
       )}
     >
       <UserLock aria-hidden="true" />
-      <span className="hidden min-[380px]:inline">Vanema vaade</span>
-      <span className="min-[380px]:hidden">Vanem</span>
+      <span className="max-[379px]:sr-only">Vanema vaade</span>
+      <span aria-hidden="true" className="min-[380px]:hidden">
+        Vanem
+      </span>
     </ParentUnlockDialog>
   )
 }

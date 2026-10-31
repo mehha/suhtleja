@@ -5,7 +5,7 @@ import { headers } from 'next/headers'
 import type { Board, User } from '@/payload-types'
 import { SortableConnectDotsPuzzles, type HomeConnectDotsPuzzle } from './SortableConnectDotsPuzzles'
 import { SortableBoards, type HomeBoard } from './SortableBoards'
-import { ArrowRight, MonitorCheck, PlusCircle, Settings2, UserLock } from 'lucide-react'
+import { ArrowRight, MonitorCheck, PlusCircle, Settings2 } from 'lucide-react'
 import { isParentModeUtil, requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
 import { withToast, type FlashToastKey } from '@/utilities/flashToast'
@@ -20,7 +20,7 @@ import {
   sortSharedDocs,
   toIdString,
 } from '@/utilities/sharedHomePreferences'
-import { ParentUnlockDialog } from './ParentUnlockDialog'
+import { ChildModeBar } from './ChildModeBar'
 
 export const dynamic = 'force-dynamic'
 
@@ -462,79 +462,77 @@ export default async function HomePage() {
   const hasPuzzles = ownedPuzzles.length > 0 || sharedPuzzles.length > 0
 
   return (
-    <main className="xl:p-6 space-y-10">
-      <header className="flex flex-wrap items-center justify-between gap-6">
-        <div className="flex items-center gap-2">
-          <MonitorCheck className="h-6 w-6 text-pink-500" />
-          <h1 className="text-2xl font-semibold">Kodu</h1>
-        </div>
+    <>
+      {/* The child view gets the child's bar, with the Kodu button marked as the current page. */}
+      {!isParentMode && <ChildModeBar current hasPin={Boolean(u.parentPinHash)} />}
+      <main className="xl:p-6 space-y-10">
         {isParentMode && (
-          <div className="flex flex-wrap items-center gap-2">
-            <CreateBoardForm createBoard={createBoard} />
-            <Button className="gap-2" asChild>
-              <Link href="/connect-dots/manage/new">
-                <PlusCircle className="h-4 w-4" />
-                Lisa mäng
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/koduhaldus" className="flex items-center gap-2">
-                <Settings2 className="h-4 w-4" />
-                Koduhaldus <ArrowRight className={`w-4 h-4`} />
-              </Link>
-            </Button>
+          <header className="flex flex-wrap items-center justify-between gap-6">
+            <div className="flex items-center gap-2">
+              <MonitorCheck className="h-6 w-6 text-pink-500" />
+              <h1 className="text-2xl font-semibold">Kodu</h1>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <CreateBoardForm createBoard={createBoard} />
+              <Button className="gap-2" asChild>
+                <Link href="/connect-dots/manage/new">
+                  <PlusCircle className="h-4 w-4" />
+                  Lisa mäng
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/koduhaldus" className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4" />
+                  Koduhaldus <ArrowRight className={`w-4 h-4`} />
+                </Link>
+              </Button>
+            </div>
+          </header>
+        )}
+
+        {!hasBoards && !hasPuzzles ? (
+          <>
+            <p className="text-muted-foreground">Sul pole veel midagi lisatud kodu vaatesse.</p>
+            {!isParentMode && (
+              <p className="text-muted-foreground">Lisamiseks lülituse vanema vaatesse</p>
+            )}
+          </>
+        ) : (
+          <div className="space-y-10">
+            {hasBoards ? (
+              <section className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold">Tahvlid</h2>
+                </div>
+
+                <SortableBoards
+                  boards={boardCards}
+                  canManage={isParentMode}
+                  isAdmin={u.role === 'admin'}
+                  onReorder={reorderMixedBoards}
+                  unpinAction={toggleBoardHomeVisibility}
+                />
+              </section>
+            ) : null}
+
+            {hasPuzzles ? (
+              <section className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold">Mängud</h2>
+                </div>
+
+                <SortableConnectDotsPuzzles
+                  canManage={isParentMode}
+                  isAdmin={u.role === 'admin'}
+                  onReorder={reorderMixedPuzzles}
+                  puzzles={puzzleCards}
+                  unpinAction={togglePuzzleHomeVisibility}
+                />
+              </section>
+            ) : null}
           </div>
         )}
-        {!isParentMode && (
-          <ParentUnlockDialog hasPin={Boolean(u.parentPinHash)}>
-            <UserLock className="h-5 w-5" />
-            <span className="sr-only">Vanema vaade</span>
-          </ParentUnlockDialog>
-        )}
-      </header>
-
-      {!hasBoards && !hasPuzzles ? (
-        <>
-          <p className="text-muted-foreground">Sul pole veel midagi lisatud kodu vaatesse.</p>
-          {!isParentMode && (
-            <p className="text-muted-foreground">Lisamiseks lülituse vanema vaatesse</p>
-          )}
-        </>
-      ) : (
-        <div className="space-y-10">
-          {hasBoards ? (
-            <section className="space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold">Tahvlid</h2>
-              </div>
-
-              <SortableBoards
-                boards={boardCards}
-                canManage={isParentMode}
-                isAdmin={u.role === 'admin'}
-                onReorder={reorderMixedBoards}
-                unpinAction={toggleBoardHomeVisibility}
-              />
-            </section>
-          ) : null}
-
-          {hasPuzzles ? (
-            <section className="space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold">Mängud</h2>
-              </div>
-
-              <SortableConnectDotsPuzzles
-                canManage={isParentMode}
-                isAdmin={u.role === 'admin'}
-                onReorder={reorderMixedPuzzles}
-                puzzles={puzzleCards}
-                unpinAction={togglePuzzleHomeVisibility}
-              />
-            </section>
-          ) : null}
-        </div>
-      )}
-    </main>
+      </main>
+    </>
   )
 }

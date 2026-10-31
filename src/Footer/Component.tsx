@@ -15,14 +15,15 @@ export async function Footer() {
 
   return (
     <footer className="mt-auto bg-[#22314c] text-white dark:bg-card">
-      <div className="container py-8 gap-8 flex flex-col md:flex-row md:justify-between">
+      <div className="container flex flex-col gap-8 py-8 lg:flex-row lg:items-center lg:justify-between">
         <Link className="flex items-center" href="/">
           <Logo className="rounded-[22px] bg-white px-3 py-2 shadow-[0_10px_30px_rgba(15,23,42,0.22)]" />
         </Link>
 
-        <div className="flex flex-col-reverse items-start md:flex-row gap-4 md:items-center">
+        <div className="flex min-w-0 flex-col-reverse items-start gap-4 lg:flex-row lg:items-center">
           {/*<ThemeSelector />*/}
-          <nav className="flex flex-col md:flex-row gap-4">
+          {/* Six links don't fit beside the logo on a tablet, so they sit below it and wrap. */}
+          <nav className="flex flex-col gap-4 md:flex-row md:flex-wrap md:gap-x-6 md:gap-y-3 lg:justify-end">
             {navItems.map(({ link }, i) => {
               return <CMSLink className="font-semibold text-white/85 hover:text-white" key={i} {...link} />
             })}

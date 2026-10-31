@@ -52,7 +52,11 @@ tags: [suhtleja, auth, mode, home, boards]
   - Under the `md` breakpoint the main menu and account menu move into the menu sheet (`NavMobile` with `account`), so the bar holds only the logo, the switch and the menu button.
   - Logged-out visitors keep the site menu (`Kuidas see töötab`, `Hind`, `Kontakt`), `Proovi tasuta` and the login button.
 - In child mode, `/kodu`, `/boards/[id]` and `/connect-dots` render as fullscreen child surfaces without the global header/footer/admin bar (`isChildFullscreenPath` in `src/app/(frontend)/FrontendShell.tsx`). Any page a child can open from `/kodu` belongs on that list: the global header has the account menu (`Logi välja`) and links out of the child view.
-- Child fullscreen surfaces must provide their own minimal navigation or unlock controls when global chrome is hidden. Use `ChildModeBar` (`src/app/(frontend)/kodu/ChildModeBar.tsx`: home + parent PIN dialog) and leave top padding for it.
+- Child fullscreen surfaces must provide their own navigation and unlock controls when global chrome is hidden. Use `ChildModeBar` (`src/app/(frontend)/kodu/ChildModeBar.tsx`) as the first element under the page shell (outside `<main>`):
+  - Left: the Kodu button, like a board cell: the logo's blue house tile (`LogoHouse` in a `LogoTile`) and the word, 56px tall. It sits in the same place on every child page; on `/kodu` it is the page's `<h1>`, marked as the current page (`current`).
+  - Middle: the board's name (`title`), from the `sm` breakpoint.
+  - Right: the same `Vanema vaade` button as the header (`ParentModeToggle`).
+  - The bar is `sticky` with the page's opaque background, so pages don't leave top padding for it and a long board scrolls under the bar, not under floating buttons.
 - Switching from parent mode to child mode may preserve safe child routes such as `/kodu`, `/boards/[id]` and `/connect-dots`, but must fall back to `/kodu` from parent-only or management routes.
 
 ## Change Checklist

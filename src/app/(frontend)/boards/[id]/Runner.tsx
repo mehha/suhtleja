@@ -563,8 +563,8 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   }, [cachedAudioUrlByText])
 
   return (
-    <div className={`pb-28 md:pb-24 ${!isParentMode ? 'pt-14' : ''}`}>
-      {!isParentMode && <ChildModeBar hasPin={hasPin} />}
+    <div className="pb-28 md:pb-24">
+      {!isParentMode && <ChildModeBar hasPin={hasPin} title={board.name} />}
 
       <div className="actionbar-container fixed inset-x-0 bottom-0 z-40 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-4">
         <TooltipProvider>
