@@ -27,9 +27,13 @@ const logoClassName = '[zoom:0.82] sm:[zoom:0.9] lg:[zoom:1]'
 const subscribeToNothing = () => () => {}
 const cookieSaysParentMode = () => /(?:^|;\s*)uiMode=parent(?:;|$)/.test(document.cookie)
 
+// What the header shows of the user. The server passes only this: the whole user document has the
+// PIN hash and Stripe ids, and the header is on every page.
+export type HeaderUser = Pick<User, 'email' | 'id' | 'name'>
+
 interface HeaderClientProps {
   data: Header
-  currentUser: User | null
+  currentUser: HeaderUser | null
   isParentMode?: boolean
   hasPin: boolean
 }
@@ -45,7 +49,9 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
   const { headerTheme, setHeaderTheme } = useHeaderTheme()
   const pathname = usePathname()
   const router = useRouter()
-  const [clientUser, setClientUser] = useState<User | null>(currentUser)
+  const [clientUser, setClientUser] = useState<HeaderUser | null>(currentUser)
+  // /api/users/me has the PIN hash only for admins (it's an admin-only field).
+  const [clientHasPin, setClientHasPin] = useState(false)
   // Static pages render in child mode; in the browser the uiMode cookie tells (re-read on every render).
   const parentMode = useSyncExternalStore(
     subscribeToNothing,
@@ -98,7 +104,9 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
 
     fetchClientUser(pathname).then(
       (user) => {
-        if (!cancelled) setClientUser(user)
+        if (cancelled) return
+        setClientUser(user)
+        setClientHasPin(Boolean(user?.parentPinHash))
       },
       (err) => console.error('Header auth sync failed', err),
     )
@@ -119,7 +127,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
   }, [headerTheme])
 
   const name = clientUser?.name && true ? clientUser.name : (clientUser?.email ?? '')
-  const effectiveHasPin = Boolean(clientUser?.parentPinHash || hasPin)
+  const effectiveHasPin = hasPin || clientHasPin
   const links = useMemo(() => appLinks(parentMode), [parentMode])
   const accountInfoLinks = useMemo(() => infoLinks(data), [data])
 
