@@ -57,14 +57,16 @@ jobs:
           pnpm test:int
           rm -rf .wrangler/state
 
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
+      # Chromium for the computer and Android projects, WebKit (Safari's engine) for iPhone and iPad.
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium webkit
 
       # A new customer's main path (register, trial, PIN, board speaks) against a local dev server on
       # a throwaway D1 and R2, like the integration tests. The test signs its own Stripe webhook event,
       # so the Stripe values are placeholders and nothing calls Stripe. Speech uses the real Azure key.
+      # The device tests tap through the child's pages on phones and tablets, upright and sideways.
       # Remove the dev server's state and output so the build starts clean.
-      - name: Member flow test
+      - name: Member flow and device tests
         env:
           PAYLOAD_SECRET: ci-test-secret
           STRIPE_SECRET_KEY: sk_test_ci_placeholder
@@ -74,7 +76,7 @@ jobs:
           SPEECH_VOICE: ${{ vars.SPEECH_VOICE }}
         run: |
           pnpm payload migrate
-          pnpm test:e2e tests/e2e/member-flow.e2e.spec.ts
+          pnpm test:e2e tests/e2e/member-flow.e2e.spec.ts tests/e2e/devices.e2e.spec.ts
           rm -rf .wrangler/state .next
 
       - name: Check R2 cache upload configuration

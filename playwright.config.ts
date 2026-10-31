@@ -32,6 +32,11 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
+  // A computer, phones and tablets. iPhones and iPads run WebKit (Safari's engine); Android runs
+  // Chromium. Tablets are where the child's boards are used most; the device tests
+  // (devices.e2e.spec.ts) run on every touch screen and also turn it sideways. The member flow test
+  // is long and speaks through the real speech service, so it runs on the computer, the Android phone
+  // and the iPad only.
   projects: [
     {
       name: 'desktop',
@@ -40,6 +45,20 @@ export default defineConfig({
     {
       name: 'mobile',
       use: { ...devices['Pixel 7'] },
+    },
+    {
+      name: 'iphone',
+      use: { ...devices['iPhone 15'] },
+      testIgnore: /member-flow/,
+    },
+    {
+      name: 'ipad',
+      use: { ...devices['iPad (gen 7)'] },
+    },
+    {
+      name: 'android-tablet',
+      use: { ...devices['Galaxy Tab S4'] },
+      testIgnore: /member-flow/,
     },
   ],
   globalTeardown: testsLocalServer ? './tests/e2e/global-teardown.ts' : undefined,

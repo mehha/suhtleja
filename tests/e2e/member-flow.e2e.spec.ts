@@ -1,6 +1,8 @@
-import { createHmac, randomUUID } from 'crypto'
-import { expect as baseExpect, test, type Page } from '@playwright/test'
+import { randomUUID } from 'crypto'
+import { expect as baseExpect, test } from '@playwright/test'
 
+import { countPlayedAudio } from './audio'
+import { startTrial } from './member'
 import { testAccountEmail } from './testAccounts'
 
 // A new customer's main path: register, start a trial, unlock the parent view with a PIN, put a
@@ -14,55 +16,6 @@ test.skip(!!process.env.SMOKE_BASE_URL, 'Creates an account, so it never runs ag
 const expect = baseExpect.configure({ timeout: 30_000 })
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-
-// What a finished Checkout leads to: Stripe sends a signed customer.subscription.created event for a
-// trial, and the webhook gives the account its membership.
-async function startTrial(page: Page, userId: number, run: string) {
-  const now = Math.floor(Date.now() / 1000)
-  const trialEnd = now + 14 * 24 * 60 * 60
-  const body = JSON.stringify({
-    id: `evt_e2e_${run}`,
-    object: 'event',
-    type: 'customer.subscription.created',
-    created: now,
-    data: {
-      object: {
-        id: `sub_e2e_${run}`,
-        object: 'subscription',
-        customer: `cus_e2e_${run}`,
-        status: 'trialing',
-        trial_end: trialEnd,
-        cancel_at: null,
-        cancel_at_period_end: false,
-        items: { object: 'list', data: [{ id: `si_e2e_${run}`, object: 'subscription_item', current_period_end: trialEnd }] },
-        metadata: { payloadUserId: String(userId) },
-      },
-    },
-  })
-  const signature = createHmac('sha256', webhookSecret!).update(`${now}.${body}`).digest('hex')
-  const response = await page.request.post('/next/stripe/webhook', {
-    data: body,
-    headers: { 'content-type': 'application/json', 'stripe-signature': `t=${now},v1=${signature}` },
-  })
-  expect(response.status(), await response.text()).toBe(200)
-}
-
-// Counts the sounds the page starts playing, so the test knows a board really spoke. The board's
-// silent unlock sound (a data: URL) doesn't count.
-async function countPlayedAudio(page: Page) {
-  await page.addInitScript(() => {
-    const played: string[] = []
-    Object.assign(window, { __playedAudio: played })
-    const play = HTMLMediaElement.prototype.play
-    HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
-      const src = this.src
-      const started = play.call(this)
-      if (!src.startsWith('data:')) void started.then(() => played.push(src), () => undefined)
-      return started
-    }
-  })
-  return () => page.evaluate(() => (window as unknown as { __playedAudio: string[] }).__playedAudio.length)
-}
 
 test('a new customer registers, unlocks the parent view and hears a board speak', async ({ page }) => {
   test.skip(!webhookSecret, 'Needs STRIPE_WEBHOOK_SECRET, the same one the local server uses.')
@@ -97,7 +50,7 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
 
   await test.step('start a trial', async () => {
     const { user } = await (await page.request.get('/api/users/me')).json()
-    await startTrial(page, user.id, run)
+    await startTrial(page.request, user.id, run)
 
     await page.goto('/profile')
     await expect(page.getByText(/^Prooviperiood lõpeb:/)).toBeVisible()
