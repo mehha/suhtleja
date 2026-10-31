@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { cn } from '@/utilities/ui'
 import { CellLabel } from '../CellLabel'
+import { isSvgImageURL } from '@/utilities/symbolProxy'
 
 // A card on the board, as the compounds page shows it.
 export type BoardCard = {
@@ -41,7 +42,14 @@ export function CardChip({ card, className }: { card: BoardCard | undefined; cla
     >
       {card?.imageURL && (
         <span className="relative size-7 shrink-0" aria-hidden="true">
-          <Image src={card.imageURL} alt="" fill sizes="28px" className="object-contain" />
+          <Image
+            src={card.imageURL}
+            alt=""
+            fill
+            sizes="28px"
+            className="object-contain"
+            unoptimized={isSvgImageURL(card.imageURL)}
+          />
         </span>
       )}
       <span className="truncate">{cardLabel(card)}</span>

@@ -12,11 +12,30 @@ export function isProxyableSymbolURL(value: string): boolean {
       return url.pathname.startsWith('/pictograms/')
     }
 
+    // Mulberry Symbols images that the Global Symbols API links to.
+    if (url.hostname === 'globalsymbols.com') {
+      return url.pathname.startsWith('/uploads/production/image/')
+    }
+
     if (url.hostname === 'unpkg.com') {
       return url.pathname.includes('/openmoji@')
     }
 
     return false
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Next's image optimizer refuses SVG ("image type is not allowed"), and OpenMoji and Mulberry symbols
+ * are SVG. Render those with `unoptimized`.
+ */
+export function isSvgImageURL(src?: string | null): boolean {
+  if (!src) return false
+
+  try {
+    return new URL(src, 'http://localhost').pathname.toLowerCase().endsWith('.svg')
   } catch {
     return false
   }

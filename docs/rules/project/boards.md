@@ -38,7 +38,10 @@ tags: [suhtleja, frontend, boards, payload]
   - `ttsCache` stores pregenerated speech metadata for saved cell labels and saved compound speech forms.
 - Board cell editor rules:
   - In image selection flow, `Sümbolid` is the default first tab when opening the cell modal.
-  - Choosing an image source (`Sümbolid`, upload, media) must not clear the current `Tekst` input before the user presses save.
+  - Choosing an image source (`Sümbolid`, `AI-pilt`, upload, media) must not clear the current `Tekst` input before the user presses save.
+  - A picture chosen in the cell modal (symbol, AI image, upload, media) is only staged: the preview and a ring on the chosen tile show it, and it replaces the card's picture only on `Salvesta`. `Tühista` or closing the modal keeps the old picture. (An upload is already in the media collection by then.)
+  - The `Sümbolid` tab searches while typing (400 ms debounce) and starts with the card's text when the modal opens. It calls `/next/symbols` with `aiFallback=true`, so a word without a direct match is searched through Groq's English terms; the modal then says which terms it used. Sources: ARASAAC (default), Mulberry, OpenMoji.
+  - The `AI-pilt` tab generates 4 pictograms with `/next/symbol-generate` (see `symbols-ai.md`) and shows the member's remaining monthly generations. The `Sümbolid` tab links to it ("Ei leidnud sobivat? Loo AI-ga"). On `Salvesta` the chosen AI image is uploaded to the media collection (owned by the user, `alt` = card text) and set as the card's `image`.
   - The `Meedia` tab in the cell editor must show only image media that has been assigned to a Payload folder.
   - In `/boards/[id]/edit`, if there are unsaved changes, leaving the page must require explicit confirmation.
   - The unsaved-changes guard must apply to both anchor navigation and forms marked with `data-navigation-form` (e.g. parent/child mode switch flows).

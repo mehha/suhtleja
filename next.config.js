@@ -31,6 +31,7 @@ const nextConfig = {
       },
       { protocol: 'https', hostname: 'static.arasaac.org' },
       { protocol: 'https', hostname: 'unpkg.com' },
+      { protocol: 'https', hostname: 'globalsymbols.com', pathname: '/uploads/production/image/**' },
       {
         protocol: 'https',
         hostname: 'suhtleja.ee',

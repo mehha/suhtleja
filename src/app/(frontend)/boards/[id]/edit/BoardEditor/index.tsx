@@ -31,6 +31,7 @@ import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
 import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import { toast } from 'sonner'
 import { CellLabel } from '../../CellLabel'
+import { isSvgImageURL } from '@/utilities/symbolProxy'
 
 const COMPACT_SWITCH_CLASS =
   'h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4'
@@ -212,6 +213,7 @@ export default function BoardEditor({
           fill
           sizes="(max-width: 768px) 100vw, 1200px"
           className="rounded object-contain p-2"
+          unoptimized={isSvgImageURL(src)}
         />
       </div>
     )

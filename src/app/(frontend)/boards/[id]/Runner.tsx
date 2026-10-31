@@ -26,6 +26,7 @@ import { prepareTextForTTS } from '@/utilities/azureTTS'
 import { ChildModeBar } from '@/app/(frontend)/kodu/ChildModeBar'
 import { CellLabel } from './CellLabel'
 import { toast } from 'sonner'
+import { isSvgImageURL } from '@/utilities/symbolProxy'
 
 const ResponsiveGridLayout = WidthProvider(ResponsiveGrid)
 const GRID_MARGIN: [number, number] = [16, 16]
@@ -470,6 +471,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
           sizes="(max-width: 768px) 100vw, 1200px"
           className="rounded object-contain p-2"
           priority={false}
+          unoptimized={isSvgImageURL(src)}
         />
       </div>
     )
@@ -641,6 +643,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
                                 sizes="56px"
                                 className="object-contain"
                                 priority={false}
+                                unoptimized={isSvgImageURL(src)}
                               />
                               {/* a11y: tekst ekraanilugejale */}
                               <span className="sr-only">{text}</span>

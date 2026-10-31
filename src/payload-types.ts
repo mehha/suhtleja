@@ -74,6 +74,7 @@ export interface Config {
     users: User;
     boards: Board;
     'connect-dots-puzzles': ConnectDotsPuzzle;
+    'symbol-generations': SymbolGeneration;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -98,6 +99,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     boards: BoardsSelect<false> | BoardsSelect<true>;
     'connect-dots-puzzles': ConnectDotsPuzzlesSelect<false> | ConnectDotsPuzzlesSelect<true>;
+    'symbol-generations': SymbolGenerationsSelect<false> | SymbolGenerationsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -1311,6 +1313,22 @@ export interface ConnectDotsPuzzle {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "symbol-generations".
+ */
+export interface SymbolGeneration {
+  id: number;
+  user?: (number | null) | User;
+  label: string;
+  prompt?: string | null;
+  /**
+   * Mitu pilti mudel tagastas.
+   */
+  images?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -1526,6 +1544,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'connect-dots-puzzles';
         value: number | ConnectDotsPuzzle;
+      } | null)
+    | ({
+        relationTo: 'symbol-generations';
+        value: number | SymbolGeneration;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -2264,6 +2286,18 @@ export interface ConnectDotsPuzzlesSelect<T extends boolean = true> {
   image?: T;
   generateSlug?: T;
   slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "symbol-generations_select".
+ */
+export interface SymbolGenerationsSelect<T extends boolean = true> {
+  user?: T;
+  label?: T;
+  prompt?: T;
+  images?: T;
   updatedAt?: T;
   createdAt?: T;
 }

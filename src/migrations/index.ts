@@ -11,6 +11,7 @@ import * as migration_20260426_104206_media_owner_access from './20260426_104206
 import * as migration_20261001_135529 from './20261001_135529';
 import * as migration_20261025_094741_homepage_sections from './20261025_094741_homepage_sections';
 import * as migration_20261025_142826_how_it_works_and_contact_blocks from './20261025_142826_how_it_works_and_contact_blocks';
+import * as migration_20261031_181817_symbol_generations from './20261031_181817_symbol_generations';
 
 export const migrations = [
   {
@@ -76,6 +77,11 @@ export const migrations = [
   {
     up: migration_20261025_142826_how_it_works_and_contact_blocks.up,
     down: migration_20261025_142826_how_it_works_and_contact_blocks.down,
-    name: '20261025_142826_how_it_works_and_contact_blocks'
+    name: '20261025_142826_how_it_works_and_contact_blocks',
+  },
+  {
+    up: migration_20261031_181817_symbol_generations.up,
+    down: migration_20261031_181817_symbol_generations.down,
+    name: '20261031_181817_symbol_generations'
   },
 ];

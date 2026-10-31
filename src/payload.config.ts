@@ -14,6 +14,7 @@ import { Boards } from './collections/Boards'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { ConnectDotsPuzzles } from './collections/ConnectDotsPuzzles'
+import { SymbolGenerations } from './collections/SymbolGenerations'
 import { plugins } from './plugins'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
@@ -65,7 +66,7 @@ export default buildConfig({
     binding: cloudflare.env.D1,
     push: false,
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Boards, ConnectDotsPuzzles],
+  collections: [Pages, Posts, Media, Categories, Users, Boards, ConnectDotsPuzzles, SymbolGenerations],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
   logger: process.env.NODE_ENV === 'production' ? cloudflareLogger : undefined,

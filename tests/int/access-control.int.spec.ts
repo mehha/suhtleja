@@ -28,7 +28,10 @@ let alice: TestUser // paying customer
 let bob: TestUser // paying customer
 let freeUser: TestUser // registered, no membership
 
-const created: Array<{ collection: 'users' | 'boards' | 'connect-dots-puzzles' | 'media' | 'pages'; id: number }> = []
+const created: Array<{
+  collection: 'users' | 'boards' | 'connect-dots-puzzles' | 'media' | 'pages' | 'symbol-generations'
+  id: number
+}> = []
 const track = <T extends { id: number }>(collection: (typeof created)[number]['collection'], doc: T) => {
   created.push({ collection, id: doc.id })
   return doc
@@ -323,5 +326,22 @@ describe('media', () => {
   it('a customer cannot hand their media over to someone else', async () => {
     const updated = await payload.update({ collection: 'media', id: aliceMedia.id, data: { owner: bob.id } as never, ...as(alice) })
     expect(ownerId(updated.owner)).toBe(alice.id)
+  })
+})
+
+describe('symbol generations', () => {
+  it('only the server records them and only admins read them', async () => {
+    const generation = track(
+      'symbol-generations',
+      await payload.create({ collection: 'symbol-generations', data: { label: 'koer', user: alice.id }, overrideAccess: true }),
+    )
+
+    await expect(payload.create({ collection: 'symbol-generations', data: { label: 'koer', user: alice.id }, ...as(alice) })).rejects.toThrow()
+    await expect(payload.find({ collection: 'symbol-generations', ...as(alice) })).rejects.toThrow()
+    await expect(payload.update({ collection: 'symbol-generations', id: generation.id, data: { label: 'x' }, ...as(alice) })).rejects.toThrow()
+    await expect(payload.delete({ collection: 'symbol-generations', id: generation.id, ...as(alice) })).rejects.toThrow()
+
+    const found = await payload.find({ collection: 'symbol-generations', where: { id: { equals: generation.id } }, ...as(admin) })
+    expect(found.docs).toHaveLength(1)
   })
 })

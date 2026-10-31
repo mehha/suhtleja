@@ -26,6 +26,7 @@ tags: [suhtleja, security, access, payload]
 - Header and Footer globals: `update` admin only.
 - Plugin collections set in `src/plugins/index.ts`: redirects, forms and search writes are admin only; form submissions stay publicly creatable but only admins can read or delete them.
 - Payload jobs (`jobs.access.run`): admins or the `CRON_SECRET` bearer token.
+- Symbol generations (`symbol-generations`, the AI image log and monthly limit): no API creates or updates them (`/next/symbol-generate` writes them with the Local API); only admins read or delete them.
 - Owner-based collections (boards, connect-dots puzzles, media) keep their owner checks.
 - Boards and connect-dots puzzles: the `owner` and `visibleToAllUsers` fields are admin-only for create and update (`isAdminFieldLevel`). A customer's value is dropped, so new documents always belong to the customer and stay private. Media blocks owner changes with field access and forces the owner on create in a hook.
 

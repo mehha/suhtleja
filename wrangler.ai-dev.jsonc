@@ -1,0 +1,14 @@
+// Local dev only: Workers AI for /next/symbol-generate (src/utilities/workersAI.ts).
+// The app's own platform proxy keeps remote bindings off, so D1 and R2 stay local. Workers AI only runs
+// remotely, so dev opens a second proxy from this file, which has nothing but the AI binding.
+// Production uses the AI binding in wrangler.jsonc.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "suhtleja-dev-ai",
+  "account_id": "5e14935f8ec5af079f9a4b1090f57456",
+  "compatibility_date": "2025-08-15",
+  "ai": {
+    "binding": "AI",
+    "remote": true
+  }
+}

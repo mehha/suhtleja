@@ -30,6 +30,11 @@
       "remote": true
     }
   ],
+  "ai": {
+    // Workers AI for the board editor's "Loo pilt" (/next/symbol-generate). Always remote, also in local dev.
+    "binding": "AI",
+    "remote": true
+  },
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
