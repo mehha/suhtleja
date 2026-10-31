@@ -92,3 +92,66 @@
     @apply bg-background text-foreground min-h-[100vh] flex flex-col;
   }
 }
+
+/* Board editor: a cell's resize corner. react-resizable draws a 5px mark in the very corner; here it
+   matches the cell's move grip: a bare mark in a 28px target, 8px from the edges (the cell's
+   padding), with a grey background on hover and while resizing. Bare, so it doesn't cover the
+   label. Not in a Tailwind layer, so it follows react-grid-layout's own CSS by specificity alone. */
+.board-editor-grid .react-grid-item > .react-resizable-handle.react-resizable-handle-se {
+  right: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 10;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  transition: background-color 150ms;
+  touch-action: none;
+}
+
+.board-editor-grid .react-grid-item > .react-resizable-handle.react-resizable-handle-se::after {
+  inset: 0;
+  width: auto;
+  height: auto;
+  border: 0;
+  background-color: rgb(71 85 105);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M13 5 5 13M13 10l-3 3' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E")
+    center / 1rem no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M13 5 5 13M13 10l-3 3' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E")
+    center / 1rem no-repeat;
+  transition: background-color 150ms;
+}
+
+.board-editor-grid .react-grid-item > .react-resizable-handle.react-resizable-handle-se:hover,
+.board-editor-grid .react-grid-item.resizing > .react-resizable-handle.react-resizable-handle-se {
+  background: rgb(241 245 249);
+}
+
+.board-editor-grid .react-grid-item > .react-resizable-handle.react-resizable-handle-se:hover::after,
+.board-editor-grid .react-grid-item.resizing > .react-resizable-handle.react-resizable-handle-se::after {
+  background-color: rgb(15 23 42);
+}
+
+/* In cells under 112px wide the controls move to 4px from the edges, so the grip and the two buttons
+   still fit side by side at the editor's 96px minimum cell width. */
+.board-editor-grid .react-grid-item {
+  container-type: inline-size;
+}
+
+@container (max-width: 111px) {
+  .board-editor-grid .board-cell-drag-handle {
+    top: 0.25rem;
+    left: 0.25rem;
+  }
+
+  .board-editor-grid .board-cell-controls {
+    top: 0.25rem;
+    right: 0.25rem;
+  }
+
+  .board-editor-grid .react-grid-item > .react-resizable-handle.react-resizable-handle-se {
+    right: 0.25rem;
+    bottom: 0.25rem;
+  }
+}

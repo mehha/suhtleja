@@ -46,6 +46,7 @@ tags: [suhtleja, frontend, boards, payload]
   - Saving compounds must regenerate missing cached TTS audio for compound speech forms.
   - In `/boards/[id]/edit`, editor grid row height should track the column width so 1x1 editable cells render as square tiles.
   - In `/boards/[id]/edit`, mobile layouts should start at 3 columns and increase at wider breakpoints.
+  - Editor cell controls (move grip, `Muuda kaarti`, `Kustuta kaart`, resize corner) are all 28px and sit 8px from the cell's edges, the cell's padding; in cells under 112px wide they move to 4px (a container query in `globals.css`), so they fit at the 96px minimum. The grip and the resize corner are bare marks with a grey hover background, so the corner doesn't cover the label; edit and delete are filled buttons. The resize corner is styled in `globals.css` (`.board-editor-grid`), replacing react-resizable's corner mark. A cell without a picture keeps its label below the controls.
 - Home page rules:
   - Show board content and connect-dots content in separate top-level sections.
   - Within each top-level section, owned items and shared items may render as separate subsections.

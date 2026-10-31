@@ -30,6 +30,7 @@ import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog'
 import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
 import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import { toast } from 'sonner'
+import { cn } from '@/utilities/ui'
 
 const COMPACT_SWITCH_CLASS =
   'h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4'
@@ -193,11 +194,16 @@ export default function BoardEditor({
     void updateCellAction(cellId, patch as any)
   }
 
+  const cellImageSrc = (cell: {
+    externalImageURL?: string | null
+    image?: number | Media | null
+  }): string =>
+    cell?.externalImageURL ||
+    (cell?.image && typeof cell.image === 'object' && cell.image.url) ||
+    ''
+
   const renderCellImage = (cell: any) => {
-    const src =
-      cell?.externalImageURL ||
-      (cell?.image && typeof cell.image === 'object' && (cell.image as Media).url) ||
-      ''
+    const src = cellImageSrc(cell)
     if (!src) return null
     return (
       <div className="relative min-h-0 w-full flex-1 p-2 pb-1">
@@ -499,7 +505,7 @@ export default function BoardEditor({
         <div ref={gridContainerRef} className="w-full">
           {gridWidth > 0 ? (
             <ReactGridLayout
-              className="layout"
+              className="layout board-editor-grid"
               width={gridWidth}
               cols={activeGridCols}
               rowHeight={rowHeight}
@@ -518,22 +524,25 @@ export default function BoardEditor({
                   key={cell.id}
                   className="relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5"
                 >
+                  {/* The cell's controls (grip, edit, delete and the resize corner, styled in
+                      globals.css) are all 28px and 8px from the edges, the cell's own padding;
+                      4px in cells under 112px wide, so they still fit at the 96px minimum. */}
                   {layoutLocked ? null : (
                     <span
                       aria-label="Lohista kaardi liigutamiseks"
-                      className="board-cell-drag-handle absolute left-2 top-2.5 z-10 inline-flex cursor-grab touch-none rounded hover:bg-muted active:cursor-grabbing"
+                      className="board-cell-drag-handle absolute left-2 top-2 z-10 inline-flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:cursor-grabbing"
                       role="img"
                     >
                       <GripVertical className="h-5 w-5" />
                     </span>
                   )}
 
-                  <div className="absolute right-1 top-1 z-10 flex gap-1">
+                  <div className="board-cell-controls absolute right-2 top-2 z-10 flex gap-1">
                     <Button
                       type="button"
                       size="icon"
                       variant="secondary"
-                      className="h-8 w-8"
+                      className="h-7 w-7 rounded-lg p-0"
                       aria-label="Muuda kaarti"
                       onClick={(e) => {
                         e.stopPropagation()
@@ -546,22 +555,30 @@ export default function BoardEditor({
 
                     <Button
                       type="button"
-                      size="xs"
+                      size="icon"
                       variant="destructive"
+                      className="h-7 w-7 rounded-lg p-0"
+                      aria-label="Kustuta kaart"
                       onClick={(e) => {
                         e.stopPropagation()
                         e.preventDefault()
                         deleteCell(cell.id)
                       }}
                     >
-                      <Trash width={14} />
+                      <Trash className="h-4 w-4" />
                     </Button>
                   </div>
 
                   {renderCellImage(cell)}
 
                   {cell.title && (
-                    <div className="shrink-0 px-1 pb-1 text-center uppercase text-slate-950">
+                    // Without a picture the label comes first; keep it below the controls.
+                    <div
+                      className={cn(
+                        'shrink-0 px-1 pb-1 text-center uppercase text-slate-950',
+                        !cellImageSrc(cell) && 'pt-8',
+                      )}
+                    >
                       <div className="break-words text-xl font-semibold leading-5">{cell.title}</div>
                     </div>
                   )}
