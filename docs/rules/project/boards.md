@@ -25,6 +25,10 @@ tags: [suhtleja, frontend, boards, payload]
   - The board pages (`/boards/[id]`, `/boards/[id]/edit`) load the board with `findBoardForUser` (`src/utilities/findBoardForUser.ts`): the collection's read access decides, so another user's private board is not found. The board goes to the browser, so it carries no user documents: the owner stays an id and depth 1 fills the cells' media but not their uploaders (a populated user has the email, PIN hash and Stripe ids). Tested in `tests/int/access-control.int.spec.ts`.
   - The editor's `renameBoard` updates with `overrideAccess: false` and the current user, so only the owner can rename a board.
   - `/koduhaldus` is also the parent-mode management surface for connect-dots puzzles.
+  - `/koduhaldus` loads every board and game (`pagination: false`; Payload's default stops at 10), with only the fields its lists show (`select`) and owners only as name, email and role (`populate`), for the same reason: the page goes to the browser.
+- `/koduhaldus` switches (`boards/ActionSwitch.tsx`): `Koduvaade` for boards and games, and `Nähtavus` for admins on boards, are switches with the state next to them (`Koduvaates` / `Peidetud`, `Kõigile nähtav` / `Ainult omanikule`).
+  - A switch flips at once (`useOptimistic`) and saves in the background. The actions (`togglePinned`, `togglePuzzlePinned`, `toggleVisibility`) return an `ActionResult` instead of redirecting and revalidate `/koduhaldus` and `/kodu`, so the switch settles on the saved value; the success toast comes when the save returns, and a failed save flips the switch back with an error toast.
+  - An admin sees another user's private board with a disabled home switch: its home view is the owner's choice.
 - Board fields:
   - `name` is required.
   - `owner` is relationship to `users` and should default to current user on create.

@@ -2,13 +2,15 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { Globe2, Pencil, Pin, PinOff, PlusCircle, Trash2 } from 'lucide-react'
+import { Globe2, Pencil, PlusCircle, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
+import { ActionSwitch } from './ActionSwitch'
 
 export type ConnectDotsBoardsPuzzle = {
   enabled?: boolean | null
@@ -31,7 +33,7 @@ type Props = {
   deletePuzzle: (formData: FormData) => Promise<void>
   isAdmin: boolean
   puzzles: ConnectDotsBoardsPuzzle[]
-  togglePinned: (formData: FormData) => Promise<void>
+  togglePinned: (formData: FormData) => Promise<ActionResult>
 }
 
 function renderCreator(owner: ConnectDotsBoardsPuzzle['owner']) {
@@ -158,30 +160,19 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                       <TableCell>{renderCreator(puzzle.owner)}</TableCell>
 
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={isPinned ? 'default' : 'outline'}>
-                            {isPinned ? 'Koduvaates' : 'Peidetud'}
-                          </Badge>
-                          <form action={togglePinned}>
-                            <input name="puzzleId" type="hidden" value={String(puzzle.id)} />
-                            <input
-                              name="isOwnedByCurrentUser"
-                              type="hidden"
-                              value={puzzle.isOwnedByCurrentUser ? 'true' : 'false'}
-                            />
-                            <input name="pinned" type="hidden" value={(!isPinned).toString()} />
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button className="h-7 w-7" size="icon" type="submit" variant="ghost">
-                                  {isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{isPinned ? 'Eemalda koduvaatest' : 'Lisa koduvaatesse'}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </form>
-                        </div>
+                        <ActionSwitch
+                          action={togglePinned}
+                          ariaLabel={`Näita koduvaates: ${puzzle.title || 'Nimetu mäng'}`}
+                          checked={isPinned}
+                          fields={{ puzzleId: String(puzzle.id) }}
+                          name="pinned"
+                          stateLabels={{ on: 'Koduvaates', off: 'Peidetud' }}
+                          successMessages={{
+                            on: FLASH_TOASTS['game-pinned'].message,
+                            off: FLASH_TOASTS['game-unpinned'].message,
+                          }}
+                          toastId="game-home"
+                        />
                       </TableCell>
 
                       <TableCell>

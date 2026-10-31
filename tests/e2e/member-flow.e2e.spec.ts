@@ -252,10 +252,12 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   await test.step('put the board on the child home', async () => {
     await page.goto('/koduhaldus')
     const row = page.getByRole('row').filter({ hasText: boardName })
-    await expect(row.getByText('Peidetud')).toBeVisible()
-    await row.getByRole('button', { name: 'Lisa koduvaatesse' }).click()
+    const homeSwitch = row.getByRole('switch', { name: `Näita koduvaates: ${boardName}` })
+    await expect(homeSwitch).not.toBeChecked()
+    await homeSwitch.click()
+    // The switch flips at once; the toast comes when the save returns.
+    await expect(homeSwitch).toBeChecked()
     await expect(row.getByText('Koduvaates')).toBeVisible()
-    // The action redirects with ?toast=board-pinned; FlashToast shows it and cleans the URL.
     await expect(page.getByText('Tahvel lisati koduvaatesse.')).toBeVisible()
     await expect(page).toHaveURL(/\/koduhaldus$/)
 

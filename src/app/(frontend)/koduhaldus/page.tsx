@@ -1,16 +1,21 @@
 // src/app/(frontend)/koduhaldus/page.tsx
+import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import type { Board } from '@/payload-types'
 import { BoardsList, type BoardsListBoard } from '../boards/BoardsList'
 import { ConnectDotsBoardsList, type ConnectDotsBoardsPuzzle } from '../boards/ConnectDotsBoardsList'
 import { CreateBoardForm } from '../boards/CreateBoardForm'
+import { getCurrentUser } from '@/utilities/getCurrentUser'
 import { requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
-import { withToast, type FlashToastKey } from '@/utilities/flashToast'
+import {
+  ACTION_ERROR,
+  withToast,
+  type ActionResult,
+  type FlashToastKey,
+} from '@/utilities/flashToast'
 import {
   getUserSharedHomePreferences,
   isOwnedByUser,
@@ -21,10 +26,7 @@ import {
 export const dynamic = 'force-dynamic'
 
 export default async function ActivitiesPage() {
-  const payload = await getPayload({ config: configPromise })
-  const requestHeaders = await headers()
-
-  const { user } = await payload.auth({ headers: requestHeaders })
+  const { payload, user } = await getCurrentUser()
 
   await requireParentMode()
 
@@ -50,15 +52,22 @@ export default async function ActivitiesPage() {
         },
     sort: 'createdAt',
     depth: 1,
+    pagination: false,
+    // Only what the list shows. The page goes to the browser, so owners carry their name, email
+    // and role, not the whole user (PIN hash, Stripe ids), and boards leave their cells behind.
+    select: { name: true, owner: true, pinned: true, visibleToAllUsers: true },
+    populate: { users: { email: true, name: true, role: true } },
   })
 
-  const boards = boardsRes.docs.map((doc) => {
-    const board = doc as Board
+  const boards: BoardsListBoard[] = boardsRes.docs.map((board) => {
     const isOwnedByCurrentUser = isOwnedByUser(board, user.id)
     const boardId = toIdString(board.id) ?? ''
 
     return {
-      ...board,
+      id: board.id,
+      name: board.name,
+      owner: board.owner,
+      visibleToAllUsers: board.visibleToAllUsers,
       homeVisible: isOwnedByCurrentUser
         ? board.pinned === true
         : board.visibleToAllUsers
@@ -66,13 +75,23 @@ export default async function ActivitiesPage() {
           : board.pinned === true,
       isOwnedByCurrentUser,
     }
-  }) as BoardsListBoard[]
+  })
   const puzzlesRes = await payload.find({
     collection: 'connect-dots-puzzles',
     depth: 1,
     overrideAccess: false,
     sort: 'updatedAt',
     user,
+    pagination: false,
+    select: {
+      enabled: true,
+      owner: true,
+      pinned: true,
+      title: true,
+      updatedAt: true,
+      visibleToAllUsers: true,
+    },
+    populate: { users: { email: true, name: true, role: true } },
     where: isAdmin
       ? {}
       : {
@@ -92,10 +111,7 @@ export default async function ActivitiesPage() {
   })
 
   const puzzles = puzzlesRes.docs.map((doc) => {
-    const puzzle = doc as unknown as ConnectDotsBoardsPuzzle & {
-      owner?: Board['owner']
-      pinned?: boolean | null
-    }
+    const puzzle = doc as unknown as ConnectDotsBoardsPuzzle
     const isOwnedByCurrentUser = isOwnedByUser(puzzle, user.id)
     const puzzleId = toIdString(puzzle.id) ?? ''
 
@@ -151,7 +167,10 @@ export default async function ActivitiesPage() {
     )
   }
 
-  async function togglePinned(formData: FormData) {
+  // The home and sharing switches flip at once and save in the background (ActionSwitch). These
+  // actions return their outcome instead of redirecting, and revalidate so the switch settles on
+  // the saved value.
+  async function togglePinned(formData: FormData): Promise<ActionResult> {
     'use server'
 
     const boardId = formData.get('boardId') as string
@@ -163,13 +182,13 @@ export default async function ActivitiesPage() {
     if (!user) redirect('/admin')
     requireActiveMembership(user)
 
-    let toastKey: FlashToastKey = pinned ? 'board-pinned' : 'board-unpinned'
     try {
       const doc = await payload.findByID({
         collection: 'boards',
         id: boardId,
         depth: 0,
         overrideAccess: false,
+        select: { owner: true, visibleToAllUsers: true },
         user,
       })
 
@@ -180,6 +199,7 @@ export default async function ActivitiesPage() {
           collection: 'boards',
           id: boardId,
           data: { pinned },
+          depth: 0,
           overrideAccess: false,
           user,
         })
@@ -197,17 +217,22 @@ export default async function ActivitiesPage() {
           data: {
             hiddenSharedBoardIds,
           },
+          depth: 0,
         })
+      } else {
+        return { ok: false, error: ACTION_ERROR }
       }
     } catch (error) {
       console.error('togglePinned failed', error)
-      toastKey = 'error'
+      return { ok: false, error: ACTION_ERROR }
     }
 
-    redirect(withToast('/koduhaldus', toastKey))
+    revalidatePath('/koduhaldus')
+    revalidatePath('/kodu')
+    return { ok: true }
   }
 
-  async function toggleVisibility(formData: FormData) {
+  async function toggleVisibility(formData: FormData): Promise<ActionResult> {
     'use server'
 
     const boardId = formData.get('boardId') as string
@@ -223,20 +248,22 @@ export default async function ActivitiesPage() {
       redirect('/kodu')
     }
 
-    let toastKey: FlashToastKey = visibleToAllUsers ? 'board-shared' : 'board-unshared'
     try {
       await payload.update({
         collection: 'boards',
         id: boardId,
         data: { visibleToAllUsers },
+        depth: 0,
         overrideAccess: true,
       })
     } catch (error) {
       console.error('toggleVisibility failed', error)
-      toastKey = 'error'
+      return { ok: false, error: ACTION_ERROR }
     }
 
-    redirect(withToast('/koduhaldus', toastKey))
+    revalidatePath('/koduhaldus')
+    revalidatePath('/kodu')
+    return { ok: true }
   }
 
   async function deleteBoard(formData: FormData) {
@@ -266,7 +293,7 @@ export default async function ActivitiesPage() {
     redirect(withToast('/koduhaldus', toastKey))
   }
 
-  async function togglePuzzlePinned(formData: FormData) {
+  async function togglePuzzlePinned(formData: FormData): Promise<ActionResult> {
     'use server'
 
     const puzzleId = formData.get('puzzleId') as string
@@ -278,13 +305,13 @@ export default async function ActivitiesPage() {
     if (!user) redirect('/admin')
     requireActiveMembership(user)
 
-    let toastKey: FlashToastKey = pinned ? 'game-pinned' : 'game-unpinned'
     try {
       const doc = await payload.findByID({
         collection: 'connect-dots-puzzles',
         id: puzzleId,
         depth: 0,
         overrideAccess: false,
+        select: { owner: true, visibleToAllUsers: true },
         user,
       })
 
@@ -293,6 +320,7 @@ export default async function ActivitiesPage() {
           collection: 'connect-dots-puzzles',
           id: puzzleId,
           data: { pinned },
+          depth: 0,
           overrideAccess: false,
           user,
         })
@@ -310,14 +338,17 @@ export default async function ActivitiesPage() {
           data: {
             hiddenSharedPuzzleIds,
           },
+          depth: 0,
         })
       }
     } catch (error) {
       console.error('togglePuzzlePinned failed', error)
-      toastKey = 'error'
+      return { ok: false, error: ACTION_ERROR }
     }
 
-    redirect(withToast('/koduhaldus', toastKey))
+    revalidatePath('/koduhaldus')
+    revalidatePath('/kodu')
+    return { ok: true }
   }
 
   async function deletePuzzle(formData: FormData) {

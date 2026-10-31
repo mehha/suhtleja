@@ -24,25 +24,29 @@ import {
 import {
   Edit3,
   Monitor,
-  Pin,
-  PinOff,
   Trash2,
 } from 'lucide-react'
+import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
+import { ActionSwitch } from './ActionSwitch'
 
-export type BoardsListBoard = Board & {
+type BoardsListOwner = { email?: string | null; name?: string | null; role?: string | null }
+
+// Only what the list shows; /koduhaldus loads these fields and nothing else.
+export type BoardsListBoard = Pick<Board, 'id' | 'name' | 'visibleToAllUsers'> & {
   homeVisible: boolean
   isOwnedByCurrentUser: boolean
+  owner?: BoardsListOwner | number | null
 }
 
 type BoardsListProps = {
   boards: BoardsListBoard[]
   isAdmin: boolean
-  toggleVisibility: (formData: FormData) => Promise<void>
-  togglePinned: (formData: FormData) => Promise<void> // server action (/koduhaldus/page.tsx)
+  toggleVisibility: (formData: FormData) => Promise<ActionResult>
+  togglePinned: (formData: FormData) => Promise<ActionResult> // server action (/koduhaldus/page.tsx)
   deleteBoard: (formData: FormData) => Promise<void> // server action (/koduhaldus/page.tsx)
 }
 
-function renderCreator(owner: { email?: string; name?: string; role?: string } | null) {
+function renderCreator(owner: BoardsListOwner | null) {
   if (!owner) {
     return <span className="text-xs text-muted-foreground">-</span>
   }
@@ -77,7 +81,7 @@ export function BoardsList({
       const name = board.name?.toLowerCase() ?? ''
       const ownerName =
         typeof board.owner === 'object' && board.owner
-          ? ((board.owner as any).name || (board.owner as any).email || '').toLowerCase()
+          ? (board.owner.name || board.owner.email || '').toLowerCase()
           : ''
       return name.includes(q) || ownerName.includes(q)
     })
@@ -144,10 +148,8 @@ export function BoardsList({
             <TableBody>
               {filteredBoards.map((board, index) => {
                 const isPinned = !!board.homeVisible
-                const owner =
-                  typeof board.owner === 'object' && board.owner
-                    ? (board.owner as any)
-                    : null
+                const owner = typeof board.owner === 'object' && board.owner ? board.owner : null
+                const boardName = board.name || 'Nimetu tahvel'
                 const canEditBoard = board.isOwnedByCurrentUser
                 // Admins also see other users' private boards; their home pin belongs to the owner.
                 const canTogglePinned = board.isOwnedByCurrentUser || !!board.visibleToAllUsers
@@ -167,7 +169,7 @@ export function BoardsList({
                           href={`/boards/${board.id}`}
                           className="font-medium underline-offset-2 hover:underline"
                         >
-                          {board.name || 'Nimetu tahvel'}
+                          {boardName}
                         </Link>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Link
@@ -198,98 +200,45 @@ export function BoardsList({
                     </TableCell>
 
                     <TableCell className="px-3 py-2 align-middle">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={isPinned ? 'default' : 'outline'}
-                          className="px-2 py-0.5 text-[11px]"
-                        >
-                          {isPinned ? 'Koduvaates' : 'Peidetud'}
-                        </Badge>
-
-                        {canTogglePinned ? (
-                          <form action={togglePinned}>
-                            <input type="hidden" name="boardId" value={String(board.id)} />
-                            <input
-                              type="hidden"
-                              name="isOwnedByCurrentUser"
-                              value={board.isOwnedByCurrentUser ? 'true' : 'false'}
-                            />
-                            <input
-                              type="hidden"
-                              name="pinned"
-                              value={(!isPinned).toString()}
-                            />
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="submit"
-                                  size="icon"
-                                  variant="ghost"
-                                  aria-label={isPinned ? 'Eemalda koduvaatest' : 'Lisa koduvaatesse'}
-                                  className="h-7 w-7"
-                                >
-                                  {isPinned ? (
-                                    <PinOff className="h-4 w-4" />
-                                  ) : (
-                                    <Pin className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
-                                  {isPinned
-                                    ? 'Eemalda koduvaatest'
-                                    : 'Lisa koduvaatesse'}
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </form>
-                        ) : null}
-                      </div>
+                      <ActionSwitch
+                        action={togglePinned}
+                        ariaLabel={`Näita koduvaates: ${boardName}`}
+                        checked={isPinned}
+                        disabled={!canTogglePinned}
+                        fields={{ boardId: String(board.id) }}
+                        name="pinned"
+                        stateLabels={{ on: 'Koduvaates', off: 'Peidetud' }}
+                        successMessages={{
+                          on: FLASH_TOASTS['board-pinned'].message,
+                          off: FLASH_TOASTS['board-unpinned'].message,
+                        }}
+                        toastId="board-home"
+                      />
                     </TableCell>
 
                     <TableCell className="px-3 py-2 align-middle">
-                      <div className="flex items-center gap-2">
+                      {isAdmin ? (
+                        <ActionSwitch
+                          action={toggleVisibility}
+                          ariaLabel={`Nähtav kõigile: ${boardName}`}
+                          checked={!!board.visibleToAllUsers}
+                          fields={{ boardId: String(board.id) }}
+                          name="visibleToAllUsers"
+                          stateLabels={{ on: 'Kõigile nähtav', off: 'Ainult omanikule' }}
+                          successMessages={{
+                            on: FLASH_TOASTS['board-shared'].message,
+                            off: FLASH_TOASTS['board-unshared'].message,
+                          }}
+                          toastId="board-shared"
+                        />
+                      ) : (
                         <Badge
                           variant={board.visibleToAllUsers ? 'secondary' : 'outline'}
                           className="px-2 py-0.5 text-[11px]"
                         >
                           {board.visibleToAllUsers ? 'Kõigile nähtav' : 'Ainult omanikule'}
                         </Badge>
-                        {isAdmin ? (
-                          <form action={toggleVisibility}>
-                            <input type="hidden" name="boardId" value={String(board.id)} />
-                            <input
-                              type="hidden"
-                              name="visibleToAllUsers"
-                              value={board.visibleToAllUsers ? 'false' : 'true'}
-                            />
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="submit"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7"
-                                >
-                                  {board.visibleToAllUsers ? (
-                                    <PinOff className="h-4 w-4" />
-                                  ) : (
-                                    <Pin className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
-                                  {board.visibleToAllUsers
-                                    ? 'Muuda ainult omanikule nähtavaks'
-                                    : 'Muuda kõigile nähtavaks'}
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </form>
-                        ) : null}
-                      </div>
+                      )}
                     </TableCell>
 
                     <TableCell className="px-3 py-2 align-middle text-right">
@@ -298,9 +247,7 @@ export function BoardsList({
                           action={deleteBoard}
                           onSubmit={(e) => {
                             if (
-                              !window.confirm(
-                                `Kas soovid kindlasti kustutada tahvli “${board.name || 'Nimetu tahvel'}”?`,
-                              )
+                              !window.confirm(`Kas soovid kindlasti kustutada tahvli “${boardName}”?`)
                             ) {
                               e.preventDefault()
                             }

@@ -22,6 +22,7 @@ tags: [suhtleja, frontend, ui, sonner]
 ## How
 - Server action that redirects (pattern A): redirect to `withToast(path, key)` with a key from `FLASH_TOASTS`. Keep auth and membership redirects outside the try block, put the Payload calls in try/catch, and call `redirect()` after it so `NEXT_REDIRECT` isn't caught. On failure redirect with the `error` key.
 - Server action that stays on the page (pattern B): return `ActionResult` (`{ ok: true }` or `{ ok: false, error }`); the client form handler calls `toast.success` or `toast.error`. Use this when a redirect would lose what the user entered (the game editor keeps its dots).
+- Switches that save at once (`/koduhaldus`, `boards/ActionSwitch.tsx`) use pattern B in `startTransition`: the switch flips first, the toast comes when the action returns, with one toast id per kind of switch so quick flips replace it.
 - Client-only work (fetches, uploads, a server action in `startTransition`): call `toast.*` directly. Catch errors inside the transition, because an error thrown there reaches the error page.
 - `FlashToast` also turns Stripe's `?membership=success` / `?membership=cancel` into a toast. It removes the params it handled; `membership=required` stays for the profile page.
 - Give a toast an `id` when the same event can repeat quickly (repeated taps, the dev-mode double effect).
