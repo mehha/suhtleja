@@ -1,7 +1,7 @@
 // src/app/(frontend)/boards/[id]/Runner.tsx
 'use client'
 
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import type { Board, Media } from '@/payload-types'
 import Link from 'next/link'
@@ -46,6 +46,15 @@ function isInterruptedPlayback(error: unknown) {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
+// Speech the board hasn't saved (a sentence, an AI-corrected word) is synthesized on demand and
+// the last few are kept while the page is open: "play all" fetches its sentence while the child is
+// still tapping, and a replay or an undo plays at once.
+const SPOKEN_AUDIO_KEEP = 12
+// The sentence is fetched once the child pauses, so a quick run of taps loads only the last one.
+const SENTENCE_PREFETCH_DELAY_MS = 300
+// Longer runs of taps are rarely played as one sentence; "play all" still fetches them on demand.
+const SENTENCE_PREFETCH_MAX_WORDS = 10
+
 // The child view shows no other toasts: only this one, so a tap that made no sound isn't silent.
 // The id keeps repeated taps from stacking toasts.
 function notifySpeechFailed() {
@@ -69,6 +78,8 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   const playbackTokenRef = useRef(0)
   const preloadedAudioUrlBySourceRef = useRef<Map<string, string>>(new Map())
   const preloadPromisesRef = useRef<Map<string, Promise<void>>>(new Map())
+  // Unsaved speech by its prepared text (see SPOKEN_AUDIO_KEEP).
+  const spokenAudioRef = useRef<Map<string, Promise<string | null>>>(new Map())
 
   const cols = Math.max(1, board.grid?.cols ?? 6)
   const cells = (board.grid?.cells ?? []).filter((c) => !c.locked)
@@ -249,70 +260,80 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     })
   }
 
+  // An object URL of unsaved speech, or null when it couldn't be synthesized.
+  const loadSpokenAudio = useCallback((preparedText: string): Promise<string | null> => {
+    const store = spokenAudioRef.current
+    const known = store.get(preparedText)
+    if (known) {
+      // The most recently used is kept longest.
+      store.delete(preparedText)
+      store.set(preparedText, known)
+      return known
+    }
+
+    const loading: Promise<string | null> = fetch('/next/tts-ms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: preparedText }),
+    })
+      .then(async (res) => (res.ok ? URL.createObjectURL(await res.blob()) : null))
+      .catch(() => null)
+      .then((url) => {
+        // A failure isn't kept, so the next try fetches again.
+        if (!url && store.get(preparedText) === loading) store.delete(preparedText)
+        return url
+      })
+    store.set(preparedText, loading)
+
+    while (store.size > SPOKEN_AUDIO_KEEP) {
+      const [oldestText, oldest] = store.entries().next().value!
+      store.delete(oldestText)
+      void oldest.then((url) => url && URL.revokeObjectURL(url))
+    }
+
+    return loading
+  }, [])
+
+  useEffect(() => {
+    const store = spokenAudioRef.current
+    return () => {
+      for (const loading of store.values()) void loading.then((url) => url && URL.revokeObjectURL(url))
+      store.clear()
+    }
+  }, [])
+
+  // Fetch the sentence while the child builds it, so "play all" starts at once.
+  useEffect(() => {
+    const preparedText = prepareTextForTTS(ttsAll)
+    if (!preparedText || cachedAudioUrlByText.has(preparedText)) return
+    if (sequence.length > SENTENCE_PREFETCH_MAX_WORDS) return
+
+    const timer = window.setTimeout(() => void loadSpokenAudio(preparedText), SENTENCE_PREFETCH_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [ttsAll, sequence.length, cachedAudioUrlByText, loadSpokenAudio])
+
   // Resolves to false when no sound came out (speech failed to load or play).
   const playSpeech = async (text: string): Promise<boolean> => {
     const preparedText = prepareTextForTTS(text)
     const cachedURL = cachedAudioUrlByText.get(preparedText)
+    // A tap while the speech loads plays its own word; this one then stays silent.
+    const requestedAt = playbackTokenRef.current
+    const superseded = () => playbackTokenRef.current !== requestedAt
 
     if (cachedURL) {
       const preloadPromise = preloadPromisesRef.current.get(cachedURL)
       if (preloadPromise) {
         await preloadPromise.catch(() => undefined)
       }
+      if (superseded()) return true
 
       const readyURL = preloadedAudioUrlBySourceRef.current.get(cachedURL) ?? cachedURL
       return playAudioURL(readyURL)
     }
 
-    let blob: Blob
-    try {
-      const res = await fetch('/next/tts-ms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: preparedText,
-        }),
-      })
-
-      if (!res.ok) return false
-      blob = await res.blob()
-    } catch {
-      return false
-    }
-
-    const url = URL.createObjectURL(blob)
-    const audioEl = audioRef.current ?? new Audio()
-    audioRef.current = audioEl
-    const playbackToken = ++playbackTokenRef.current
-    audioEl.pause()
-    audioEl.onended = null
-    audioEl.onerror = null
-
-    return new Promise<boolean>((resolve) => {
-      let done = false
-      const cleanup = (played = true) => {
-        if (done) return
-        done = true
-        audioEl.onended = null
-        audioEl.onerror = null
-        URL.revokeObjectURL(url)
-        resolve(played)
-      }
-
-      audioEl.onended = () => cleanup()
-      audioEl.onerror = () => cleanup(false)
-      audioEl.src = url
-      audioEl.currentTime = 0
-
-      const started = audioEl.play()
-      if (started && typeof started.catch === 'function') {
-        started.catch((error: unknown) => cleanup(isInterruptedPlayback(error)))
-      }
-
-      if (playbackToken !== playbackTokenRef.current) {
-        cleanup()
-      }
-    })
+    const url = await loadSpokenAudio(preparedText)
+    if (superseded()) return true
+    return url ? playAudioURL(url) : false
   }
 
   const stopCurrentAudio = () => {

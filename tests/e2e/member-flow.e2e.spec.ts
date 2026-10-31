@@ -269,6 +269,8 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     await page.getByRole('button').filter({ hasText: boardName }).click()
     await expect(page).toHaveURL(new RegExp(`/boards/${boardId}$`))
 
+    // The sentence's speech is fetched while the child taps, so "play all" starts at once.
+    const sentence = page.waitForRequest((request) => new URL(request.url()).pathname === '/next/tts-ms')
     for (const [index, word] of words.entries()) {
       await page.getByRole('button', { name: word, exact: true }).click()
       await expect.poll(playedAudio, { message: `"${word}" should play` }).toBe(index + 1)
@@ -277,13 +279,13 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     await expect(page.getByRole('button', { name: 'kassi', exact: true })).toBeVisible()
     await expect(page.locator('.actionbar-container')).toContainText(/kaks.*kassi/)
 
-    const sentence = page.waitForRequest((request) => new URL(request.url()).pathname === '/next/tts-ms')
-    await page.getByRole('button', { name: 'Esita kogu fraas' }).click()
     expect((await sentence).postDataJSON()).toEqual({ text: 'kaks kassi.' })
+    await page.getByRole('button', { name: 'Esita kogu fraas' }).click()
     await expect.poll(playedAudio, { message: 'the sentence should play' }).toBe(words.length + 1)
 
     // Single words come from the board's saved speech (the runner loads all of it: both words and
-    // the compound's "kassi"), the sentence is synthesized on demand.
+    // the compound's "kassi"); the sentence is synthesized once, while the child taps, and "play
+    // all" doesn't fetch it again.
     const saved = speech.filter((entry) => entry.path.startsWith(`/next/tts-cache/${boardId}/`))
     expect(new Set(saved.map((entry) => entry.path)).size, 'saved words loaded').toBe(words.length + 1)
     expect(saved.every((entry) => entry.status === 200), JSON.stringify(saved)).toBe(true)

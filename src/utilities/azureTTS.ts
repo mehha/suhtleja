@@ -69,23 +69,6 @@ export async function synthesizeAzureSpeech({
     throw new Error('missing_tts_text')
   }
 
-  const tokenRes = await fetch(
-    `https://${SPEECH_REGION}.api.cognitive.microsoft.com/sts/v1.0/issueToken`,
-    {
-      method: 'POST',
-      headers: {
-        'Ocp-Apim-Subscription-Key': SPEECH_KEY,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    },
-  )
-
-  if (!tokenRes.ok) {
-    const detail = await tokenRes.text().catch(() => '')
-    throw new Error(`azure_tts_token_failed:${tokenRes.status}:${detail || tokenRes.statusText}`)
-  }
-
-  const accessToken = await tokenRes.text()
   const ssml = `
 <speak version="1.0" xml:lang="et-EE">
   <voice xml:lang="et-EE" name="${speaker}">
@@ -99,7 +82,9 @@ export async function synthesizeAzureSpeech({
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        // The key goes straight to the synthesis: exchanging it for a token first cost a second
+        // round trip to Azure (0.1-0.5s) on every request.
+        'Ocp-Apim-Subscription-Key': SPEECH_KEY,
         'Content-Type': 'application/ssml+xml',
         'X-Microsoft-OutputFormat': TTS_OUTPUT_FORMAT,
         'User-Agent': 'suhtleja-aac-nextjs',
