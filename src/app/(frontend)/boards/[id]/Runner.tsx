@@ -24,6 +24,7 @@ import { AnimatedVolumeIcon } from '@/components/Animations/AnimatedVolumeIcon'
 import { getBoardTTSCacheManifest } from '@/utilities/boardTTSCacheManifest'
 import { prepareTextForTTS } from '@/utilities/azureTTS'
 import { ChildModeBar } from '@/app/(frontend)/kodu/ChildModeBar'
+import { CellLabel } from './CellLabel'
 import { toast } from 'sonner'
 
 const ResponsiveGridLayout = WidthProvider(ResponsiveGrid)
@@ -750,11 +751,10 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
                 {renderCellImage(cell)}
 
                 {titleToShow && (
-                  <div className="pointer-events-none shrink-0 px-1 pb-1 text-center uppercase text-slate-950 transition-colors duration-200">
-                    <div className="break-words text-xl font-semibold leading-5">
-                      {titleToShow}
-                    </div>
-                  </div>
+                  <CellLabel
+                    title={titleToShow}
+                    className="pointer-events-none transition-colors duration-200"
+                  />
                 )}
 
                 <button

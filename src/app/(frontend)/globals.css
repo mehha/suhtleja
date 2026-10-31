@@ -155,3 +155,39 @@
     bottom: 0.25rem;
   }
 }
+
+/* Board cell labels (`CellLabel`) never break a word: the font is the largest size, up to 1.25rem,
+   at which the label's longest word (--label-chars letters) fits the cell's width, down to 0.625rem.
+   0.75em per letter covers Estonian words in uppercase GeistSans semibold (measured 0.57-0.73em).
+   At the minimum a 15-letter compound (EMOTSIOONIRATAS) still fits a 390px phone's 3-column board;
+   a longer one is hyphenated at a syllable where the browser knows Estonian (`lang="et"`), and
+   break-words is the last resort that keeps it inside the cell. */
+.board-cell-label {
+  container-type: inline-size;
+}
+
+.board-cell-label-text {
+  font-size: clamp(0.625rem, 100cqi / (var(--label-chars, 6) * 0.75), 1.25rem);
+  line-height: 1;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+/* Board editor: where a dragged or resized cell will land. react-grid-layout draws a square box of
+   20% red (pink); here it has the cards' corners (rounded-xl) and the logo's blue tile colours, as a
+   dashed drop area. The card being dragged or resized lifts off the board with a deeper shadow and
+   stays above the drop area (react-grid-layout puts a resizing card below it, hiding the card). */
+.board-editor-grid .react-grid-item.react-grid-placeholder {
+  border: 2px dashed rgb(28 121 221 / 0.55);
+  border-radius: 0.75rem;
+  background: rgb(234 243 253);
+  opacity: 1;
+}
+
+.board-editor-grid .react-grid-item.react-draggable-dragging,
+.board-editor-grid .react-grid-item.resizing {
+  z-index: 3;
+  box-shadow:
+    0 18px 40px rgb(15 23 42 / 0.18),
+    0 0 0 2px rgb(28 121 221 / 0.35);
+}

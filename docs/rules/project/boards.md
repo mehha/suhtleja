@@ -46,7 +46,8 @@ tags: [suhtleja, frontend, boards, payload]
   - Saving compounds must regenerate missing cached TTS audio for compound speech forms.
   - In `/boards/[id]/edit`, editor grid row height should track the column width so 1x1 editable cells render as square tiles.
   - In `/boards/[id]/edit`, mobile layouts should start at 3 columns and increase at wider breakpoints.
-  - Editor cell controls (move grip, `Muuda kaarti`, `Kustuta kaart`, resize corner) are all 28px and sit 8px from the cell's edges, the cell's padding; in cells under 112px wide they move to 4px (a container query in `globals.css`), so they fit at the 96px minimum. The grip and the resize corner are bare marks with a grey hover background, so the corner doesn't cover the label; edit and delete are filled buttons. The resize corner is styled in `globals.css` (`.board-editor-grid`), replacing react-resizable's corner mark. A cell without a picture keeps its label below the controls.
+  - Editor cell controls (move grip, `Muuda kaarti`, `Kustuta kaart`, resize corner) are all 28px with 8px corners (`rounded-[0.5rem]`; the theme's `rounded-lg` is `--radius`, 3.2px) and sit 8px from the cell's edges, the cell's padding; in cells under 112px wide they move to 4px (a container query in `globals.css`), so they fit at the 96px minimum. The grip and the resize corner are bare marks with a grey hover background, so the corner doesn't cover the label; edit and delete are filled buttons. The resize corner is styled in `globals.css` (`.board-editor-grid`), replacing react-resizable's corner mark. A cell without a picture keeps its label below the controls.
+  - While a cell is dragged or resized, the drop area is a dashed box with the cards' corners in the logo's blue (`.react-grid-placeholder` in `globals.css`, replacing react-grid-layout's pink box), and the moving card lifts above it with a deeper shadow.
 - Home page rules:
   - Show board content and connect-dots content in separate top-level sections.
   - Within each top-level section, owned items and shared items may render as separate subsections.
@@ -59,6 +60,7 @@ tags: [suhtleja, frontend, boards, payload]
   - On `/boards/[id]`, `sm` and `xs` layouts must render 3 items per row when the board has at least 3 columns, then increase at wider breakpoints.
   - On `/boards/[id]`, board runner grid row height should track the active column width so 1x1 board items render as square tiles.
   - Board card labels should sit below the image without a background overlay, use black uppercase text, and leave enough card space so images and labels do not overlap.
+  - Labels never break a word (`CellLabel` in `boards/[id]/CellLabel.tsx`, used by the runner and the editor): the font shrinks from 1.25rem down to 0.625rem until the label's longest word fits the cell, using the cell's full inner width. A 15-letter compound still fits a 390px phone's 3-column board; a longer one is hyphenated where the browser knows Estonian, and only then broken.
   - AAC board runner tiles should have high-visibility hover/press affordances: clear border/ring contrast, obvious lift on pointer hover, and a readable pressed state without adding extra hover box shadow.
   - The board runner action bar should stay fixed at the bottom of the viewport, remain compact enough for child-mode play, and leave bottom padding so board tiles are not hidden behind it.
   - In child mode, `/boards/[id]` must include minimal in-page controls for returning to `/kodu` and opening the parent PIN dialog because global header navigation is hidden.

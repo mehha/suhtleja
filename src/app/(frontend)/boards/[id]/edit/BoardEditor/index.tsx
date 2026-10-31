@@ -30,7 +30,7 @@ import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog'
 import { useUnsavedChangesGuard } from '@/utilities/useUnsavedChangesGuard'
 import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import { toast } from 'sonner'
-import { cn } from '@/utilities/ui'
+import { CellLabel } from '../../CellLabel'
 
 const COMPACT_SWITCH_CLASS =
   'h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4'
@@ -525,12 +525,13 @@ export default function BoardEditor({
                   className="relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5"
                 >
                   {/* The cell's controls (grip, edit, delete and the resize corner, styled in
-                      globals.css) are all 28px and 8px from the edges, the cell's own padding;
-                      4px in cells under 112px wide, so they still fit at the 96px minimum. */}
+                      globals.css) are all 28px with 8px corners, and 8px from the edges, the cell's
+                      own padding; 4px in cells under 112px wide, so they still fit at the 96px
+                      minimum. rounded-[0.5rem], not rounded-lg: the theme's lg is 3.2px. */}
                   {layoutLocked ? null : (
                     <span
                       aria-label="Lohista kaardi liigutamiseks"
-                      className="board-cell-drag-handle absolute left-2 top-2 z-10 inline-flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:cursor-grabbing"
+                      className="board-cell-drag-handle absolute left-2 top-2 z-10 inline-flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-[0.5rem] text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:cursor-grabbing"
                       role="img"
                     >
                       <GripVertical className="h-5 w-5" />
@@ -542,7 +543,7 @@ export default function BoardEditor({
                       type="button"
                       size="icon"
                       variant="secondary"
-                      className="h-7 w-7 rounded-lg p-0"
+                      className="h-7 w-7 rounded-[0.5rem] p-0"
                       aria-label="Muuda kaarti"
                       onClick={(e) => {
                         e.stopPropagation()
@@ -557,7 +558,7 @@ export default function BoardEditor({
                       type="button"
                       size="icon"
                       variant="destructive"
-                      className="h-7 w-7 rounded-lg p-0"
+                      className="h-7 w-7 rounded-[0.5rem] p-0"
                       aria-label="Kustuta kaart"
                       onClick={(e) => {
                         e.stopPropagation()
@@ -573,14 +574,10 @@ export default function BoardEditor({
 
                   {cell.title && (
                     // Without a picture the label comes first; keep it below the controls.
-                    <div
-                      className={cn(
-                        'shrink-0 px-1 pb-1 text-center uppercase text-slate-950',
-                        !cellImageSrc(cell) && 'pt-8',
-                      )}
-                    >
-                      <div className="break-words text-xl font-semibold leading-5">{cell.title}</div>
-                    </div>
+                    <CellLabel
+                      title={cell.title}
+                      className={cellImageSrc(cell) ? undefined : 'pt-8'}
+                    />
                   )}
                 </div>
               ))}
