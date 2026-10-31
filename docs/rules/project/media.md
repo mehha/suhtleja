@@ -24,6 +24,7 @@ tags: [suhtleja, media, payload, access-control]
 - Non-admin users may update/delete only media they own.
 - Admin users may update/delete all media, including legacy media rows where `owner` is still empty.
 - Non-admin users must not be able to transfer media ownership to another user.
+- Non-admin users must not be able to put media in a folder or take it out of one: folders make the shared library (see `access-control.md`).
 - Legacy media with no owner should be treated as admin-managed until a deliberate backfill or reassignment is performed.
 
 ## Change Checklist

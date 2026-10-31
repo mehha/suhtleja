@@ -29,7 +29,7 @@ let bob: TestUser // paying customer
 let freeUser: TestUser // registered, no membership
 
 const created: Array<{
-  collection: 'users' | 'boards' | 'connect-dots-puzzles' | 'media' | 'pages' | 'symbol-generations'
+  collection: 'users' | 'boards' | 'connect-dots-puzzles' | 'media' | 'pages' | 'payload-folders' | 'symbol-generations'
   id: number
 }> = []
 const track = <T extends { id: number }>(collection: (typeof created)[number]['collection'], doc: T) => {
@@ -326,6 +326,34 @@ describe('media', () => {
   it('a customer cannot hand their media over to someone else', async () => {
     const updated = await payload.update({ collection: 'media', id: aliceMedia.id, data: { owner: bob.id } as never, ...as(alice) })
     expect(ownerId(updated.owner)).toBe(alice.id)
+  })
+
+  it('a customer cannot manage folders or put their media in the shared library', async () => {
+    await expect(payload.create({ collection: 'payload-folders', data: { name: `Hacked ${run}` } as never, ...as(alice) })).rejects.toThrow()
+    await expect(payload.find({ collection: 'payload-folders', ...as(alice) })).rejects.toThrow()
+
+    const folder = track('payload-folders', await payload.create({ collection: 'payload-folders', data: { name: `Library ${run}` } as never, ...as(admin) }))
+
+    const uploaded = track(
+      'media',
+      await payload.create({
+        collection: 'media',
+        data: { alt: 'Into the library', folder: folder.id } as never,
+        file: { data: tinyPng, mimetype: 'image/png', name: `access-folder-${run}.png`, size: tinyPng.length },
+        ...as(alice),
+      }),
+    )
+    expect(uploaded.folder ?? null).toBeNull()
+
+    const moved = await payload.update({ collection: 'media', id: aliceMedia.id, data: { folder: folder.id } as never, ...as(alice) })
+    expect(moved.folder ?? null).toBeNull()
+
+    const filed = await payload.update({ collection: 'media', id: aliceMedia.id, data: { folder: folder.id } as never, ...as(admin) })
+    expect(ownerId(filed.folder)).toBe(folder.id)
+
+    const keptInLibrary = await payload.update({ collection: 'media', id: aliceMedia.id, data: { folder: null } as never, ...as(alice) })
+    expect(ownerId(keptInLibrary.folder)).toBe(folder.id)
+    await payload.update({ collection: 'media', id: aliceMedia.id, data: { folder: null } as never, ...as(admin) })
   })
 })
 

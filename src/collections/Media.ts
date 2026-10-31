@@ -68,11 +68,23 @@ export const Media: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      ({ data, operation, req }) => {
+      ({ data, operation, originalDoc, req }) => {
         if (operation === 'create' && req.user) {
           if (req.user.role !== 'admin' || !data.owner) {
             data.owner = req.user.id
           }
+        }
+
+        // A folder makes a file part of the shared library, which every member sees in the picture
+        // search and bulk add. Only admins (and server code without a user) may put files there.
+        if (req.user && req.user.role !== 'admin' && 'folder' in data) {
+          const original = originalDoc?.folder
+          data.folder =
+            operation === 'create'
+              ? null
+              : typeof original === 'object' && original
+                ? original.id
+                : (original ?? null)
         }
 
         return data

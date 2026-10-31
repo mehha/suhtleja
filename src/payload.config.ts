@@ -16,6 +16,7 @@ import { Header } from './Header/config'
 import { ConnectDotsPuzzles } from './collections/ConnectDotsPuzzles'
 import { SymbolGenerations } from './collections/SymbolGenerations'
 import { plugins } from './plugins'
+import { isAdmin } from '@/access/IsAdmin'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
 import { getPayloadCloudflareContext } from '@/utilities/getCloudflareContext'
@@ -67,6 +68,16 @@ export default buildConfig({
     push: false,
   }),
   collections: [Pages, Posts, Media, Categories, Users, Boards, ConnectDotsPuzzles, SymbolGenerations],
+  folders: {
+    // Folders hold the shared media library. Payload's default access would let any customer create
+    // folders; only admins manage them (server code files AI pictures with the Local API).
+    collectionOverrides: [
+      ({ collection }) => ({
+        ...collection,
+        access: { create: isAdmin, delete: isAdmin, read: isAdmin, update: isAdmin },
+      }),
+    ],
+  },
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
   logger: process.env.NODE_ENV === 'production' ? cloudflareLogger : undefined,
