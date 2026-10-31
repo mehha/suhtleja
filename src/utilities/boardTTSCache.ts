@@ -2,6 +2,7 @@ import type { Board } from '@/payload-types'
 import { getPayloadCloudflareContext } from '@/utilities/getCloudflareContext'
 import {
   DEFAULT_TTS_VOICE,
+  getTTSAudioMetadata,
   getTTSCacheHash,
   prepareTextForTTS,
   synthesizeAzureSpeech,
@@ -113,35 +114,48 @@ export async function ensureBoardTTSManifest({
       objectKey = existingEntry.key
       contentType = existingEntry.contentType
     } else {
-      objectKey = getTTSObjectKey(voice, hash)
+      const audio = getTTSAudioMetadata()
+      objectKey = getTTSObjectKey(voice, hash, audio.extension)
+      contentType = audio.contentType
     }
 
-    const existingObject = await bucket.head(objectKey)
-    if (!existingObject) {
-      const synthesized = await synthesizeAzureSpeech({
-        text: input.text,
-        speaker: voice,
-      })
+    // A word Azure or R2 fails on doesn't fail the save: it stays in the manifest without its audio,
+    // and /next/tts-cache synthesizes and stores it the first time it's asked for.
+    try {
+      const existingObject = await bucket.head(objectKey)
+      if (!existingObject) {
+        const synthesized = await synthesizeAzureSpeech({
+          text: input.text,
+          speaker: voice,
+        })
 
-      objectKey = getTTSObjectKey(voice, hash, synthesized.extension)
-      contentType = synthesized.contentType
-      const audioBuffer = synthesized.audio.buffer.slice(
-        synthesized.audio.byteOffset,
-        synthesized.audio.byteOffset + synthesized.audio.byteLength,
-      )
+        objectKey = getTTSObjectKey(voice, hash, synthesized.extension)
+        contentType = synthesized.contentType
+        const audioBuffer = synthesized.audio.buffer.slice(
+          synthesized.audio.byteOffset,
+          synthesized.audio.byteOffset + synthesized.audio.byteLength,
+        )
 
-      await bucket.put(objectKey, audioBuffer, {
-        httpMetadata: {
-          contentType: synthesized.contentType,
-          cacheControl: 'public, max-age=31536000, immutable',
-        },
-        customMetadata: {
-          text: synthesized.text,
-          voice: synthesized.voice,
-        },
+        await bucket.put(objectKey, audioBuffer, {
+          httpMetadata: {
+            contentType: synthesized.contentType,
+            cacheControl: 'public, max-age=31536000, immutable',
+          },
+          customMetadata: {
+            text: synthesized.text,
+            voice: synthesized.voice,
+          },
+        })
+      } else if (existingObject.httpMetadata?.contentType) {
+        contentType = existingObject.httpMetadata.contentType
+      }
+    } catch (error) {
+      // The word itself stays out of the log: a child's board can be personal.
+      console.error('Board speech not stored; /next/tts-cache will make it', {
+        boardId,
+        error: error instanceof Error ? error.message : String(error),
+        hash,
       })
-    } else if (existingObject.httpMetadata?.contentType) {
-      contentType = existingObject.httpMetadata.contentType
     }
 
     const entry: BoardTTSCacheEntry = {

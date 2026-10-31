@@ -37,6 +37,7 @@ tags: [suhtleja, tts, audio, frontend, nextjs]
   - Trim whitespace.
   - Add terminal punctuation if missing.
 - For boards, prefer saved cached audio from the board manifest before falling back to live `POST /next/tts-ms`.
+- When a board word's saved speech didn't preload, the runner tries its URL once more (the route makes missing audio), then synthesizes it live like unsaved speech, so the child still hears the word.
 - Board runner may preload cached audio URLs on page load to reduce first-click latency.
 - Board runner fetches the sentence's speech while the child builds it (`Runner.tsx`, 300ms after the last tap, sentences up to 10 words), so "Esita kogu fraas" starts at once (measured locally: 10-20ms, was 0.4-1.4s). Unsaved speech (sentences, AI-corrected words) is kept in the page's memory, the last 12, so a replay or an undo doesn't synthesize again. It is never stored in R2: the bucket is served publicly, and a child's sentences can be personal.
 - A tap while speech is still loading wins: the older speech stays silent when it arrives.
@@ -51,7 +52,9 @@ tags: [suhtleja, tts, audio, frontend, nextjs]
 - Cached playback URLs are same-origin paths (`/next/tts-cache/<boardId>/<hash>`) derived from board id and hash when the manifest is read. Never rely on a stored absolute origin: databases are cloned between environments.
 - Board cache generation should happen when saved grid text or saved compounds change.
 - `ensureBoardTTSManifest` checks R2 and synthesizes missing words 6 at a time (`CACHE_CONCURRENCY` in `boardTTSCache.ts`), not one by one: a save with 24 new words took 10.7s, now 1.9s (measured locally). It stays low so a board full of new words doesn't hit Azure's rate limit. Every word is in R2 before the save returns, so the runner can play it at once.
+- A save never fails on speech. A word Azure or R2 fails on stays in the manifest without its audio (logged with the board id and hash, never the word: a child's board can be personal), and `/next/tts-cache` makes it on the first request. Tested in `tests/int/board-speech-store.int.spec.ts`.
 - `GET /next/tts-cache/<boardId>/<hash>` reads only the board's manifest (`select: { ttsCache: true }`), with the user's read access (`overrideAccess: false`), since the runner preloads every word of a board at once. Another user's private board is a 404.
+- When R2 lacks a manifest word's audio (the save couldn't store it, or the database came from another environment), `/next/tts-cache` synthesizes the manifest's text, stores it under the entry's key and serves it; Azure failing too is a 502. It only ever speaks the board's own words, never free text.
 - Revoke `URL.createObjectURL` URLs when they're no longer kept (after playback, or when the runner drops them from its memory or unmounts) to avoid leaks.
 - Azure synthesis sends `SPEECH_KEY` with the request itself (`Ocp-Apim-Subscription-Key`). Don't go back to exchanging it for a token first: that was a second round trip to Azure (0.1-0.5s) on every request.
 

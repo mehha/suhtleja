@@ -322,4 +322,17 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     await expect(page.getByRole('heading', { level: 1, name: 'Kodu' })).toBeVisible()
     await expect(page.getByRole('button').filter({ hasText: boardName })).toHaveCount(0)
   })
+
+  await test.step('a word whose saved speech fails is synthesized', async () => {
+    // As if the saved speech couldn't be served or made again: the word still speaks.
+    const savedSpeech = `**/next/tts-cache/${boardId}/**`
+    await page.route(savedSpeech, (route) => route.fulfill({ status: 502 }))
+    await page.goto(`/boards/${boardId}`)
+
+    const live = page.waitForRequest((request) => new URL(request.url()).pathname === '/next/tts-ms')
+    await page.getByRole('button', { name: 'kaks', exact: true }).click()
+    expect((await live).postDataJSON()).toEqual({ text: 'kaks.' })
+    await expect.poll(playedAudio, { message: '"kaks" should play' }).toBe(1)
+    await page.unroute(savedSpeech)
+  })
 })

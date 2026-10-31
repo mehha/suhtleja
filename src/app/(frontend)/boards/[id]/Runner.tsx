@@ -317,7 +317,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     const preparedText = prepareTextForTTS(text)
     const cachedURL = cachedAudioUrlByText.get(preparedText)
     // A tap while the speech loads plays its own word; this one then stays silent.
-    const requestedAt = playbackTokenRef.current
+    let requestedAt = playbackTokenRef.current
     const superseded = () => playbackTokenRef.current !== requestedAt
 
     if (cachedURL) {
@@ -327,8 +327,16 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
       }
       if (superseded()) return true
 
-      const readyURL = preloadedAudioUrlBySourceRef.current.get(cachedURL) ?? cachedURL
-      return playAudioURL(readyURL)
+      const preloadedURL = preloadedAudioUrlBySourceRef.current.get(cachedURL)
+      if (preloadedURL) return playAudioURL(preloadedURL)
+
+      // The saved speech didn't preload. The route makes missing audio on request, so one more
+      // try usually plays; if it doesn't, the word is synthesized like unsaved speech.
+      const retry = playAudioURL(cachedURL)
+      // playAudioURL takes a new playback token as it starts; a later tap takes another.
+      requestedAt = playbackTokenRef.current
+      if (await retry) return true
+      if (superseded()) return true
     }
 
     const url = await loadSpokenAudio(preparedText)
