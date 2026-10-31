@@ -28,11 +28,17 @@ export async function GET(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'membership_required' }, { status: 402 })
   }
 
+  // The runner preloads every word of a board at once, so this stays light: only the speech
+  // manifest, not the cards and compounds. The collection's read access decides, the same as on
+  // the board page, so another user's private board is not found.
   const board = await payload
     .findByID({
       collection: 'boards',
       id: boardId,
       depth: 0,
+      overrideAccess: false,
+      select: { ttsCache: true },
+      user,
     })
     .catch(() => null)
 

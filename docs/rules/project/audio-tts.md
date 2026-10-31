@@ -50,6 +50,8 @@ tags: [suhtleja, tts, audio, frontend, nextjs]
 - Cached board speech is stored in R2 under deterministic keys derived from normalized text plus voice. Build keys with `getTTSObjectKey`; the homepage route uses the same keys, so a word is synthesized once for boards and the homepage.
 - Cached playback URLs are same-origin paths (`/next/tts-cache/<boardId>/<hash>`) derived from board id and hash when the manifest is read. Never rely on a stored absolute origin: databases are cloned between environments.
 - Board cache generation should happen when saved grid text or saved compounds change.
+- `ensureBoardTTSManifest` checks R2 and synthesizes missing words 6 at a time (`CACHE_CONCURRENCY` in `boardTTSCache.ts`), not one by one: a save with 24 new words took 10.7s, now 1.9s (measured locally). It stays low so a board full of new words doesn't hit Azure's rate limit. Every word is in R2 before the save returns, so the runner can play it at once.
+- `GET /next/tts-cache/<boardId>/<hash>` reads only the board's manifest (`select: { ttsCache: true }`), with the user's read access (`overrideAccess: false`), since the runner preloads every word of a board at once. Another user's private board is a 404.
 - Revoke `URL.createObjectURL` URLs when they're no longer kept (after playback, or when the runner drops them from its memory or unmounts) to avoid leaks.
 - Azure synthesis sends `SPEECH_KEY` with the request itself (`Ocp-Apim-Subscription-Key`). Don't go back to exchanging it for a token first: that was a second round trip to Azure (0.1-0.5s) on every request.
 

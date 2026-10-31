@@ -48,6 +48,7 @@ tags: [suhtleja, frontend, boards, payload]
   - When bulk add finds images through Groq-generated ARASAAC terms, show a Sonner info toast listing the original text and matched English search term.
   - The `Lisa plokk` dialog must stay within the viewport and scroll internally when the form or sentence preview is long.
   - Explicit board saves must show visible progress while the save request is in flight.
+  - The editor saves with `PATCH /api/boards/<id>?depth=0`: it doesn't read the answer, and at the default depth Payload fills every card's media.
   - Saving board grid changes must regenerate missing cached TTS audio for current cell labels.
   - Saving compounds must regenerate missing cached TTS audio for compound speech forms.
   - In `/boards/[id]/edit`, editor grid row height should track the column width so 1x1 editable cells render as square tiles.
@@ -62,6 +63,8 @@ tags: [suhtleja, frontend, boards, payload]
   - Shared item hide/show and order are stored per user, not on the shared document itself.
   - Reordering is parent-mode only within each rendered subsection.
   - Parent mode must expose both actions on `/kodu`: `Lisa uus tahvel` and `Halda koduhaldust`.
+  - `/kodu` loads its four lists (own and shared boards and games) at once, with `pagination: false` (Payload's default stops at 10). Boards load only what a card shows (`HOME_BOARD_SELECT`: name, order and the cards' pictures), so the browser gets no owner documents, other cards or speech cache.
+  - `/kodu` and `/koduhaldus` read the user with `getCurrentUser`, which React's `cache` shares with the header, so a page render authenticates once.
 - Board runner rules:
   - On `/boards/[id]`, `sm` and `xs` layouts must render 3 items per row when the board has at least 3 columns, then increase at wider breakpoints.
   - On `/boards/[id]`, board runner grid row height should track the active column width so 1x1 board items render as square tiles.

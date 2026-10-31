@@ -109,7 +109,8 @@ export function useBoardGrid(board: Board) {
     setSaveProgress(12)
 
     try {
-      const response = await fetch(`${getClientSideURL()}/api/boards/${board.id}`, {
+      // depth=0: the answer isn't read, and at the default depth Payload fills every card's media.
+      const response = await fetch(`${getClientSideURL()}/api/boards/${board.id}?depth=0`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

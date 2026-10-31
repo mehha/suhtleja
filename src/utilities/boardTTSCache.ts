@@ -17,6 +17,30 @@ type BoardLike = Pick<Board, 'compounds' | 'grid' | 'id'> & {
   ttsCache?: unknown
 }
 
+// R2 lookups and Azure synthesis run a few at a time. One by one, saving a board with many cards
+// took seconds: an R2 lookup for every card, then a synthesis for every new word. Kept low so a
+// board full of new words doesn't run into Azure's rate limit.
+const CACHE_CONCURRENCY = 6
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let next = 0
+
+  const work = async () => {
+    while (next < items.length) {
+      const index = next++
+      results[index] = await fn(items[index] as T)
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, work))
+  return results
+}
+
 function sanitizeVoiceForKey(voice: string): string {
   return voice.replace(/[^a-zA-Z0-9._-]+/g, '-')
 }
@@ -79,9 +103,7 @@ export async function ensureBoardTTSManifest({
   const bucket = cloudflare.env.R2
   const existingManifest = getBoardTTSCacheManifest(board)
 
-  const entries: BoardTTSCacheEntry[] = []
-
-  for (const input of cacheInputs) {
+  const entries = await mapWithConcurrency(cacheInputs, CACHE_CONCURRENCY, async (input) => {
     const hash = getTTSCacheHash(input.text, voice)
     let objectKey = ''
     let contentType = 'audio/mpeg'
@@ -122,7 +144,7 @@ export async function ensureBoardTTSManifest({
       contentType = existingObject.httpMetadata.contentType
     }
 
-    entries.push({
+    const entry: BoardTTSCacheEntry = {
       contentType,
       hash,
       key: objectKey,
@@ -130,8 +152,9 @@ export async function ensureBoardTTSManifest({
       text: input.text,
       url: buildBoardTTSCacheURL(boardId, hash),
       voice,
-    })
-  }
+    }
+    return entry
+  })
 
   return {
     entries: entries.sort((a, b) => a.text.localeCompare(b.text)),

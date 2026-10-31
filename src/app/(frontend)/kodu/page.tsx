@@ -21,6 +21,15 @@ import {
   toIdString,
 } from '@/utilities/sharedHomePreferences'
 import { ChildModeBar } from './ChildModeBar'
+import { getCurrentUser } from '@/utilities/getCurrentUser'
+
+// What a home card shows: the name and the first card's picture. The boards go to the browser, so
+// they leave out the owner (populated, a whole user document), the other cards and the speech cache.
+const HOME_BOARD_SELECT = {
+  grid: { cells: { externalImageURL: true, image: true } },
+  name: true,
+  order: true,
+} as const
 
 export const dynamic = 'force-dynamic'
 
@@ -37,10 +46,7 @@ type SharedHomeConnectDotsPuzzleDoc = {
 }
 
 export default async function HomePage() {
-  const payload = await getPayload({ config: configPromise })
-  const requestHeaders = await headers()
-
-  const { user } = await payload.auth({ headers: requestHeaders })
+  const { payload, user } = await getCurrentUser()
 
   if (!user) {
     redirect('/login')
@@ -51,45 +57,106 @@ export default async function HomePage() {
   const isParentMode = await isParentModeUtil()
   const preferences = getUserSharedHomePreferences(u)
 
-  const ownedBoardsRes = await payload.find({
-    collection: 'boards',
-    where: {
-      and: [
-        {
-          owner: {
-            equals: u.id,
-          },
+  // The four lists don't depend on each other. pagination: false, or Payload stops at 10.
+  const [ownedBoardsRes, sharedBoardsRes, ownedConnectDotsRes, sharedConnectDotsRes] =
+    await Promise.all([
+      payload.find({
+        collection: 'boards',
+        where: {
+          and: [
+            {
+              owner: {
+                equals: u.id,
+              },
+            },
+            {
+              pinned: {
+                equals: true,
+              },
+            },
+          ],
         },
-        {
-          pinned: {
-            equals: true,
-          },
+        sort: 'order',
+        depth: 1,
+        pagination: false,
+        select: HOME_BOARD_SELECT,
+      }),
+      payload.find({
+        collection: 'boards',
+        where: {
+          and: [
+            {
+              visibleToAllUsers: {
+                equals: true,
+              },
+            },
+            {
+              owner: {
+                not_equals: u.id,
+              },
+            },
+          ],
         },
-      ],
-    },
-    sort: 'order',
-    depth: 1,
-  })
-
-  const sharedBoardsRes = await payload.find({
-    collection: 'boards',
-    where: {
-      and: [
-        {
-          visibleToAllUsers: {
-            equals: true,
-          },
+        sort: 'order',
+        depth: 1,
+        pagination: false,
+        select: HOME_BOARD_SELECT,
+      }),
+      payload.find({
+        collection: 'connect-dots-puzzles',
+        depth: 1,
+        pagination: false,
+        sort: 'order',
+        overrideAccess: false,
+        user,
+        where: {
+          and: [
+            {
+              owner: {
+                equals: u.id,
+              },
+            },
+            {
+              enabled: {
+                equals: true,
+              },
+            },
+            {
+              pinned: {
+                equals: true,
+              },
+            },
+          ],
         },
-        {
-          owner: {
-            not_equals: u.id,
-          },
+      }),
+      payload.find({
+        collection: 'connect-dots-puzzles',
+        depth: 1,
+        pagination: false,
+        sort: 'order',
+        overrideAccess: false,
+        user,
+        where: {
+          and: [
+            {
+              enabled: {
+                equals: true,
+              },
+            },
+            {
+              visibleToAllUsers: {
+                equals: true,
+              },
+            },
+            {
+              owner: {
+                not_equals: u.id,
+              },
+            },
+          ],
         },
-      ],
-    },
-    sort: 'order',
-    depth: 1,
-  })
+      }),
+    ])
 
   const ownedBoards = ownedBoardsRes.docs as Board[]
   const sharedBoards = sortSharedDocs(
@@ -99,60 +166,6 @@ export default async function HomePage() {
     }),
     preferences.sharedBoardOrder,
   )
-
-  const ownedConnectDotsRes = await payload.find({
-    collection: 'connect-dots-puzzles',
-    depth: 1,
-    sort: 'order',
-    overrideAccess: false,
-    user,
-    where: {
-      and: [
-        {
-          owner: {
-            equals: u.id,
-          },
-        },
-        {
-          enabled: {
-            equals: true,
-          },
-        },
-        {
-          pinned: {
-            equals: true,
-          },
-        },
-      ],
-    },
-  })
-
-  const sharedConnectDotsRes = await payload.find({
-    collection: 'connect-dots-puzzles',
-    depth: 1,
-    sort: 'order',
-    overrideAccess: false,
-    user,
-    where: {
-      and: [
-        {
-          enabled: {
-            equals: true,
-          },
-        },
-        {
-          visibleToAllUsers: {
-            equals: true,
-          },
-        },
-        {
-          owner: {
-            not_equals: u.id,
-          },
-        },
-      ],
-    },
-  })
 
   const ownedPuzzles = ownedConnectDotsRes.docs
     .map((doc) => serializeConnectDotsPuzzle(doc as unknown as Record<string, unknown>))
