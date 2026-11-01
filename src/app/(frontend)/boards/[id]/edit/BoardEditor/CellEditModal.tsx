@@ -34,7 +34,7 @@ import {
   normalizeWord,
   type WordClass,
 } from '@/utilities/wordClass'
-import { nounPartitive, placeFormsOf, verbCard, verbForm } from '@/utilities/grammar/applyGrammar'
+import { useGrammar } from '@/utilities/grammar/useGrammar'
 
 type SymbolBank = 'arasaac' | 'mulberry' | 'openmoji'
 
@@ -214,20 +214,23 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   const [classLookedUpFor, setClassLookedUpFor] = useState<string | null>(null)
   const wordClassSourceRef = useRef<WordClassSource>('auto')
 
-  // What the board's word forms make of a verb, place or noun card, or that they leave a verb as it is.
+  // What the board's word forms make of a verb, place or noun card, or that they leave a verb as it
+  // is. The word forms load with the dialog (a chunk of their own).
+  const forms = useGrammar(grammar && open)
   const verbFormsHint = useMemo(() => {
-    if (!grammar || !title.trim()) return null
-    const card = verbCard(title, wordClass)
+    if (!forms || !title.trim()) return null
+    const card = forms.verbCard(title, wordClass)
     if (card) {
+      const { verbForm } = forms
       return `Lauses: mina ${verbForm(card, '1sg')} · tema ${verbForm(card, '3sg')} · ei ${verbForm(card, 'neg')} · eile ${verbForm(card, '1sg', 'past')}`
     }
-    const place = placeFormsOf(title, wordClass)
+    const place = forms.placeFormsOf(title, wordClass)
     if (place) return `Lauses: lähen ${place.to} · olen ${place.at}`
-    const partitive = nounPartitive(title, wordClass)
+    const partitive = forms.nounPartitive(title, wordClass)
     if (partitive) return `Lauses: tahan ${partitive} · kaks ${partitive}`
     const unknownVerb = wordClass === 'verb' && /ma$/.test(normalizeWord(title))
     return unknownVerb ? 'Seda tegusõna Suhtleja veel ei pööra. Vajadusel tee sõnaühend.' : null
-  }, [grammar, title, wordClass])
+  }, [forms, title, wordClass])
 
   // Search
   const [query, setQuery] = useState('')

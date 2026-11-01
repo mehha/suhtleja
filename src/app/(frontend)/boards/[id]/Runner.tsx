@@ -23,7 +23,8 @@ import { CellLabel } from './CellLabel'
 import { toast } from 'sonner'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
 import { wordClassColor } from '@/utilities/wordClass'
-import { applyGrammar, canChangeForm, type GrammarToken } from '@/utilities/grammar/applyGrammar'
+import type { GrammarToken } from '@/utilities/grammar/applyGrammar'
+import { loadGrammar, useGrammar, type Grammar } from '@/utilities/grammar/useGrammar'
 
 const GRID_MARGIN: [number, number] = [16, 16]
 // The board keeps its own columns while a tile is at least this wide (the editor's minimum too), so
@@ -86,6 +87,8 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   const wordClassColors = board.extra?.wordClassColors !== false
   // Word forms (src/utilities/grammar): "mina" + "jooksma" says "mina jooksen".
   const grammarEnabled = board.extra?.grammar !== false
+  // Loaded after the board shows (a chunk of its own); until then words are said as written.
+  const grammar = useGrammar(grammarEnabled)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const gridContainerRef = useRef<HTMLDivElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -103,8 +106,8 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   const cellById = useMemo(() => new Map(cells.map((c) => [String(c.id), c] as const)), [cells])
   // Cards a sentence can change ("jooksen", "õuna"), for loading their forms ahead.
   const formCells = useMemo(
-    () => cells.filter((c) => c.title?.trim() && canChangeForm(c.title, c.wordClass)),
-    [cells],
+    () => (grammar ? cells.filter((c) => c.title?.trim() && grammar.canChangeForm(c.title, c.wordClass)) : []),
+    [cells, grammar],
   )
   const ttsCacheManifest = useMemo(() => getBoardTTSCacheManifest(board), [board])
   const cachedAudioUrlByText = useMemo(
@@ -205,11 +208,11 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
 
   // The words as the sentence says them: in the board's word forms, which compounds then override.
   const sentenceTokens = useCallback(
-    (items: SequenceItem[]): SelectedToken[] => {
-      const forms = grammarEnabled ? applyGrammar(grammarInput(items)) : null
-      return items.map((item, index) => ({ id: item.cellId, text: forms?.[index] ?? item.text }))
+    (items: SequenceItem[], forms: Grammar | null = grammar): SelectedToken[] => {
+      const said = forms ? forms.applyGrammar(grammarInput(items)) : null
+      return items.map((item, index) => ({ id: item.cellId, text: said?.[index] ?? item.text }))
     },
-    [grammarEnabled, grammarInput],
+    [grammar, grammarInput],
   )
 
   const tokens: SelectedToken[] = useMemo(() => sentenceTokens(sequence), [sequence, sentenceTokens])
@@ -396,13 +399,21 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     ensureAudioUnlocked()
     stopCurrentAudio()
     setPhrasePlaying(false)
+    const cellId = String(cell.id)
+    const key = ++tapKeyRef.current
     try {
-      const cellId = String(cell.id)
-      const key = ++tapKeyRef.current
       const nextSequence: SequenceItem[] = [...sequence, { key, cellId, text: raw }]
+      // The word joins the phrase at once, so the next tap builds on it even while this one waits
+      // for the word forms below.
+      setSequence(nextSequence)
+      setActiveCellId(cellId)
 
       // The words as the sentence says them (word forms), then compounds, which are off with AI on.
-      const nextTokens = sentenceTokens(nextSequence)
+      // A tap before the word forms have loaded waits for them; if the child tapped on meanwhile,
+      // the later tap speaks and this one stays silent.
+      const forms = grammarEnabled ? (grammar ?? (await loadGrammar())) : null
+      if (key !== tapKeyRef.current) return
+      const nextTokens = sentenceTokens(nextSequence, forms)
       const form = nextTokens.at(-1)!.text
       const compoundForm = !aiEnabled
         ? getCompoundFormForLastToken(nextTokens, board.compounds)
@@ -412,8 +423,6 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
       // The tile shows the written form; the speech form may be spelled for the voice.
       const shown = compoundForm ? compoundForm.surface : form
 
-      setSequence(nextSequence)
-      setActiveCellId(cellId)
       setTempLabel({ id: cellId, text: shown })
 
       // With AI on, the word is said at once and the AI's form follows into the phrase and "play
@@ -424,7 +433,8 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
 
       if (!(await playSpeech(spoken))) notifySpeechFailed()
     } finally {
-      setActiveCellId(null)
+      // A later tap keeps its tile lit.
+      if (key === tapKeyRef.current) setActiveCellId(null)
     }
   }
 
@@ -641,19 +651,19 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   // The forms the cards take on the next tap ("jooksen" after "mina", "õuna" after "tahan") load
   // while the child looks for the card, a few at a time.
   useEffect(() => {
-    if (!grammarEnabled || sequence.length === 0) return
+    if (!grammar || sequence.length === 0) return
     const said = grammarInput(sequence)
     let loading = 0
     for (const cell of formCells) {
       const title = cell.title!.trim()
-      const form = applyGrammar([...said, { text: title, wordClass: cell.wordClass }]).at(-1)!
+      const form = grammar.applyGrammar([...said, { text: title, wordClass: cell.wordClass }]).at(-1)!
       if (form === title) continue
       const url = cachedAudioUrlByText.get(prepareTextForTTS(form))
       if (!url) continue
       preloadAudioRef.current(url)
       if (++loading >= NEXT_FORMS_PRELOAD_MAX) break
     }
-  }, [grammarEnabled, sequence, grammarInput, formCells, cachedAudioUrlByText])
+  }, [grammar, sequence, grammarInput, formCells, cachedAudioUrlByText])
 
   return (
     <div
