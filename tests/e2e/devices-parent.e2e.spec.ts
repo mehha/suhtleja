@@ -331,6 +331,40 @@ test.describe('board editor', () => {
     expect(saved.extra.grammar).toBe(true)
   })
 
+  test('a card is set to open another board', async ({ page, member, baseURL }) => {
+    await page.route('**/next/image-search**', (route) => route.fulfill({ json: { banks: [], library: [], mine: [] } }))
+    const food = `Söögitahvel ${member.boardName}`
+    const foodId = await createOwnBoard(page.request, food, [{ title: 'õun' }])
+    const boardId = await createOwnBoard(page.request, `Lingiga ${member.boardName}`, [
+      { title: 'mina' },
+      { title: 'söök' },
+    ])
+    await enterParentView(page, baseURL)
+    await page.goto(`/boards/${boardId}/edit`)
+
+    const card = (word: string) => page.locator('.board-editor-grid > .react-grid-item').filter({ hasText: word })
+    await card('söök').getByRole('button', { name: 'Muuda kaarti' }).tap()
+    const dialog = page.getByRole('dialog', { name: 'Muuda' })
+    const opens = dialog.getByRole('combobox', { name: 'Avab tahvli' })
+    await expect(opens).toHaveText('Ei ava, ütleb sõna')
+    await opens.tap()
+    // The member's own boards are listed, this one not.
+    await expect(page.getByRole('option', { name: `Lingiga ${member.boardName}` })).toHaveCount(0)
+    await page.getByRole('option', { name: food }).tap()
+    await expect(opens).toHaveText(food)
+    await dialog.getByRole('button', { name: 'Salvesta' }).tap()
+    await expect(dialog).toBeHidden()
+    await page.getByRole('button', { name: 'Salvesta', exact: true }).tap()
+    await expect(page.getByRole('button', { name: 'Salvestatud' })).toBeVisible()
+
+    const saved = await (await page.request.get(`/api/boards/${boardId}?depth=0`)).json()
+    const cells = saved.grid.cells as Array<{ title: string; linkBoard: number | null }>
+    expect(cells.map(({ title, linkBoard }) => ({ title, linkBoard }))).toEqual([
+      { title: 'mina', linkBoard: null },
+      { title: 'söök', linkBoard: foodId },
+    ])
+  })
+
   test('compounds are made by tapping cards', async ({ page, member, baseURL, viewport }) => {
     await enterParentView(page, baseURL)
     await page.goto(`/boards/${member.boardId}/compounds`)

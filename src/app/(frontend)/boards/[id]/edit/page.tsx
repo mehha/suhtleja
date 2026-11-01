@@ -161,9 +161,22 @@ export default async function BoardEditPage({
     return { ok: true }
   }
 
+  // The boards a card can open: those the user can read (own and shared), not this one.
+  const linkable = await payload.find({
+    collection: 'boards',
+    where: { id: { not_equals: board.id } },
+    select: { name: true },
+    sort: 'name',
+    depth: 0,
+    pagination: false,
+    overrideAccess: false,
+    user,
+  })
+
   return (
     <BoardEditor
       board={board}
+      linkableBoards={linkable.docs.map((doc) => ({ id: doc.id, name: doc.name || 'Nimetu tahvel' }))}
       isAdmin={isAdmin}
       renameBoard={renameBoard}
       updateBoardHomeVisibility={updateBoardHomeVisibility}

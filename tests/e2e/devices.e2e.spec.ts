@@ -342,6 +342,54 @@ test.describe('board', () => {
     await expect.poll(() => spoken).toContain('mina jooksma.')
   })
 
+  test('a card opens another board with the sentence, and the back button returns with it', async ({
+    page,
+    member,
+  }) => {
+    await page.route('**/next/tts-ms', (route) => route.fulfill({ body: silentWav(), contentType: 'audio/wav' }))
+    const food = `Söök ${member.boardName}`
+    const foodId = await createOwnBoard(page.request, food, [
+      { title: 'õun', wordClass: 'noun' },
+      { title: 'piim', wordClass: 'noun' },
+    ])
+    const start = `Algus ${member.boardName}`
+    const startId = await createOwnBoard(page.request, start, [
+      { title: 'mina', wordClass: 'person' },
+      { title: 'tahtma', wordClass: 'verb' },
+      { title: 'söök', linkBoard: foodId },
+    ])
+    await page.goto(`/boards/${startId}`)
+    const phrase = page.locator('.actionbar-container')
+
+    await page.getByRole('button', { name: 'mina', exact: true }).tap()
+    await page.getByRole('button', { name: 'tahtma', exact: true }).tap()
+    await expect(phrase.getByText('tahan', { exact: true })).toBeVisible()
+
+    // The card says where it goes and opens the board; its word isn't added.
+    await page.getByRole('button', { name: `söök, avab tahvli ${food}` }).tap()
+    await expect(page).toHaveURL(new RegExp(`/boards/${foodId}\\?from=${startId}$`))
+    await expect(phrase.getByText('tahan', { exact: true })).toBeVisible()
+    await expect(phrase).not.toContainText('söök')
+
+    // The sentence goes on, in its forms, with this board's word.
+    await page.getByRole('button', { name: 'õun', exact: true }).tap()
+    for (const word of ['mina', 'tahan', 'õuna']) {
+      await expect(phrase.getByText(word, { exact: true })).toBeVisible()
+    }
+    await expectTouchFriendly(page, 'a board opened by a card')
+
+    // Back to the first board, the sentence with it.
+    await page.getByRole('link', { name: `Tagasi: ${start}` }).tap()
+    await expect(page).toHaveURL(new RegExp(`/boards/${startId}$`))
+    for (const word of ['mina', 'tahan', 'õuna']) {
+      await expect(phrase.getByText(word, { exact: true })).toBeVisible()
+    }
+
+    // From the home a board starts with an empty sentence.
+    await page.goto(`/boards/${foodId}`)
+    await expect(phrase.getByText('Vali pilte, et fraasi koostada')).toBeVisible()
+  })
+
   test('a noun before a postposition is in the genitive', async ({ page, member }) => {
     const spoken: string[] = []
     await page.route('**/next/tts-ms', async (route) => {

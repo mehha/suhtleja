@@ -94,6 +94,7 @@ type SaveGeneratedResponse = {
 type CellImagePatch = {
   title?: string
   wordClass?: WordClass | null
+  linkBoard?: number | null
   externalImageURL?: string
   h?: number
   image?: string | number | { id: string | number; url?: string } | null
@@ -110,11 +111,14 @@ type CellEditModalProps = {
         h?: number | null
         image?: any
         wordClass?: string | null
+        linkBoard?: number | null
       }
     | null
   onSaveAction: (cellId: string, patch: CellImagePatch) => void
   // The board's word forms (extra.grammar): the dialog shows a verb card's forms.
   grammar?: boolean
+  // Boards the card can open.
+  linkableBoards?: Array<{ id: number; name: string }>
 }
 
 // Where the card's word class came from: saved on the card, suggested from its text in this dialog
@@ -133,6 +137,7 @@ const EMPTY_RESULTS: SearchResults = { banks: [], library: [], mine: [] }
 
 // The word class select's value for a card without a class (Radix Select has no empty value).
 const NO_WORD_CLASS = 'none'
+const NO_LINK_BOARD = 'none'
 
 const SCOPE_LABELS: Record<SearchScope, string> = {
   all: 'Kõik allikad',
@@ -201,6 +206,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   cell,
   onSaveAction,
   grammar = true,
+  linkableBoards = [],
 }) => {
   const [title, setTitle] = useState('')
   const [pending, setPending] = useState<PendingImage | null>(null)
@@ -213,6 +219,8 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   const [wordClassSource, setWordClassSource] = useState<WordClassSource>('auto')
   const [classLookedUpFor, setClassLookedUpFor] = useState<string | null>(null)
   const wordClassSourceRef = useRef<WordClassSource>('auto')
+  // The board the card opens (null: it says its word).
+  const [linkBoard, setLinkBoard] = useState<number | null>(null)
 
   // What the board's word forms make of a verb, place or noun card, or that they leave a verb as it
   // is. The word forms load with the dialog (a chunk of their own).
@@ -279,6 +287,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     setTitle(cellTitle)
     setWordClass(savedClass)
     setWordClassSource(savedClass ? 'saved' : 'auto')
+    setLinkBoard(cell.linkBoard ?? null)
     // A saved class stands until the text changes; a card without one gets a suggestion at once.
     setClassLookedUpFor(savedClass ? normalizeWord(cellTitle) : null)
     setPending(null)
@@ -512,7 +521,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
       return
     }
 
-    const patch: CellImagePatch = { title, wordClass }
+    const patch: CellImagePatch = { title, wordClass, linkBoard }
 
     if (pending?.kind === 'external') {
       patch.externalImageURL = pending.url
@@ -714,6 +723,39 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                   {verbFormsHint}
                 </p>
               ) : null}
+
+              <Label htmlFor="cell-link-board" className="mt-2 text-lg">
+                Avab tahvli
+              </Label>
+              <Select
+                value={linkBoard ? String(linkBoard) : NO_LINK_BOARD}
+                onValueChange={(value) => setLinkBoard(value === NO_LINK_BOARD ? null : Number(value))}
+                disabled={linkableBoards.length === 0 && !linkBoard}
+              >
+                <SelectTrigger
+                  id="cell-link-board"
+                  className="rounded-xl text-sm"
+                  aria-describedby="cell-link-board-hint"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_LINK_BOARD}>Ei ava, ütleb sõna</SelectItem>
+                  {linkableBoards.map((target) => (
+                    <SelectItem key={target.id} value={String(target.id)}>
+                      {target.name}
+                    </SelectItem>
+                  ))}
+                  {linkBoard && !linkableBoards.some((target) => target.id === linkBoard) ? (
+                    <SelectItem value={String(linkBoard)}>Tahvel pole enam saadaval</SelectItem>
+                  ) : null}
+                </SelectContent>
+              </Select>
+              <p id="cell-link-board-hint" className="text-xs text-slate-500">
+                {linkableBoards.length === 0
+                  ? 'Teisi tahvleid veel pole.'
+                  : 'Kaart avab valitud tahvli ja lause jääb alles.'}
+              </p>
             </div>
           </div>
 

@@ -1227,6 +1227,10 @@ export interface Board {
           audio?: (number | null) | Media;
           locked?: boolean | null;
           wordClass?: ('person' | 'verb' | 'adjective' | 'noun' | 'place' | 'question' | 'social' | 'other') | null;
+          /**
+           * Tahvli ID, mille kaart avab. Lause jääb alles.
+           */
+          linkBoard?: number | null;
         }[]
       | null;
   };
@@ -2273,6 +2277,7 @@ export interface BoardsSelect<T extends boolean = true> {
               audio?: T;
               locked?: T;
               wordClass?: T;
+              linkBoard?: T;
             };
       };
   compounds?:

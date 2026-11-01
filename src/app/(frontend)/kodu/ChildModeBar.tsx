@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 
 import { LogoTile } from '@/components/Brand'
 import { LogoHouse } from '@/components/Logo/Logo'
@@ -13,6 +14,8 @@ type ChildModeBarProps = {
   current?: boolean
   /** The board's or game's name, shown in the middle from the sm breakpoint. */
   title?: string | null
+  /** The board a card opened this one from: a back button next to Kodu. */
+  back?: { href: string; name: string; onClick?: () => void } | null
 }
 
 // Like a board cell: the logo's blue house tile and the word, large enough for a child's finger.
@@ -24,7 +27,7 @@ const homeClassName =
 // sticks to the top on the page's own (opaque) background, so a long board scrolls under it
 // instead of under floating buttons, and no faded cards show through. The negative margins undo
 // the page shell's padding (`FrontendShell`).
-export function ChildModeBar({ hasPin, current = false, title }: ChildModeBarProps) {
+export function ChildModeBar({ hasPin, current = false, title, back }: ChildModeBarProps) {
   const home = (
     <>
       <LogoTile index={2}>
@@ -36,21 +39,33 @@ export function ChildModeBar({ hasPin, current = false, title }: ChildModeBarPro
 
   return (
     <div className="sticky top-0 z-40 -mx-3 -mt-3 mb-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-gray-50 px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
-      {current ? (
-        <h1 aria-current="page" className={cn(homeClassName, 'ring-2 ring-[#1c79dd]')}>
-          {home}
-        </h1>
-      ) : (
-        <Link
-          href="/kodu"
-          className={cn(
-            homeClassName,
-            'ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c79dd] active:scale-[0.97]',
-          )}
-        >
-          {home}
-        </Link>
-      )}
+      <div className="flex min-w-0 items-center gap-2 justify-self-start">
+        {current ? (
+          <h1 aria-current="page" className={cn(homeClassName, 'ring-2 ring-[#1c79dd]')}>
+            {home}
+          </h1>
+        ) : (
+          <Link
+            href="/kodu"
+            className={cn(
+              homeClassName,
+              'ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c79dd] active:scale-[0.97]',
+            )}
+          >
+            {home}
+          </Link>
+        )}
+        {back ? (
+          <Link
+            href={back.href}
+            onClick={back.onClick}
+            aria-label={`Tagasi: ${back.name}`}
+            className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-md ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c79dd] active:scale-[0.97]"
+          >
+            <ArrowLeft className="h-7 w-7" aria-hidden="true" />
+          </Link>
+        ) : null}
+      </div>
 
       {title ? (
         <p className="hidden truncate text-center text-base font-semibold text-slate-600 sm:block">

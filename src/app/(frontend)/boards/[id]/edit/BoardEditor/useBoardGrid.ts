@@ -113,6 +113,7 @@ export function useBoardGrid(board: Board) {
         audio: c.audio ?? undefined,
         image,
         wordClass: c.wordClass ?? null,
+        linkBoard: c.linkBoard ?? null,
       }
     })
 

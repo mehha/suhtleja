@@ -5,8 +5,9 @@ import { useState, useMemo, useEffect, useRef, useCallback, type CSSProperties }
 import Image from 'next/image'
 import type { Board, Media } from '@/payload-types'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Edit3, Trash, Undo2, Volume2Icon } from 'lucide-react'
+import { ArrowLeft, Edit3, FolderOpen, Trash, Undo2, Volume2Icon } from 'lucide-react'
 import ReactGridLayout, { type Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
@@ -31,7 +32,30 @@ const GRID_MARGIN: [number, number] = [16, 16]
 // a tablet shows the board as the parent made it, upright and sideways alike.
 const MIN_TILE_WIDTH = 96
 
-type RunnerProps = { board: Board; isParentMode: boolean; canEdit: boolean; hasPin: boolean }
+type RunnerProps = {
+  board: Board
+  isParentMode: boolean
+  canEdit: boolean
+  hasPin: boolean
+  // The boards the cards open that the user can read, by id (page.tsx).
+  linkedBoards?: Record<number, string>
+  // The board a card opened this one from.
+  backTo?: { id: number; name: string } | null
+}
+
+// A card that opens another board hands the sentence over to it, and the back button hands it back:
+// the next board's runner takes it if it is addressed to it and fresh. Opening a board from the home
+// starts with an empty sentence.
+const PHRASE_HANDOFF_KEY = 'suhtleja:phrase'
+const PHRASE_HANDOFF_MAX_AGE_MS = 60_000
+
+function handPhraseOver(to: number, items: unknown[]) {
+  try {
+    sessionStorage.setItem(PHRASE_HANDOFF_KEY, JSON.stringify({ to, at: Date.now(), items }))
+  } catch {
+    // Without storage the next board starts with an empty sentence.
+  }
+}
 
 // A tile with a word class keeps its colour on the border; its pressed and hover rings are the same
 // colour, lighter (#rrggbbaa), since the orange ring of the other tiles is the colour of a thing.
@@ -43,10 +67,22 @@ type SequenceItem = {
   key: number
   cellId: string
   text: string
+  // The card's class and picture, for a word tapped on another board (whose cards this one hasn't).
+  wordClass?: string | null
+  image?: string
 }
 
 type MorphResponse = {
   surface?: string
+}
+
+// A card's picture: an external symbol or an uploaded picture.
+function cellImageSrc(cell: any): string {
+  return (
+    cell?.externalImageURL ||
+    (cell?.image && typeof cell.image === 'object' && (cell.image as Media).url) ||
+    ''
+  )
 }
 
 // play() rejects with AbortError when a newer tap interrupts it; that isn't a failure.
@@ -71,13 +107,35 @@ function notifySpeechFailed() {
   toast.error('Heli ei õnnestunud. Puuduta uuesti.', { id: 'tts' })
 }
 
-export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerProps) {
+export default function Runner({ board, isParentMode, canEdit, hasPin, linkedBoards = {}, backTo = null }: RunnerProps) {
+  const router = useRouter()
   // UUS: hoiame cellId + teksti
   const [sequence, setSequence] = useState<SequenceItem[]>([])
   const [activeCellId, setActiveCellId] = useState<string | null>(null)
   const [phrasePlaying, setPhrasePlaying] = useState(false)
   const [tempLabel, setTempLabel] = useState<{ id: string; text: string } | null>(null)
   const tapKeyRef = useRef(0)
+
+  // The sentence handed over by the board a card opened this one from (or the one the child went
+  // back from). Read after mounting: the server renders an empty phrase.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const handoff = JSON.parse(sessionStorage.getItem(PHRASE_HANDOFF_KEY) ?? 'null')
+        sessionStorage.removeItem(PHRASE_HANDOFF_KEY)
+        if (handoff?.to !== board.id || Date.now() - handoff.at > PHRASE_HANDOFF_MAX_AGE_MS) return
+        const items = (Array.isArray(handoff.items) ? handoff.items : []).filter(
+          (item: SequenceItem) => typeof item?.key === 'number' && typeof item.text === 'string',
+        ) as SequenceItem[]
+        if (items.length === 0) return
+        tapKeyRef.current = Math.max(...items.map((item) => item.key))
+        setSequence(items)
+      } catch {
+        // A broken handoff starts the sentence empty.
+      }
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [board.id])
   // AI forms on their way (AI setting): the sentence is fetched for "play all" once they are in.
   const [pendingAIForms, setPendingAIForms] = useState(0)
 
@@ -202,7 +260,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
 
   const grammarInput = useCallback(
     (items: SequenceItem[]): GrammarToken[] =>
-      items.map((item) => ({ text: item.text, wordClass: cellById.get(item.cellId)?.wordClass ?? null })),
+      items.map((item) => ({ text: item.text, wordClass: cellById.get(item.cellId)?.wordClass ?? item.wordClass ?? null })),
     [cellById],
   )
 
@@ -392,7 +450,18 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     audioEl.onerror = null
   }
 
+  // Hands the sentence over to the board the child goes to (see PHRASE_HANDOFF_KEY).
+  const handPhraseTo = (boardId: number) => handPhraseOver(boardId, sequence)
+
   const handleCellClick = async (cell: any) => {
+    // A card that opens another board: the child goes there with the sentence, the word isn't said.
+    if (typeof cell?.linkBoard === 'number' && linkedBoards[cell.linkBoard]) {
+      stopCurrentAudio()
+      handPhraseTo(cell.linkBoard)
+      router.push(`/boards/${cell.linkBoard}?from=${board.id}`)
+      return
+    }
+
     const raw = cell?.title?.toString().trim()
     if (!raw) return
 
@@ -402,7 +471,10 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     const cellId = String(cell.id)
     const key = ++tapKeyRef.current
     try {
-      const nextSequence: SequenceItem[] = [...sequence, { key, cellId, text: raw }]
+      const nextSequence: SequenceItem[] = [
+        ...sequence,
+        { key, cellId, text: raw, wordClass: cell.wordClass ?? null, image: cellImageSrc(cell) || undefined },
+      ]
       // The word joins the phrase at once, so the next tap builds on it even while this one waits
       // for the word forms below.
       setSequence(nextSequence)
@@ -512,10 +584,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   }
 
   const renderCellImage = (cell: any) => {
-    const src =
-      cell?.externalImageURL ||
-      (cell?.image && typeof cell.image === 'object' && (cell.image as Media).url) ||
-      ''
+    const src = cellImageSrc(cell)
     if (!src) return null
 
     return (
@@ -670,12 +739,31 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
       className="pb-28 md:pb-24"
       style={actionBarHeight ? { paddingBottom: actionBarHeight + 16 } : undefined}
     >
-      {!isParentMode && <ChildModeBar hasPin={hasPin} title={board.name} />}
+      {!isParentMode && (
+        <ChildModeBar
+          hasPin={hasPin}
+          title={board.name}
+          back={backTo ? { href: `/boards/${backTo.id}`, name: backTo.name, onClick: () => handPhraseTo(backTo.id) } : null}
+        />
+      )}
 
       {/* The parent view shows the board as the child gets it; changing it happens in the editor. */}
       {isParentMode && (
         <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-semibold">{board.name || 'Nimetu tahvel'}</h1>
+          <div className="flex min-w-0 items-center gap-3">
+            {backTo ? (
+              <Button asChild variant="outline" size="icon" className="h-11 w-11 shrink-0">
+                <Link
+                  href={`/boards/${backTo.id}`}
+                  aria-label={`Tagasi: ${backTo.name}`}
+                  onClick={() => handPhraseTo(backTo.id)}
+                >
+                  <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+                </Link>
+              </Button>
+            ) : null}
+            <h1 className="text-3xl font-semibold">{board.name || 'Nimetu tahvel'}</h1>
+          </div>
           {canEdit ? (
             <Button asChild className="gap-2">
               <Link href={`/boards/${board.id}/edit`}>
@@ -708,15 +796,11 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
                   {sequenceCells.length === 0 ? (
                     <span className="text-sm text-slate-400">Vali pilte, et fraasi koostada</span>
                   ) : (
-                    sequenceCells.map(({ cellId, cell, text }, index) => {
-                      const src =
-                        cell?.externalImageURL ||
-                        (cell?.image &&
-                          typeof cell.image === 'object' &&
-                          (cell.image as Media).url) ||
-                        ''
+                    sequenceCells.map(({ cellId, cell, text, image, wordClass }, index) => {
+                      // A word tapped on another board keeps its own picture and class.
+                      const src = (cell ? cellImageSrc(cell) : '') || image || ''
 
-                      const phraseColor = wordClassColors ? wordClassColor(cell?.wordClass) : null
+                      const phraseColor = wordClassColors ? wordClassColor(cell?.wordClass ?? wordClass) : null
 
                       return (
                         <div
@@ -866,6 +950,8 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
               const isActiveCell = activeCellId === cellIdString
               const titleToShow = isOverridden && tempLabel ? tempLabel.text : cell.title
               const classColor = wordClassColors ? wordClassColor(cell.wordClass) : null
+              // A card that opens another board the user can read.
+              const opens = typeof cell.linkBoard === 'number' ? linkedBoards[cell.linkBoard] : undefined
 
               return (
                 <div
@@ -897,11 +983,18 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
                     />
                   )}
 
+                  {opens ? (
+                    <FolderOpen
+                      className="pointer-events-none absolute right-1.5 top-1.5 h-6 w-6 rounded-md bg-white/90 p-0.5 text-slate-600"
+                      aria-hidden="true"
+                    />
+                  ) : null}
+
                   <button
                     type="button"
                     onClick={() => void handleCellClick(cell)}
                     className="absolute inset-0 cursor-pointer"
-                    aria-label={titleToShow ?? 'valik'}
+                    aria-label={opens ? `${titleToShow ?? 'valik'}, avab tahvli ${opens}` : (titleToShow ?? 'valik')}
                   />
                 </div>
               )

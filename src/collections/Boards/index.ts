@@ -160,6 +160,15 @@ export const Boards: CollectionConfig = {
               label: 'Sõnaliik',
               options: WORD_CLASSES.map((value) => ({ label: WORD_CLASS_INFO[value].label, value })),
             },
+            {
+              // A card that opens another board ("Söök" opens the food board); the sentence stays.
+              // An id, not a relationship, so loading a board never loads the boards it opens: the
+              // board page looks up which of them the user can read.
+              name: 'linkBoard',
+              type: 'number',
+              label: 'Avab tahvli',
+              admin: { description: 'Tahvli ID, mille kaart avab. Lause jääb alles.' },
+            },
           ],
         },
       ],

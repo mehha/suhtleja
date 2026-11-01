@@ -91,6 +91,8 @@ const scaleLayoutToColumns = (items: Layout[], fromCols: number, toCols: number)
 
 type Props = {
   board: Board
+  // Boards a card can open (src/app/(frontend)/boards/[id]/edit/page.tsx).
+  linkableBoards: Array<{ id: number; name: string }>
   isAdmin: boolean
   renameBoard: (formData: FormData) => Promise<ActionResult>
   updateBoardHomeVisibility: (formData: FormData) => Promise<ActionResult>
@@ -100,6 +102,7 @@ type Props = {
 
 export default function BoardEditor({
   board,
+  linkableBoards,
   isAdmin,
   renameBoard,
   updateBoardHomeVisibility,
@@ -195,6 +198,7 @@ export default function BoardEditor({
       h?: number
       image?: string | number | { id: string | number; url?: string } | null
       wordClass?: WordClass | null
+      linkBoard?: number | null
     },
   ) => {
     void updateCellAction(cellId, patch as any)
@@ -627,9 +631,11 @@ export default function BoardEditor({
                   h: currentEditingCell.h ?? 1,
                   image: currentEditingCell.image,
                   wordClass: currentEditingCell.wordClass ?? null,
+                  linkBoard: currentEditingCell.linkBoard ?? null,
                 }
               : null
           }
+          linkableBoards={linkableBoards}
           onSaveAction={handleModalSave}
           grammar={grammar}
         />
