@@ -1,5 +1,5 @@
 import { guessWordClass, isPronoun, normalizeWord } from '@/utilities/wordClass'
-import { IRREGULAR_PRESENT, VERB_FORMS } from './verbForms'
+import { IRREGULAR_PAST, IRREGULAR_PRESENT, VERB_FORMS } from './verbForms'
 import {
   ADJECTIVE_PARTITIVE,
   ADJECTIVE_PLACE_FORMS,
@@ -231,21 +231,55 @@ export function verbCard(text: string, wordClass?: string | null): VerbCard | nu
   return { verb, rest: words.slice(0, -1).join(' ') }
 }
 
-function finiteWord(verb: string, kind: Person | 'neg'): string {
-  const [stem] = VERB_FORMS[verb]!
+export type Tense = 'present' | 'past'
+
+// The past on its stem (läksi-n, läksi-d, läksi-me, läksi-te, läksi-d); the 3rd person singular is its
+// own (läks), and after "ei" the nud-participle (ei läinud).
+const PAST_ENDINGS: Record<Exclude<Person, '3sg'>, { ending: string; code: 'sid' | 'sime' | 'site' | null }> = {
+  '1sg': { ending: 'n', code: null },
+  '2sg': { ending: 'd', code: 'sid' },
+  '1pl': { ending: 'me', code: 'sime' },
+  '2pl': { ending: 'te', code: 'site' },
+  '3pl': { ending: 'd', code: 'sid' },
+}
+
+function finiteWord(verb: string, kind: Person | 'neg', tense: Tense = 'present'): string {
+  const [stem, , pastStem, past3, nud] = VERB_FORMS[verb]!
+  if (tense === 'past') {
+    if (kind === 'neg') return nud
+    if (kind === '3sg') return past3
+    const { ending, code } = PAST_ENDINGS[kind]
+    return (code && IRREGULAR_PAST[verb]?.[code]) || pastStem + ending
+  }
   if (kind === 'neg') return stem
   const ending = ENDINGS[kind]
   return IRREGULAR_PRESENT[verb]?.[ending as Exclude<typeof ending, 'n'>] ?? stem + ending
 }
 
 /** The card's words in one form: the finite verb goes first ("pesen hambaid"), an infinitive last. */
-export function verbForm({ verb, rest }: VerbCard, kind: VerbFormKind): string {
+export function verbForm({ verb, rest }: VerbCard, kind: VerbFormKind, tense: Tense = 'present'): string {
   if (kind === 'da') {
     const da = VERB_FORMS[verb]![1]
     return rest ? `${rest} ${da}` : da
   }
-  const word = finiteWord(verb, kind)
+  const word = finiteWord(verb, kind, tense)
   return rest ? `${word} ${rest}` : word
+}
+
+// Words that set the tense: after "eile" the verbs are in the past ("eile ma läksin"), after "täna",
+// "homme" and the like in the present again (the present says the future too).
+const PAST_MARKERS = new Set(['eile', 'üleeile'])
+const PRESENT_MARKERS = new Set(['täna', 'homme', 'ülehomme', 'praegu', 'nüüd'])
+
+// Each word's tense: the last marker before it, or before any marker the first one in the sentence
+// ("ma läksin eile poodi").
+function tensesOf(tokens: GrammarToken[]): Tense[] {
+  const markers = tokens.map(({ text }): Tense | null => {
+    const word = normalizeWord(text)
+    return PAST_MARKERS.has(word) ? 'past' : PRESENT_MARKERS.has(word) ? 'present' : null
+  })
+  let current: Tense = markers.find((marker) => marker !== null) ?? 'present'
+  return markers.map((marker) => (current = marker ?? current))
 }
 
 // A card that already is a verb form ("tahan", "süüa"): it isn't changed, but the next verb follows
@@ -258,7 +292,10 @@ function verbOfForm(text: string, wordClass?: string | null): { verb: string; fi
   if (!knownForms) {
     knownForms = { finite: new Map(), da: new Map() }
     for (const verb of Object.keys(VERB_FORMS)) {
-      for (const person of Object.keys(ENDINGS) as Person[]) knownForms.finite.set(finiteWord(verb, person), verb)
+      for (const person of Object.keys(ENDINGS) as Person[]) {
+        knownForms.finite.set(finiteWord(verb, person), verb)
+        knownForms.finite.set(finiteWord(verb, person, 'past'), verb)
+      }
       knownForms.da.set(VERB_FORMS[verb]![1], verb)
     }
   }
@@ -485,6 +522,7 @@ function withCase(original: string, form: string): string {
  */
 export function applyGrammar(tokens: GrammarToken[]): string[] {
   const out = tokens.map(({ text }) => text)
+  const tenses = tensesOf(tokens)
   let clause = newClause()
   // Adjectives and numerals waiting for their noun, which decides their form. Without a noun after
   // them they stay as tapped.
@@ -685,7 +723,7 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
       if (!kind) return
       clause.finite = true
       clause.lastVerb = card.verb
-      out[index] = withCase(text, verbForm(card, kind))
+      out[index] = withCase(text, verbForm(card, kind, tenses[index]))
       return
     }
 
@@ -728,6 +766,7 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
   const placeCases = new Set<number>()
   const verbsOnBoard = new Set<string>()
   let together = false
+  let past = false
   let joining = false
   let objects = false
   let counting = false
@@ -739,6 +778,7 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
     if (word === 'ei') kinds.add('neg')
     if (word === 'pole') objects = true
     if (word === 'koos') together = true
+    if (PAST_MARKERS.has(word)) past = true
     if (EXPERIENCERS.has(word)) kinds.add('3sg')
 
     const subject = subjectOf(text, wordClass)
@@ -771,13 +811,15 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
   if (kinds.has('neg') && verbs.length > 0) objects = true
 
   const forms = new Set<string>()
-  const addVerbForms = (order: VerbFormKind[]) => {
+  const addVerbForms = (order: VerbFormKind[], tense: Tense = 'present') => {
     for (const kind of order) {
-      if (!kinds.has(kind)) continue
-      for (const { text, card } of verbs) forms.add(withCase(text, verbForm(card, kind)))
+      if (!kinds.has(kind) || (tense === 'past' && kind === 'da')) continue
+      for (const { text, card } of verbs) forms.add(withCase(text, verbForm(card, kind, tense)))
     }
   }
   addVerbForms(FIRST_FORMS)
+  // With "eile" on the board, the past too ("eile ma läksin").
+  if (past) addVerbForms(FIRST_FORMS, 'past')
   if (objects || counting) {
     const hasNoun = phraseWords.some(({ word }) => word.kind === 'noun')
     for (const kind of ['noun', 'adjective'] as const) {
@@ -835,5 +877,6 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
     for (const { text, word } of phraseWords) if (word.kind === 'numeral') forms.add(withCase(text, word.partitive))
   }
   addVerbForms(LATER_FORMS)
+  if (past) addVerbForms(LATER_FORMS, 'past')
   return [...forms]
 }

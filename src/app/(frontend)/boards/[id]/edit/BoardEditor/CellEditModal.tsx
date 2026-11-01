@@ -219,7 +219,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     if (!grammar || !title.trim()) return null
     const card = verbCard(title, wordClass)
     if (card) {
-      return `Lauses: mina ${verbForm(card, '1sg')} · tema ${verbForm(card, '3sg')} · ei ${verbForm(card, 'neg')}`
+      return `Lauses: mina ${verbForm(card, '1sg')} · tema ${verbForm(card, '3sg')} · ei ${verbForm(card, 'neg')} · eile ${verbForm(card, '1sg', 'past')}`
     }
     const place = placeFormsOf(title, wordClass)
     if (place) return `Lauses: lähen ${place.to} · olen ${place.at}`

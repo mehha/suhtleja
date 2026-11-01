@@ -342,6 +342,33 @@ test.describe('board', () => {
     await expect.poll(() => spoken).toContain('mina jooksma.')
   })
 
+  test('after "eile" a verb is in the past', async ({ page, member }) => {
+    const spoken: string[] = []
+    await page.route('**/next/tts-ms', async (route) => {
+      spoken.push(JSON.parse(route.request().postData() ?? '{}').text)
+      await route.fulfill({ body: silentWav(), contentType: 'audio/wav' })
+    })
+    const boardId = await createOwnBoard(page.request, `Minevik ${member.boardName}`, [
+      { title: 'eile', wordClass: 'other' },
+      { title: 'mina', wordClass: 'person' },
+      { title: 'minema', wordClass: 'verb' },
+      { title: 'pood', wordClass: 'place' },
+    ])
+    await page.goto(`/boards/${boardId}`)
+    const tile = (index: number) => page.locator('.layout > .react-grid-item').nth(index).getByRole('button')
+    const phrase = page.locator('.actionbar-container')
+
+    // A tapped tile shows its word's form until the next tap.
+    for (const index of [0, 1, 2]) await tile(index).tap()
+    await expect(tile(2)).toHaveAccessibleName('läksin')
+    await tile(3).tap()
+    await expect(tile(3)).toHaveAccessibleName('poodi')
+    for (const word of ['eile', 'mina', 'läksin', 'poodi']) {
+      await expect(phrase.getByText(word, { exact: true })).toBeVisible()
+    }
+    await expect.poll(() => spoken).toContain('eile mina läksin poodi.')
+  })
+
   test('an object takes the partitive, and its adjective with it', async ({ page, member }) => {
     const spoken: string[] = []
     await page.route('**/next/tts-ms', async (route) => {

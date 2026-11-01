@@ -1,7 +1,7 @@
 """Writes the board's word forms (see docs/rules/project/boards.md, "Word form rules"):
 
-- src/utilities/grammar/verbForms.ts: the present stem and da-infinitive of every verb the board
-  conjugates: the picture bank's (every word, or last word of a phrase, in -ma that Vabamorf
+- src/utilities/grammar/verbForms.ts: the present stem, da-infinitive, past stem, past 3rd person
+  singular and nud-participle (for "ei läinud") of every verb the board conjugates: the picture bank's (every word, or last word of a phrase, in -ma that Vabamorf
   conjugates) and verbs.txt;
 - src/utilities/grammar/wordForms.ts: the partitive of the picture bank's nouns (a plural noun's in
   the plural), adjectives and numerals (and of the people in words.txt), for objects ("tahan õuna")
@@ -51,6 +51,15 @@ PREFERRED: dict[tuple[str, str], str] = {
     ('sulgema', 'n'): 'sulen',
     ('sügelema', 'da'): 'sügeleda',
     ('ütlema', 'da'): 'öelda',
+    # "pidin minema" (had to), not "pidasin" (held)
+    ('pidama', 'sin'): 'pidin',
+    ('pidama', 's'): 'pidi',
+    ('julgema', 'nud'): 'julgenud',
+    ('laskma', 'sin'): 'lasin',
+    ('laskma', 's'): 'lasi',
+    ('mõtlema', 'nud'): 'mõelnud',
+    ('sügelema', 'nud'): 'sügelenud',
+    ('ütlema', 'nud'): 'öelnud',
     # Nouns
     ('hall', 'S'): 'halli',
     ('jogurt', 'S'): 'jogurtit',
@@ -117,6 +126,8 @@ PREFERRED: dict[tuple[str, str], str] = {
 
 # The present forms besides the 1st person singular, with the ending each adds to the stem.
 PERSON_ENDINGS = {'d': 'd', 'b': 'b', 'me': 'me', 'te': 'te', 'vad': 'vad'}
+# The past forms on the past stem besides the 1st person singular (the 3rd person singular is its own).
+PAST_ENDINGS = {'sid': 'd', 'sime': 'me', 'site': 'te'}
 
 MA = re.compile(r'^[a-zäöüõšž]{2,}ma$')
 ONE_WORD = re.compile(r'^[a-zäöüõšž]{2,}$')
@@ -233,7 +244,7 @@ def adjective_place_forms(adjectives: list[str]) -> dict[str, tuple[str, ...]]:
     return result
 
 
-def verbs(problems: list[str]) -> tuple[list[tuple[str, str, str, dict[str, str]]], int, list[str]]:
+def verbs(problems: list[str]) -> tuple[list[tuple[str, str, str, dict[str, str], tuple[str, str, str], dict[str, str]]], int, list[str]]:
     bank: set[str] = set()
     skipped: list[str] = []
     with BANK.open(encoding='utf-8') as f:
@@ -258,7 +269,20 @@ def verbs(problems: list[str]) -> tuple[list[tuple[str, str, str, dict[str, str]
             word = one(verb, form, 'V', problems, on_stem=stem + ending)
             if word != stem + ending:
                 irregular[form] = word
-        rows.append((verb, stem, one(verb, 'da', 'V', problems), irregular))
+        # The past: its stem from the 1st person singular (läksin, andsin), the 3rd person singular
+        # on its own (läks, andis), and the nud-participle after "ei" (ei läinud).
+        first_past = one(verb, 'sin', 'V', problems)
+        if not first_past.endswith('n'):
+            problems.append(f'{verb} sin: {first_past!r} does not end in -n')
+            continue
+        past_stem = first_past[:-1]
+        irregular_past = {}
+        for form, ending in PAST_ENDINGS.items():
+            word = one(verb, form, 'V', problems, on_stem=past_stem + ending)
+            if word != past_stem + ending:
+                irregular_past[form] = word
+        past = (past_stem, one(verb, 's', 'V', problems), one(verb, 'nud', 'V', problems))
+        rows.append((verb, stem, one(verb, 'da', 'V', problems), irregular, past, irregular_past))
     return rows, len(bank), skipped
 
 
@@ -359,16 +383,26 @@ def main() -> None:
 
     lines = header + [
         '// Each verb: its present stem (the forms are the stem plus -n, -d, -b, -me, -te, -vad, and the',
-        '// stem alone after "ei") and its da-infinitive.',
-        'export const VERB_FORMS: Record<string, readonly [present: string, da: string]> = {',
+        '// stem alone after "ei"), its da-infinitive, its past stem (plus -n, -d, -me, -te, -d), its past',
+        '// 3rd person singular and its nud-participle (after "ei" in the past).',
+        'export const VERB_FORMS: Record<',
+        '  string,',
+        '  readonly [present: string, da: string, past: string, past3: string, nud: string]',
+        '> = {',
     ]
-    for verb, stem, da, _ in verb_rows:
-        lines.append(f"  {key(verb)}: ['{stem}', '{da}'],")
+    for verb, stem, da, _, (past, past3, nud), _ in verb_rows:
+        lines.append(f"  {key(verb)}: ['{stem}', '{da}', '{past}', '{past3}', '{nud}'],")
     lines += ['}', '', "// Present forms that are not the stem plus the ending, by Vabamorf's form code."]
     lines.append("export const IRREGULAR_PRESENT: Record<string, Partial<Record<'d' | 'b' | 'me' | 'te' | 'vad', string>>> = {")
-    for verb, _, _, irregular in verb_rows:
+    for verb, _, _, irregular, _, _ in verb_rows:
         if irregular:
             forms = ', '.join(f"{form}: '{word}'" for form, word in irregular.items())
+            lines.append(f'  {key(verb)}: {{ {forms} }},')
+    lines += ['}', '', "// Past forms that are not the past stem plus the ending, by Vabamorf's form code."]
+    lines.append("export const IRREGULAR_PAST: Record<string, Partial<Record<'sid' | 'sime' | 'site', string>>> = {")
+    for verb, _, _, _, _, irregular_past in verb_rows:
+        if irregular_past:
+            forms = ', '.join(f"{form}: '{word}'" for form, word in irregular_past.items())
             lines.append(f'  {key(verb)}: {{ {forms} }},')
     lines += ['}', '']
     VERBS_OUT.write_text('\n'.join(lines), encoding='utf-8')

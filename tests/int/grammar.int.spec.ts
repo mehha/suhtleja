@@ -204,6 +204,24 @@ describe('word forms', () => {
     [['mina', 'mängima', 'palju', 'auto'], 'mina mängin palju autosid'],
     [['mina', 'minema', 'palju', 'pood'], 'mina lähen palju poode'],
     [['mina', 'sööma', 'palju'], 'mina söön palju'],
+    // The past after "eile"
+    [['eile', 'mina', 'minema', 'pood'], 'eile mina läksin poodi'],
+    [['mina', 'minema', 'eile', 'pood'], 'mina läksin eile poodi'],
+    [['eile', 'tema', 'sööma', 'õun'], 'eile tema sõi õuna'],
+    [['eile', 'sina', 'tulema', 'kodu'], 'eile sina tulid koju'],
+    [['eile', 'meie', 'mängima', 'õu'], 'eile meie mängisime õues'],
+    [['eile', 'nemad', 'olema', 'kodu'], 'eile nemad olid kodus'],
+    [['eile', 'mul', 'olema', 'pall'], 'eile mul oli pall'],
+    [['eile', 'mulle', 'meeldima', 'joonistama'], 'eile mulle meeldis joonistada'],
+    [['eile', 'mina', 'ei', 'minema', 'kool'], 'eile mina ei läinud kooli'],
+    [['eile', 'mina', 'tahtma', 'sööma'], 'eile mina tahtsin süüa'],
+    [['eile', 'mina', 'pidama', 'minema'], 'eile mina pidin minema'],
+    [['eile', 'mina', 'hambaid pesema'], 'eile mina pesin hambaid'],
+    [['eile', 'tahtsin', 'sööma'], 'eile tahtsin süüa'],
+    [['mul', 'oli', 'kaks', 'kass'], 'mul oli kaks kassi'],
+    // and the present again after "täna" or "homme"
+    [['eile', 'mina', 'olema', 'haige', 'aga', 'täna', 'mina', 'olema', 'terve'], 'eile mina olin haige aga täna mina olen terve'],
+    [['homme', 'mina', 'minema', 'pood'], 'homme mina lähen poodi'],
   ])('%j says "%s"', (cards, expected) => {
     expect(say(...cards)).toBe(expected)
   })
@@ -349,6 +367,15 @@ describe('the verb list', () => {
 
   it('says a verb card in every form', () => {
     const card = verbCard('jooksma')!
+    expect(['1sg', '2sg', '3sg', '1pl', '2pl', '3pl', 'neg'].map((kind) => verbForm(card, kind as never, 'past'))).toEqual([
+      'jooksin',
+      'jooksid',
+      'jooksis',
+      'jooksime',
+      'jooksite',
+      'jooksid',
+      'jooksnud',
+    ])
     expect(['1sg', '2sg', '3sg', '1pl', '2pl', '3pl', 'neg', 'da'].map((kind) => verbForm(card, kind as never))).toEqual([
       'jooksen',
       'jooksed',
@@ -416,6 +443,10 @@ describe('the forms a board can say', () => {
 
   it('has the plurals after "palju"', () => {
     expect(boardWordForms(cards('palju', 'kass', 'vesi', 'suur'))).toEqual(['kassi', 'vett', 'suurt', 'kasse', 'suuri'])
+  })
+
+  it('has the past with "eile"', () => {
+    expect(boardWordForms(cards('mina', 'eile', 'ei', 'minema'))).toEqual(['lähen', 'lähe', 'läksin', 'läinud', 'mind'])
   })
 
   it('has nothing without a subject, "ei" or a verb', () => {

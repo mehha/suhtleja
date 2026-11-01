@@ -301,7 +301,7 @@ test.describe('board editor', () => {
     await card('jooksma').getByRole('button', { name: 'Muuda kaarti' }).tap()
     const dialog = page.getByRole('dialog', { name: 'Muuda' })
     const forms = dialog.getByTestId('cell-verb-forms')
-    await expect(forms).toHaveText('Lauses: mina jooksen · tema jookseb · ei jookse')
+    await expect(forms).toHaveText('Lauses: mina jooksen · tema jookseb · ei jookse · eile jooksin')
     await dialog.getByRole('textbox', { name: 'Tekst', exact: true }).fill('kirjeldama')
     await expect(forms).toHaveText(/veel ei pööra/)
     // A noun card shows its object form.
