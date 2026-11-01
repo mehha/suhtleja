@@ -367,6 +367,8 @@ test.describe('game editor', () => {
     await page.goto(`/connect-dots/manage/${member.puzzleId}`)
     const dots = page.locator('[data-dot-handle="true"]')
     await expect(dots).toHaveCount(DOTS.length)
+    // The server already draws the dots; a tap before React takes over adds none (CI's WebKit).
+    await pageReady(page)
     await expectTouchFriendlyBothWays(page, viewport, 'game editor')
 
     // A free spot in the lower left of the picture (the dots' layer covers it).
