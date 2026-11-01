@@ -38,6 +38,8 @@ const wordClassTileStyle = (color: string) =>
   ({ borderColor: color, '--tile-ring': `${color}73`, '--tile-ring-hover': `${color}59` }) as CSSProperties
 
 type SequenceItem = {
+  // Tells two taps of the same card apart, so an AI form that comes after the tap finds its word.
+  key: number
   cellId: string
   text: string
 }
@@ -72,6 +74,9 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   const [activeCellId, setActiveCellId] = useState<string | null>(null)
   const [phrasePlaying, setPhrasePlaying] = useState(false)
   const [tempLabel, setTempLabel] = useState<{ id: string; text: string } | null>(null)
+  const tapKeyRef = useRef(0)
+  // AI forms on their way (AI setting): the sentence is fetched for "play all" once they are in.
+  const [pendingAIForms, setPendingAIForms] = useState(0)
 
   // The board's own setting (saved in the editor); the runner plays the board the way the child gets it.
   const aiEnabled = board.extra?.ai ?? false
@@ -328,15 +333,16 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     }
   }, [])
 
-  // Fetch the sentence while the child builds it, so "play all" starts at once.
+  // Fetch the sentence while the child builds it, so "play all" starts at once. With the AI setting,
+  // once the AI's forms are in: the sentence before them would be fetched for nothing.
   useEffect(() => {
     const preparedText = prepareTextForTTS(ttsAll)
     if (!preparedText || cachedAudioUrlByText.has(preparedText)) return
-    if (sequence.length > SENTENCE_PREFETCH_MAX_WORDS) return
+    if (sequence.length > SENTENCE_PREFETCH_MAX_WORDS || pendingAIForms > 0) return
 
     const timer = window.setTimeout(() => void loadSpokenAudio(preparedText), SENTENCE_PREFETCH_DELAY_MS)
     return () => window.clearTimeout(timer)
-  }, [ttsAll, sequence.length, cachedAudioUrlByText, loadSpokenAudio])
+  }, [ttsAll, sequence.length, pendingAIForms, cachedAudioUrlByText, loadSpokenAudio])
 
   // Resolves to false when no sound came out (speech failed to load or play).
   const playSpeech = async (text: string): Promise<boolean> => {
@@ -388,43 +394,13 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     stopCurrentAudio()
     setPhrasePlaying(false)
     try {
-      let surface = raw
-      const tapped: SequenceItem = { cellId: String(cell.id), text: raw }
-      // A word the board's word forms change ("jooksen") is said at once; the AI gets the others.
-      const ruled =
-        grammarEnabled && applyGrammar(grammarInput([...sequence, tapped])).at(-1) !== raw
+      const cellId = String(cell.id)
+      const key = ++tapKeyRef.current
+      const nextSequence: SequenceItem[] = [...sequence, { key, cellId, text: raw }]
 
-      // AI korrigeerib ainult seda uut tokenit
-      if (aiEnabled && sequence.length > 0 && !ruled) {
-        try {
-          const mr = await fetch('/next/groq', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contextTail: tokens.slice(-2).map((t) => t.text),
-              token: raw,
-            }),
-            signal: AbortSignal.timeout(5000),
-          })
-          if (mr.ok) {
-            const j = (await mr.json().catch(() => null)) as MorphResponse | null
-            if (j && typeof j.surface === 'string' && j.surface.trim()) {
-              surface = j.surface.trim()
-            }
-          }
-        } catch {
-          surface = raw
-        }
-      }
-
-      // 1) Ehita nextSequence
-      const nextSequence: SequenceItem[] = [...sequence, { ...tapped, text: surface }]
-
-      // 2) The words as the sentence says them (word forms)
+      // The words as the sentence says them (word forms), then compounds, which are off with AI on.
       const nextTokens = sentenceTokens(nextSequence)
       const form = nextTokens.at(-1)!.text
-
-      // 3) Kui AI on väljas, proovi compounds; kui AI sees, ära kasuta compounds
       const compoundForm = !aiEnabled
         ? getCompoundFormForLastToken(nextTokens, board.compounds)
         : null
@@ -433,17 +409,57 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
       // The tile shows the written form; the speech form may be spelled for the voice.
       const shown = compoundForm ? compoundForm.surface : form
 
-      // 4) Uuenda jada state
       setSequence(nextSequence)
-
-      const cellId = String(cell.id)
       setActiveCellId(cellId)
       setTempLabel({ id: cellId, text: shown })
 
-      // 5) Loeme ainult selle sõna vormi
+      // With AI on, the word is said at once and the AI's form follows into the phrase and "play
+      // all". A word the board's word forms change ("jooksen") is right already and isn't sent.
+      if (aiEnabled && sequence.length > 0 && form === raw) {
+        void fetchAIForm({ key, cellId, raw, contextTail: tokens.slice(-2).map((t) => t.text) })
+      }
+
       if (!(await playSpeech(spoken))) notifySpeechFailed()
     } finally {
       setActiveCellId(null)
+    }
+  }
+
+  // The AI's form of a tapped word (/next/groq), from the two words before it as the sentence says
+  // them. It replaces the word in the phrase, and on its tile while that still shows the word; an
+  // undone or cleared word is left alone.
+  const fetchAIForm = async ({
+    key,
+    cellId,
+    raw,
+    contextTail,
+  }: {
+    key: number
+    cellId: string
+    raw: string
+    contextTail: string[]
+  }) => {
+    setPendingAIForms((count) => count + 1)
+    try {
+      const response = await fetch('/next/groq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contextTail, token: raw }),
+        signal: AbortSignal.timeout(5000),
+      })
+      if (!response.ok) return
+      const json = (await response.json().catch(() => null)) as MorphResponse | null
+      const surface = typeof json?.surface === 'string' ? json.surface.trim() : ''
+      if (!surface || surface === raw) return
+
+      setSequence((prev) => prev.map((item) => (item.key === key ? { ...item, text: surface } : item)))
+      setTempLabel((current) =>
+        current && current.id === cellId && current.text === raw ? { id: cellId, text: surface } : current,
+      )
+    } catch {
+      // The word stays as tapped.
+    } finally {
+      setPendingAIForms((count) => count - 1)
     }
   }
 

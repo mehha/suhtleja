@@ -341,6 +341,54 @@ test.describe('board', () => {
     await expect(phrase.getByText('jooksma', { exact: true })).toBeVisible()
     await expect.poll(() => spoken).toContain('mina jooksma.')
   })
+
+  test("with AI on, a tap speaks at once and the AI's form follows into the phrase", async ({ page, member }) => {
+    const spoken: string[] = []
+    await page.route('**/next/tts-ms', async (route) => {
+      spoken.push(JSON.parse(route.request().postData() ?? '{}').text)
+      await route.fulfill({ body: silentWav(), contentType: 'audio/wav' })
+    })
+    // The AI answers when the test lets it.
+    let answer = () => {}
+    const answered = new Promise<void>((resolve) => (answer = resolve))
+    const asked: unknown[] = []
+    await page.route('**/next/groq', async (route) => {
+      asked.push(route.request().postDataJSON())
+      await answered
+      await route.fulfill({ json: { surface: 'kassi' } })
+    })
+    const boardId = await createOwnBoard(
+      page.request,
+      `AI ${member.boardName}`,
+      [{ title: 'kaks' }, { title: 'kass' }, { title: 'mina' }, { title: 'jooksma', wordClass: 'verb' }],
+      { ai: true },
+    )
+    await page.goto(`/boards/${boardId}`)
+    const tile = (index: number) => page.locator('.layout > .react-grid-item').nth(index).getByRole('button')
+    const phrase = page.locator('.actionbar-container')
+
+    await tile(0).tap()
+    await expect.poll(() => spoken).toContain('kaks.')
+    await tile(1).tap()
+    // Said while the AI is still answering.
+    await expect.poll(() => spoken).toContain('kass.')
+    expect(asked).toEqual([{ contextTail: ['kaks'], token: 'kass' }])
+    await expect(phrase.getByText('kass', { exact: true })).toBeVisible()
+
+    answer()
+    await expect(phrase.getByText('kassi', { exact: true })).toBeVisible()
+    await expect(tile(1)).toHaveAccessibleName('kassi')
+    // "Play all" is fetched ahead once the AI's form is in, not before.
+    await expect.poll(() => spoken).toContain('kaks kassi.')
+    expect(spoken).not.toContain('kaks kass.')
+
+    // A word the board's word forms change isn't sent to the AI.
+    await page.getByRole('button', { name: 'Tühjenda fraas' }).tap()
+    await tile(2).tap()
+    await tile(3).tap()
+    await expect.poll(() => spoken).toContain('jooksen.')
+    expect(asked).toHaveLength(1)
+  })
 })
 
 test.describe('parent view', () => {

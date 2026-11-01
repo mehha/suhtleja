@@ -98,17 +98,20 @@ export const test = base.extend<object, { member: Member }>({
 
 
 // A board of the test's own, for a test that changes it, made through the API as the member. Cells
-// are one row, in the given order.
+// are one row, in the given order. Made, not saved, so it has no speech cache: its words come from
+// /next/tts-ms.
 export async function createOwnBoard(
   request: APIRequestContext,
   name: string,
   cells: Array<{ title: string; wordClass?: string }>,
+  extra?: { ai?: boolean; grammar?: boolean; wordClassColors?: boolean },
 ) {
   const response = await request.post('/api/boards', {
     data: {
       name,
       pinned: false,
       actionBar: { enabled: true },
+      ...(extra ? { extra } : {}),
       grid: {
         cols: cells.length,
         rows: 1,

@@ -26,11 +26,20 @@ export class GroqRequestError extends Error {
 
 export async function createGroqJsonCompletion({
   messages,
+  reasoningEffort,
   temperature,
 }: {
   messages: GroqMessage[]
+  // gpt-oss models reason before they answer. A word form needs little: "low" answered test
+  // sentences as well as the default, about a quarter faster (2026-11-01). Other models ignore it.
+  reasoningEffort?: 'low' | 'medium' | 'high'
   temperature: number
 }) {
+  const reasoning =
+    reasoningEffort && GROQ_MODEL.startsWith('openai/gpt-oss')
+      ? { reasoning_effort: reasoningEffort, reasoning_format: 'hidden' }
+      : {}
+
   if (!process.env.GROQ_API_KEY) {
     throw new GroqRequestError('GROQ_API_KEY missing')
   }
@@ -46,6 +55,7 @@ export async function createGroqJsonCompletion({
       response_format: { type: 'json_object' },
       messages,
       temperature,
+      ...reasoning,
     }),
   })
 

@@ -77,6 +77,7 @@ export async function POST(req: Request) {
         { role: 'system', content: system },
         { role: 'user', content: prompt },
       ],
+      reasoningEffort: 'low',
       temperature: 0,
     })
 
