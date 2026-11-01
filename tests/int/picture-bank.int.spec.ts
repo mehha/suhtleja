@@ -14,6 +14,7 @@ import {
   buildBankItems,
   describesGroup,
   findDuplicateFiles,
+  findReplacedFiles,
   parseCsv,
   toCsv,
   renderShape,
@@ -149,6 +150,39 @@ describe('picture bank lists', () => {
       { duplicate: 'pildipank-mis-mulberry-2.svg', original: 'pildipank-mis-mulberry.svg' },
       { duplicate: 'pildipank-jah-2706.png', original: 'pildipank-jah-2705.png' },
     ])
+  })
+
+  it("retires a word's old picture once it has a new one, but leaves homonyms and removed words", () => {
+    const file = (name: string, alt: string) => ({ alt, name })
+    const expected = new Map([
+      ['pildipank-jooma-ai.jpg', 'jooma'],
+      ['pildipank-kuula-ai-v3.jpg', 'kuula'],
+      ['pildipank-voi-1f9c8.png', 'või'],
+      ['pildipank-voi-tekst.svg', 'või'],
+    ])
+    expect(
+      findReplacedFiles(expected, [
+        file('pildipank-jooma-ai.jpg', 'jooma'),
+        file('pildipank-jooma-mulberry.svg', 'jooma'), // Mulberry swapped for AI
+        file('pildipank-kuula-ai-v3.jpg', 'kuula'),
+        file('pildipank-kuula-ai.jpg', 'kuula'), // an AI picture redone
+        file('pildipank-voi-1f9c8.png', 'või'),
+        file('pildipank-voi-tekst.svg', 'või'),
+        file('pildipank-voi-mulberry.svg', 'või'), // two pictures share the word: which one? left alone
+        file('pildipank-vana-tekst.svg', 'vana'), // the word left the lists: kept for an admin
+        file('oma-pilt.png', 'jooma'), // not a bank picture
+      ]),
+    ).toEqual([
+      { duplicate: 'pildipank-jooma-mulberry.svg', original: 'pildipank-jooma-ai.jpg' },
+      { duplicate: 'pildipank-kuula-ai.jpg', original: 'pildipank-kuula-ai-v3.jpg' },
+    ])
+  })
+
+  it('names a redone AI picture after its attempt, and imports it under that name', () => {
+    expect(aiPictureKey('kuula')).toBe('pildipank-kuula-ai')
+    expect(aiPictureKey('kuula', 3)).toBe('pildipank-kuula-ai-v3')
+    const { items } = buildBankItems([], [wordRow('kuula', 'Suhtlemine', 'AI', 'pildipank-kuula-ai-v3.jpg')])
+    expect(items[0].key).toBe('pildipank-kuula-ai-v3')
   })
 
   it('rejects an unknown category', () => {

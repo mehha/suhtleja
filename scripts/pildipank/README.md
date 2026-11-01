@@ -61,8 +61,10 @@ PILDIPANK_REDO="kauss,pott" pnpm payload run scripts/pildipank/generate-ai.ts   
 (`buildPictogramPrompt`; descriptions of several people use its group variant), through Workers AI
 (`wrangler login`, billed to the account, about $0.001 a picture). It saves 512 px JPEGs (resized
 with macOS `sips`) to `ai-pildid/` and writes each file name into the word's `viide`. The seed
-comes from the word, so a rerun usually repeats a picture; `PILDIPANK_REDO` moves to the next seed
-and notes the attempt in `märkus`. To fix a bad picture, sharpen its `ai_kirjeldus` and redo it.
+comes from the word, so a rerun usually repeats a picture; `PILDIPANK_REDO` moves to the next seed,
+notes the attempt in `märkus` and names the file after it (`…-ai-v2.jpg`), so the import adds the
+new picture instead of seeing an unchanged file name. To fix a bad picture, sharpen its
+`ai_kirjeldus`, redo it, import, and run the clean-up below to retire the old one.
 
 `ai-pildid/` is not in git (13 MB). Once imported, the pictures live in R2; keep a backup of the
 folder for re-imports.
@@ -82,14 +84,18 @@ never deletes: a word renamed in a list gets a new picture, and the old one stay
 removes it. Importing to production needs the remote bindings (`NODE_ENV=production`) and explicit
 permission.
 
-Run one import at a time. Two at once both create the missing pictures, and Payload stores the
+Clean-up: after a word's picture is replaced (a Mulberry symbol swapped for AI, a redone AI
+picture), the old one stays until the clean-up retires it. The clean-up also removes copies: run
+one import at a time, because two at once both create the missing pictures and Payload stores the
 second copy as `<name>-1.<ext>` (or, for a name ending in digits like an emoji code, counts the
-number up: `…-2705.png` becomes `…-2706.png`). To remove such copies:
+number up: `…-2705.png` becomes `…-2706.png`).
 
 ```sh
 PILDIPANK_REMOVE_DUPLICATES=1 PILDIPANK_DRY_RUN=1 pnpm payload run scripts/pildipank/import.ts   # list them
 PILDIPANK_REMOVE_DUPLICATES=1 pnpm payload run scripts/pildipank/import.ts                      # remove them
 ```
 
-It first points any board card, board thumbnail or connect-dots puzzle that uses a copy at the
-original picture, then deletes the copies.
+A retired picture is a bank file no longer in the lists whose word has exactly one picture that is
+(homonyms like "või" and words removed from the lists are left for an admin). The clean-up first
+points any board card, board thumbnail or connect-dots puzzle that uses one at the current picture,
+then deletes it.

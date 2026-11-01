@@ -213,7 +213,9 @@ export function buildBankItems(
       items.push({ caption: null, category, key: `pildipank-${fileWord(word)}-kujund`, source: { kind: 'kujund', spec: ref }, word })
     } else if (ref) {
       // An AI picture generate-ai.ts has made (scripts/pildipank/ai-pildid/<file>).
-      items.push({ caption: null, category, key: aiPictureKey(word), source: { kind: 'ai', file: ref }, word })
+      // The file name is the media key: a redone picture gets a new name (-v2), so the import adds it
+      // and the clean-up retires the old one.
+      items.push({ caption: null, category, key: ref.replace(/\.[a-z0-9]+$/i, ''), source: { kind: 'ai', file: ref }, word })
     } else {
       waitingForAI.push(word)
     }
@@ -232,9 +234,9 @@ export function buildBankItems(
   return { items: ordered.map(({ item }) => item), waitingForAI }
 }
 
-/** File name (without extension) of a word's AI picture, in ai-pildid/ and in the media library. */
-export function aiPictureKey(word: string): string {
-  return `pildipank-${fileWord(word)}-ai`
+/** File name (without extension) of a word's AI picture: `-v<attempt>` once it has been redone. */
+export function aiPictureKey(word: string, attempt = 0): string {
+  return `pildipank-${fileWord(word)}-ai${attempt ? `-v${attempt}` : ''}`
 }
 
 /** Writes rows back as CSV with the given column order (the reviewed lists are edited by hand too). */
@@ -246,6 +248,28 @@ export function toCsv(rows: CsvRow[], columns: string[]): string {
 // Descriptions of several people need the group variant of the pictogram style.
 export function describesGroup(description: string): boolean {
   return /\b(three|group|family|children|people|circle|everyone)\b/i.test(description)
+}
+
+/**
+ * Bank pictures a list change has replaced: a stored bank file that is no longer expected, whose word
+ * belongs to exactly one expected picture (a homonym like "või" is left alone). Copies that
+ * findDuplicateFiles pairs are not repeated here.
+ */
+export function findReplacedFiles(
+  expected: Map<string, string>,
+  stored: Array<{ alt: string; name: string }>,
+  alreadyPaired: Set<string> = new Set(),
+): Array<{ duplicate: string; original: string }> {
+  const present = new Set(stored.map(({ name }) => name))
+  const byWord = new Map<string, string[]>()
+  for (const [name, word] of expected) {
+    if (present.has(name)) byWord.set(word, [...(byWord.get(word) ?? []), name])
+  }
+  return stored.flatMap(({ alt, name }) => {
+    if (expected.has(name) || alreadyPaired.has(name) || !name.startsWith('pildipank-')) return []
+    const candidates = byWord.get(alt) ?? []
+    return candidates.length === 1 ? [{ duplicate: name, original: candidates[0] }] : []
+  })
 }
 
 /**

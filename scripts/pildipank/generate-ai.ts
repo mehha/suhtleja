@@ -88,7 +88,8 @@ async function main() {
     const word = row['sõna']
     const description = row['ai_kirjeldus'] || word
     const attempt = redo.has(word) ? Number(row['märkus'].match(/seemne katse (\d+)/)?.[1] ?? 0) + 1 : 0
-    const file = `${aiPictureKey(word)}.jpg`
+    // A redone picture gets a new file name, so the import adds it instead of seeing it as unchanged.
+    const file = `${aiPictureKey(word, attempt)}.jpg`
     try {
       const prompt = buildPictogramPrompt(description, { group: describesGroup(description) })
       let image: Buffer | null = null

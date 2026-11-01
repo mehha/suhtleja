@@ -12,8 +12,10 @@
 // AI pictures come from ai-pildid/ (not in git); a word whose file is missing there is skipped.
 // Run one import at a time: two at once store the same pictures twice.
 //
-// Remove such copies: PILDIPANK_REMOVE_DUPLICATES=1 pnpm payload run scripts/pildipank/import.ts
-// It deletes the copies (Payload names a second file `<name>-1.<ext>`, or counts up a name that ends in
+// Clean up: PILDIPANK_REMOVE_DUPLICATES=1 pnpm payload run scripts/pildipank/import.ts
+// It retires bank pictures that are no longer in the lists but whose word has a picture that is: a
+// word whose picture was replaced (Mulberry swapped for AI, a redone AI picture), and copies stored
+// twice. It deletes the copies (Payload names a second file `<name>-1.<ext>`, or counts up a name that ends in
 // digits: `…-2705.png` becomes `…-2706.png`) after pointing any board card or puzzle that uses one at
 // the original.
 
@@ -29,6 +31,7 @@ import {
   captionDocument,
   CATEGORY_ORDER,
   findDuplicateFiles,
+  findReplacedFiles,
   fluentURL,
   parseCsv,
   renderShape,
@@ -110,13 +113,17 @@ async function removeDuplicates(payload: Payload, items: BankItem[]) {
     where: { filename: { contains: 'pildipank-' } },
   })
   const byName = new Map(docs.map((media) => [media.filename ?? '', media]))
-  const expected = new Set(items.map((item) => `${item.key}.${extensionOf(item)}`))
+  const expectedWords = new Map(items.map((item) => [`${item.key}.${extensionOf(item)}`, item.word]))
+  const expected = new Set(expectedWords.keys())
   const stored = docs.map((media) => ({ alt: media.alt ?? '', name: media.filename ?? '' }))
-  const pairs = findDuplicateFiles(expected, stored).map(({ duplicate, original }) => ({
+  const copies = findDuplicateFiles(expected, stored)
+  const replaced = findReplacedFiles(expectedWords, stored, new Set(copies.map(({ duplicate }) => duplicate)))
+  if (replaced.length) console.log(`${replaced.length} pictures replaced by a new picture for the same word`)
+  const pairs = [...copies, ...replaced].map(({ duplicate, original }) => ({
     duplicate: byName.get(duplicate)!,
     original: byName.get(original)!,
   }))
-  console.log(`${pairs.length} duplicate pictures${dryRun ? ' (dry run)' : ''}`)
+  console.log(`${pairs.length} pictures to retire${dryRun ? ' (dry run)' : ''}`)
   if (!pairs.length) return
 
   const replacement = new Map(pairs.map(({ duplicate, original }) => [duplicate.id, original.id]))
@@ -177,7 +184,7 @@ async function removeDuplicates(payload: Payload, items: BankItem[]) {
     if (!dryRun) await payload.delete({ collection: 'media', id: duplicate.id, overrideAccess: true })
     removed++
   }
-  console.log(`Done${dryRun ? ' (dry run, nothing written)' : ''}: ${removed} duplicate pictures removed.`)
+  console.log(`Done${dryRun ? ' (dry run, nothing written)' : ''}: ${removed} pictures removed.`)
 }
 
 async function main() {

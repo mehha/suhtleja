@@ -27,13 +27,13 @@ jah,Suhtlemine,ei,emoji,❌,no,a child shaking the head with a red cross,
 jah,Suhtlemine,okei,emoji,👌,,a child showing an ok hand sign,
 jah,Suhtlemine,appi,emoji,🆘,help,a child raising both hands calling for help,
 jah,Suhtlemine,ei tea,emoji,🤷,don't know,a child shrugging both shoulders,
-jah,Suhtlemine,ma ei taha,AI,pildipank-ma-ei-taha-ai.jpg,don't want,a child shaking the head and pushing a plate of food away with one hand,"AI-pilt, seemne katse 1"
+jah,Suhtlemine,ma ei taha,AI,pildipank-ma-ei-taha-ai-v2.jpg,don't want,a child turning the head away and pushing a plate of broccoli away with one hand,"AI-pilt, seemne katse 2"
 jah,Suhtlemine,mulle meeldib,AI,pildipank-mulle-meeldib-ai.jpg,like,a child smiling with a thumbs up and a small heart,
 jah,Suhtlemine,mulle ei meeldi,AI,pildipank-mulle-ei-meeldi-ai.jpg,don't like,a child frowning with a thumbs down,
 jah,Suhtlemine,valus,emoji,🤕,hurt,a child holding a sore knee with a red ache mark,
 jah,Suhtlemine,mul on vaja,AI,pildipank-mul-on-vaja-ai.jpg,need,a child pointing at a cup with an urgent look,
 jah,Põhisõnad,veel,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5092/13_5092_8d43f52a-df2b-4153-8633-bc82e8ebad82.svg,more,two hands putting one more block on a small stack,
-jah,Põhisõnad,rohkem,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5092/13_5092_8d43f52a-df2b-4153-8633-bc82e8ebad82.svg,more,a big pile of berries next to a small pile,
+jah,Põhisõnad,rohkem,AI,pildipank-rohkem-ai.jpg,more,a big pile of strawberries next to a small pile of strawberries,AI-pilt
 jah,Põhisõnad,valmis,AI,pildipank-valmis-ai.jpg,finished,a child with arms up next to a finished tower of blocks,
 jah,Põhisõnad,stopp,emoji,✋,stop,a child holding up a flat palm to say stop,
 jah,Põhisõnad,ära,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3192/13_3192_f91465a4-9079-48f8-b521-b096a688bee2.svg,away,"a child walking away out of a door, waving",
@@ -70,14 +70,14 @@ jah,Omadussõnad,hea,emoji,👍,good,a thumbs up with a smiling face,
 jah,Omadussõnad,halb,emoji,👎,bad,a thumbs down with a frowning face,
 jah,Omadussõnad,suur,AI,pildipank-suur-ai.jpg,big,"a big elephant next to a small mouse, the elephant highlighted",
 jah,Omadussõnad,väike,AI,pildipank-vaike-8c4e80-ai.jpg,small,"a big elephant next to a small mouse, the mouse highlighted",
-jah,Omadussõnad,kuum,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4799/13_4799_16ff02c4-642d-4d88-b83d-e5753a73dd2f.svg,hot,a steaming hot cup of tea with red heat lines,
+jah,Omadussõnad,kuum,AI,pildipank-kuum-ai.jpg,hot,a steaming hot cup of tea with red heat lines,AI-pilt
 jah,Omadussõnad,külm,emoji,🥶,cold,an ice cube with blue cold lines,
 jah,Omadussõnad,soe,AI,pildipank-soe-ai.jpg,warm,a child in a warm blanket by a radiator,
 jah,Omadussõnad,ilus,AI,pildipank-ilus-ai.jpg,beautiful,a beautiful flower with sparkles,
 jah,Omadussõnad,kiire,AI,pildipank-kiire-ai.jpg,fast,a running rabbit with motion lines,
 jah,Omadussõnad,aeglane,AI,pildipank-aeglane-ai.jpg,slow,a slow snail,
 jah,Omadussõnad,lahti,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5204/13_5204_b25e5278-0073-42ec-9340-cef810e5f105.svg,open,an open door,
-jah,Omadussõnad,kinni,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3646/13_3646_25c2f1c9-bc1d-4db3-abc5-c6d405cd93d9.svg,closed,a closed door,
+jah,Omadussõnad,kinni,AI,pildipank-kinni-ai.jpg,closed,a closed door,AI-pilt
 jah,Omadussõnad,tühi,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4145/13_4145_d88317e1-de42-424f-bf83-6583f9f9830e.svg,empty,an empty glass,
 jah,Omadussõnad,täis,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4612/13_4612_5354ba0b-8158-47db-938b-181a0331481a.svg,full,a full glass of water,
 jah,Omadussõnad,katki,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3396/13_3396_4530c405-1513-4a29-9744-fb533897e61b.svg,broken,a broken toy car in two pieces,
@@ -85,8 +85,8 @@ jah,Omadussõnad,puhas,AI,pildipank-puhas-ai.jpg,clean,clean shiny hands with sp
 jah,Omadussõnad,räpane,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4024/13_4024_39bc7c36-7f9f-477e-84da-e3e41630fa15.svg,dirty,dirty muddy hands,
 jah,Omadussõnad,märg,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/6156/13_6156_4a7e6766-4af9-4e3f-aff8-f58c88361c52.svg,wet,a child dripping wet with water drops,
 jah,Omadussõnad,kuiv,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4090/13_4090_40995410-7442-4dce-973d-f74af7b11032.svg,dry,a dry towel,
-jah,Omadussõnad,pehme,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5727/13_5727_631afaf5-99bf-48b1-b326-503eb5a35a07.svg,soft,a soft fluffy pillow,
-jah,Omadussõnad,kõva,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4732/13_4732_610f0003-e0f2-4554-802a-6fbe60c9e537.svg,hard,a hard stone,
+jah,Omadussõnad,pehme,AI,pildipank-pehme-ai.jpg,soft,a child hugging a soft fluffy pillow,AI-pilt
+jah,Omadussõnad,kõva,AI,pildipank-kova-ea1dd9-ai.jpg,hard,a child knocking on a hard grey stone,AI-pilt
 jah,Omadussõnad,raske,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4762/13_4762_6f1302cb-f18f-4657-9a5d-a967015b80c7.svg,heavy,a child struggling to lift a heavy box,
 jah,Omadussõnad,kerge,AI,pildipank-kerge-ai.jpg,light,a child easily lifting a feather,
 jah,Omadussõnad,maitsev,emoji,😋,tasty,a child licking the lips next to a bowl of food,
@@ -121,7 +121,7 @@ jah,Tegevused,küsima,mulberry,https://globalsymbols.com/uploads/production/imag
 jah,Tegevused,aitama,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/49199/13_49200_9c829aa0-b3e6-4532-a191-dc47cfe67dd2.svg,help,a child helping another child stand up,
 jah,Tegevused,mängima,AI,pildipank-mangima-928081-ai.jpg,play,a child playing with toys on the floor,
 jah,Tegevused,sööma,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/49188/13_49189_34b5b05e-f5ef-481a-ba72-306fb5d4eda1.svg,eat,a child eating with a spoon,
-jah,Tegevused,jooma,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4074/13_4074_1242cb80-a921-45e2-b181-a3fa0e3cfb8a.svg,drink,a child drinking from a cup,
+jah,Tegevused,jooma,AI,pildipank-jooma-ai.jpg,drink,a child drinking water from a cup,AI-pilt
 jah,Tegevused,magama,emoji,🛌,sleep,a child sleeping in bed,
 jah,Tegevused,ärkama,AI,pildipank-arkama-3b16ab-ai.jpg,wake up,a child waking up and stretching in bed,
 jah,Tegevused,pesema,AI,pildipank-pesema-ai.jpg,wash,a child washing hands at a sink,
@@ -151,7 +151,7 @@ jah,Tegevused,lugema,mulberry,https://globalsymbols.com/uploads/production/image
 jah,Tegevused,ehitama,AI,pildipank-ehitama-ai.jpg,build,a child building a tower of blocks,
 jah,Tegevused,avama,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5204/13_5204_b25e5278-0073-42ec-9340-cef810e5f105.svg,open,a child opening a box,
 jah,Tegevused,sulgema,AI,pildipank-sulgema-ai.jpg,close,a child closing a box,
-jah,Tegevused,lõpetama,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4229/13_4229_d1cde643-5734-4a99-bce8-915fc7773450.svg,finish,a child putting the last block on a tower and raising arms,
+jah,Tegevused,lõpetama,AI,pildipank-lopetama-22cebf-ai.jpg,finish,a child putting the last block on a tower and raising both arms,AI-pilt
 jah,Tegevused,ootama,AI,pildipank-ootama-ai.jpg,wait,a child waiting on a bench,
 jah,Tegevused,kallistama,emoji,🫂,hug,two children hugging,
 jah,Tegevused,musi andma,AI,pildipank-musi-andma-ai.jpg,kiss,a parent kissing a child on the cheek,
@@ -167,7 +167,7 @@ jah,Tegevused,teadma,AI,pildipank-teadma-ai.jpg,know,a child with a light bulb a
 jah,Tegevused,armastama,AI,pildipank-armastama-ai.jpg,love,a child hugging a big red heart,
 jah,Tegevused,meeldima,AI,pildipank-meeldima-ai.jpg,like,a child smiling at a flower with a small heart,
 jah,Tegevused,otsima,AI,pildipank-otsima-ai.jpg,look for,a child searching under a bed,
-jah,Tegevused,leidma,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/49191/13_49192_9e32e6e8-032b-41f2-93d8-e9807f0d622f.svg,find,a child holding up a found toy happily,
+jah,Tegevused,leidma,AI,pildipank-leidma-ai.jpg,find,a child happily holding up a toy found under the bed,AI-pilt
 jah,Tegevused,peitma,AI,pildipank-peitma-ai.jpg,hide,a child hiding behind a curtain,
 jah,Tegevused,kukkuma,AI,pildipank-kukkuma-ai.jpg,fall,a child falling down,
 jah,Tegevused,haiget saama,AI,pildipank-haiget-saama-ai.jpg,hurt,a child with a scraped knee,
@@ -175,7 +175,7 @@ jah,Tegevused,puhkama,AI,pildipank-puhkama-ai.jpg,rest,a child resting on a sofa
 jah,Tegevused,ostma,AI,pildipank-ostma-ai.jpg,buy,a child giving a coin to a shop seller across a counter with fruit,"AI-pilt, seemne katse 1"
 jah,Tegevused,küpsetama,AI,pildipank-kupsetama-7295af-ai.jpg,bake,a child baking cookies,
 jah,Tegevused,koristama,AI,pildipank-koristama-ai.jpg,tidy up,a child putting toys away,
-jah,Tegevused,kuivatama,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4090/13_4090_40995410-7442-4dce-973d-f74af7b11032.svg,dry,a child drying hands with a towel,
+jah,Tegevused,kuivatama,AI,pildipank-kuivatama-ai.jpg,dry,a child drying hands with a towel,AI-pilt
 jah,Tegevused,kammima,AI,pildipank-kammima-ai.jpg,,a child combing hair,
 jah,Tegevused,nuusutama,AI,pildipank-nuusutama-ai.jpg,smell,a child smelling a flower,
 jah,Tegevused,maitsma,AI,pildipank-maitsma-ai.jpg,taste,a child tasting food with a spoon,
@@ -207,8 +207,8 @@ jah,Inimesed,ema,AI,pildipank-ema-ai.jpg,mother,a mother holding a small child's
 jah,Inimesed,isa,AI,pildipank-isa-ai.jpg,father,a father holding a small child's hand,
 jah,Inimesed,emme,AI,pildipank-emme-ai.jpg,,a smiling mom hugging a small child,
 jah,Inimesed,issi,AI,pildipank-issi-ai.jpg,,a smiling dad carrying a small child on his shoulders,
-jah,Inimesed,õde,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5692/13_5692_377afe97-42b7-4677-b9c4-d1fdda373477.svg,sister,"a girl standing next to her little brother, an arrow pointing at the girl",
-jah,Inimesed,vend,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3401/13_3401_413ca052-d974-4fb7-af8c-beb588bf319f.svg,brother,"a boy standing next to his little sister, an arrow pointing at the boy",
+jah,Inimesed,õde,AI,pildipank-ode-133dee-ai-v2.jpg,sister,"a ten-year-old girl in a dress, the big sister, hugging her small younger brother","AI-pilt, seemne katse 2"
+jah,Inimesed,vend,AI,pildipank-vend-ai-v1.jpg,brother,"a big brother: a smiling older boy in front, hugging his smaller younger sister beside him","AI-pilt, seemne katse 1"
 jah,Inimesed,tädi,AI,pildipank-tadi-bc3116-ai.jpg,aunt,"a friendly woman waving, the child's aunt",
 jah,Inimesed,onu,AI,pildipank-onu-ai.jpg,uncle,"a friendly man waving, the child's uncle",
 jah,Inimesed,nõbu,AI,pildipank-nobu-a2fb19-ai.jpg,cousin,"two children of similar age playing together, cousins",
@@ -259,7 +259,7 @@ jah,Suhtlemine,tule,mulberry,https://globalsymbols.com/uploads/production/image/
 jah,Suhtlemine,aita,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/49199/13_49200_9c829aa0-b3e6-4532-a191-dc47cfe67dd2.svg,help,"a child reaching one hand up, asking for help",
 jah,Suhtlemine,lõpeta,AI,pildipank-lopeta-19c35d-ai.jpg,stop,"a child holding up one flat palm towards the viewer in a stop gesture, with a serious face","AI-pilt, seemne katse 1"
 jah,Suhtlemine,ära tee,AI,pildipank-ara-tee-5f3994-ai.jpg,don't,a red stop hand next to a child drawing on a wall,
-jah,Suhtlemine,kuula,AI,pildipank-kuula-ai.jpg,listen,"a child leaning towards a small ringing bell with one ear, listening quietly, a finger raised","AI-pilt, seemne katse 2"
+jah,Suhtlemine,kuula,AI,pildipank-kuula-ai-v3.jpg,listen,"a child leaning towards a ringing bell with one ear, one hand behind the ear, curious face","AI-pilt, seemne katse 3"
 jah,Suhtlemine,istu,AI,pildipank-istu-ai.jpg,sit down,a hand pointing at an empty chair,
 jah,Suhtlemine,mine,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/49198/13_49199_70e87867-ff0f-425f-b601-6d421957854d.svg,go,a hand pointing towards an open door,
 jah,Suhtlemine,vaata,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/49200/13_49201_d287a5ce-48fc-419a-8774-710a3491ba00.svg,look,a child pointing ahead with one hand and holding the other hand above the eyes,
@@ -292,7 +292,7 @@ jah,Põhisõnad,siis,tekst,siis,,,
 jah,Põhisõnad,sest,tekst,sest,,,
 jah,Põhisõnad,ainult,tekst,ainult,,,
 jah,Põhisõnad,liiga,tekst,liiga,,,
-jah,Põhisõnad,lemmik,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4199/13_4199_736b422d-8d41-4c14-8f32-711a5c315f8e.svg,favourite,a child hugging a favorite teddy bear with a small heart,
+jah,Põhisõnad,lemmik,AI,pildipank-lemmik-ai.jpg,favourite,a child hugging a favorite teddy bear with a small heart,AI-pilt
 jah,Aeg,eile,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/6219/13_6219_627626b1-e6cc-4367-8901-f31d31877616.svg,yesterday,a calendar strip of three days with the left day highlighted and an arrow pointing back,
 jah,Aeg,täna,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5981/13_5981_d3615b6b-1a41-49c6-b493-1d7e19474eea.svg,today,a calendar strip of three days with the middle day highlighted,
 jah,Aeg,homme,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5992/13_5992_a953e1de-22fd-47dc-bc00-0d3c91591eb6.svg,tomorrow,a calendar strip of three days with the right day highlighted and an arrow pointing forward,
@@ -322,9 +322,9 @@ jah,Keha,kael,mulberry,https://globalsymbols.com/uploads/production/image/imagef
 jah,Keha,õlg,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5668/13_5668_ca78f84a-4814-4a1d-a224-69d2adee16b2.svg,shoulder,a child pointing at their own shoulder,
 jah,Keha,sõrm,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4223/13_4223_029d19cb-0600-4562-ab3e-8996f61a803e.svg,finger,a hand with one finger raised,
 jah,Keha,küüs,AI,pildipank-kuus-c73c8d-ai.jpg,nail,a close-up of a finger with a fingernail,
-jah,Keha,kõht,AI,pildipank-koht-a5cf35-ai.jpg,tummy,a child pointing with one finger at their own tummy,"AI-pilt, seemne katse 1"
+jah,Keha,kõht,AI,pildipank-koht-a5cf35-ai-v2.jpg,tummy,a child in a t-shirt pointing with one finger at their own belly button area,"AI-pilt, seemne katse 2"
 jah,Keha,selg,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3198/13_3198_e1231874-43ea-41cb-9fbe-30eb3fa4f9b4.svg,back,"a child seen from behind, pointing at their back",
-jah,Keha,pepu,AI,pildipank-pepu-ai.jpg,bottom,"a child in shorts seen from behind, looking back over the shoulder and pointing at their bottom","AI-pilt, seemne katse 1"
+jah,Keha,pepu,AI,pildipank-pepu-ai-v2.jpg,bottom,"a child in swimming trunks seen from behind, one hand pointing at their bottom","AI-pilt, seemne katse 2"
 jah,Keha,põlv,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4890/13_4890_5b068b9f-65ab-4412-9090-421b9c6f3579.svg,knee,a child pointing at their own knee,
 jah,Keha,varvas,AI,pildipank-varvas-ai.jpg,toe,a bare foot with the toes clearly visible,
 jah,Keha,küünarnukk,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4135/13_4135_e1d5ea34-ddf5-45df-92e4-cb25bca8c196.svg,elbow,a child pointing at their own elbow,
@@ -341,7 +341,7 @@ jah,Tervis,muhk,AI,pildipank-muhk-ai.jpg,,"a child touching a big round red bump
 jah,Tervis,allergia,AI,pildipank-allergia-ai.jpg,allergy,"a child sneezing near flowers, with red spots on the skin",
 jah,Köök,kauss,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3347/13_3347_48e55fc0-73db-4700-8f2f-080e22e192b5.svg,bowl,a white bowl,
 jah,Köök,tass,AI,pildipank-tass-ai.jpg,cup,a cup on a saucer,
-jah,Köök,klaas,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4635/13_4635_ea3dd7ca-4633-4e1b-ba40-85398f2089d2.svg,glass,an empty drinking glass,
+jah,Köök,klaas,AI,pildipank-klaas-ai-v1.jpg,glass,a transparent empty drinking glass with a thin light blue outline,"AI-pilt, seemne katse 1"
 jah,Köök,kruus,AI,pildipank-kruus-ai.jpg,mug,a mug,
 jah,Köök,pudel,AI,pildipank-pudel-ai.jpg,bottle,a water bottle,
 jah,Köök,kann,AI,pildipank-kann-ai.jpg,jug,a water jug,
@@ -425,7 +425,7 @@ jah,Riided,õuepüksid,AI,pildipank-ouepuksid-f79f65-ai.jpg,,padded winter outdo
 jah,Riided,sukkpüksid,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5959/13_5959_ee621414-78c0-4ad8-88bc-63d493c0bc9b.svg,tights,children's tights,
 jah,Riided,vöö,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3279/13_3279_50511251-2396-4e00-9009-7c510ef336b8.svg,belt,a belt,
 jah,Riided,kiiver,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4770/13_4770_5456a2dc-7859-437b-ade0-33cd92eca4d1.svg,helmet,a bicycle helmet,
-jah,Riided,helkur,AI,pildipank-helkur-ai.jpg,,a round shiny reflective safety tag hanging on a string from a child's jacket pocket,"AI-pilt, seemne katse 2"
+jah,Riided,helkur,AI,pildipank-helkur-ai-v3.jpg,,"a round reflective safety reflector pendant hanging from a child's jacket zipper, shining","AI-pilt, seemne katse 3"
 jah,Kodu,rätik,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/6010/13_6010_6725c537-998e-4f0d-a2a4-fa9f1ac1b140.svg,towel,a folded towel,
 jah,Kodu,tekk,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3311/13_3311_f71e111d-aee5-4a53-b6f2-9dd84839ffae.svg,blanket,a blanket,
 jah,Kodu,padi,AI,pildipank-padi-ai.jpg,pillow,a pillow,
@@ -436,7 +436,7 @@ jah,Kodu,kraan,mulberry,https://globalsymbols.com/uploads/production/image/image
 jah,Kodu,pesumasin,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/6128/13_6128_2df94e2c-0af1-434d-9f42-687e77475f06.svg,washing machine,a washing machine,
 jah,Kodu,tolmuimeja,AI,pildipank-tolmuimeja-ai.jpg,vacuum cleaner,a vacuum cleaner,
 jah,Kodu,kapp,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3959/13_3959_b5c4e6e5-18cf-4c14-9429-fcf4e1d806ac.svg,cupboard,a wardrobe,
-jah,Kodu,tuba,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5533/13_5533_3b832932-6745-4c15-95c3-5785d2981d0c.svg,room,a child's room with a bed and toys,
+jah,Kodu,tuba,AI,pildipank-tuba-ai.jpg,room,"a child's room with a bed, a shelf and toys on the floor",AI-pilt
 jah,Kodu,köök,AI,pildipank-kook-0f2ccc-ai.jpg,kitchen,a kitchen room with a stove and a table,
 jah,Kodu,vannituba,AI,pildipank-vannituba-ai.jpg,bathroom,a bathroom with a bathtub and a sink,
 jah,Kodu,magamistuba,AI,pildipank-magamistuba-ai.jpg,bedroom,a bedroom with a bed,
@@ -464,7 +464,7 @@ jah,Lasteaed ja kool,värvipliiats,AI,pildipank-varvipliiats-439ae5-ai.jpg,colou
 jah,Mänguasjad,pall,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3221/13_3221_387c3791-8414-4ebe-84f8-fcc6b0d205f5.svg,ball,a colorful ball,
 jah,Mänguasjad,nukk,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4051/13_4051_b051774a-9ff4-4480-8363-814f335f2149.svg,doll,a doll,
 jah,Mänguasjad,klotsid,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3388/13_3388_08922eba-3e2d-421a-9f96-893d69498c51.svg,bricks,a stack of colorful toy blocks,
-jah,Mänguasjad,mänguauto,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/6012/13_6012_ac3c3a72-7ece-4d7d-afb3-7d852076f4ba.svg,toy car,a toy car,
+jah,Mänguasjad,mänguauto,AI,pildipank-manguauto-adffd9-ai.jpg,toy car,a small colorful toy car,AI-pilt
 jah,Mänguasjad,liivakast,AI,pildipank-liivakast-ai.jpg,sandpit,a sandbox with a bucket,
 jah,Mänguasjad,labidas,AI,pildipank-labidas-ai.jpg,spade,a toy spade,
 jah,Mänguasjad,plastiliin,AI,pildipank-plastiliin-ai.jpg,play dough,"colorful lumps of modeling clay on a table, no people","AI-pilt, seemne katse 1"
@@ -491,7 +491,7 @@ jah,Kohad,kohvik,mulberry,https://globalsymbols.com/uploads/production/image/ima
 jah,Kohad,turg,AI,pildipank-turg-ai.jpg,market,a market stall with fruit and vegetables,
 jah,Kohad,võimla,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/99932/13_100392_3ec2a911-35fe-48aa-a24f-677cafee1314.svg,gym,a school gym hall with mats,
 jah,Kohad,tänav,AI,pildipank-tanav-33e584-ai.jpg,street,a street with houses,
-jah,Kohad,ülekäigurada,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/6230/13_6230_98d5dc61-a336-41e1-90f8-3f8f6359f8cb.svg,zebra crossing,a zebra crossing,
+jah,Kohad,ülekäigurada,AI,pildipank-ulekaigurada-801703-ai.jpg,zebra crossing,a zebra crossing on a street with a blue pedestrian crossing sign,AI-pilt
 jah,Kohad,rongijaam,AI,pildipank-rongijaam-ai.jpg,station,a train station platform with a train,
 jah,Kohad,lennujaam,AI,pildipank-lennujaam-ai.jpg,airport,an airport with a plane,
 jah,Loodus,taevas,AI,pildipank-taevas-ai.jpg,sky,"a blue sky with white clouds, no people","AI-pilt, seemne katse 1"
@@ -508,10 +508,10 @@ jah,Loomad,kiisu,emoji,🐈,,,
 jah,Loomad,kutsu,emoji,🐕,,,
 jah,Loomad,kassipoeg,AI,pildipank-kassipoeg-ai.jpg,kitten,a kitten,
 jah,Loomad,kutsikas,AI,pildipank-kutsikas-ai.jpg,puppy,a puppy,
-jah,Loomad,vasikas,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/3455/13_3455_3cbb06a2-73ba-4875-baad-c2af7d7acfe1.svg,calf,a calf,
+jah,Loomad,vasikas,AI,pildipank-vasikas-ai.jpg,calf,"a young calf, a baby cow",AI-pilt
 jah,Loomad,varss,AI,pildipank-varss-ai.jpg,foal,a foal,
 jah,Loomad,põrsas,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5337/13_5337_e2a7df1b-e386-465b-960a-a0b1034e9788.svg,piglet,a piglet,
-jah,Loomad,tall,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4904/13_4904_5b528850-7904-4d6f-9a41-811d4c7ea258.svg,lamb,a lamb,
+jah,Loomad,tall,AI,pildipank-tall-ai.jpg,lamb,"a white fluffy lamb, a baby sheep",AI-pilt
 jah,Loomad,ilves,AI,pildipank-ilves-ai.jpg,lynx,"a lynx, a wild cat with tufted ears, a short tail and brown spotted fur","AI-pilt, seemne katse 1"
 jah,Loomad,kobras,AI,pildipank-kobras-ai.jpg,beaver,a brown beaver with a flat paddle-shaped tail next to a gnawed log,"AI-pilt, seemne katse 1"
 jah,Loomad,mutt,AI,pildipank-mutt-ai.jpg,mole,a small dark grey mole with big pink digging paws peeking out of a molehill,"AI-pilt, seemne katse 1"
