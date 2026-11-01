@@ -126,7 +126,6 @@ describe('word forms', () => {
     [['mina', 'tahtma', 'natuke'], 'mina tahan natuke'],
     [['mina', 'tahtma', 'õun', 'või', 'banaan'], 'mina tahan õuna või banaani'],
     [['mina', 'ei', 'tahtma', 'õun', 'ega', 'banaan'], 'mina ei taha õuna ega banaani'],
-    [['mina', 'mängima', 'auto'], 'mina mängin auto'],
     [['mina', 'tahtma', 'frisbi'], 'mina tahan frisbi'],
     [['ema', 'mina', 'kallistama'], 'ema mina kallistan'],
     [['see', 'ei', 'olema', 'pall'], 'see ei ole pall'],
@@ -162,6 +161,35 @@ describe('word forms', () => {
     [['mul', 'ei', 'olema', 'haigla'], 'mul ei ole haiglat'],
     [['mina', 'minema', 'köök:noun'], 'mina lähen köök'],
     [['mina', 'minema', 'köök:place'], 'mina lähen kööki'],
+    // With something (comitative): toys and people after "mängima"
+    [['mina', 'mängima', 'auto'], 'mina mängin autoga'],
+    [['mina', 'mängima', 'suur', 'auto'], 'mina mängin suure autoga'],
+    [['mina', 'mängima', 'kaks', 'auto'], 'mina mängin kahe autoga'],
+    [['mina', 'mängima', 'klotsid'], 'mina mängin klotsidega'],
+    [['mina', 'mängima', 'ema'], 'mina mängin emaga'],
+    [['mina', 'mängima', 'sina'], 'mina mängin sinuga'],
+    [['mina', 'mängima', 'kass', 'ja', 'koer'], 'mina mängin kassiga ja koeraga'],
+    [['mina', 'tahtma', 'mängima', 'nukk'], 'mina tahan mängida nukuga'],
+    // but a game or an instrument is played, and a place is where
+    [['mina', 'mängima', 'jalgpall'], 'mina mängin jalgpalli'],
+    [['mina', 'mängima', 'kitarr'], 'mina mängin kitarri'],
+    [['mina', 'mängima', 'õu'], 'mina mängin õues'],
+    // Vehicles after a verb of motion
+    [['mina', 'sõitma', 'buss'], 'mina sõidan bussiga'],
+    [['mina', 'minema', 'kool', 'auto'], 'mina lähen kooli autoga'],
+    [['mina', 'sõitma', 'kelk'], 'mina sõidan kelguga'],
+    // Tools after what they are for
+    [['mina', 'joonistama', 'pliiats'], 'mina joonistan pliiatsiga'],
+    [['mina', 'joonistama', 'kass'], 'mina joonistan kassi'],
+    [['mina', 'sööma', 'lusikas'], 'mina söön lusikaga'],
+    [['mina', 'lõikama', 'käärid'], 'mina lõikan kääridega'],
+    [['mina', 'tahtma', 'lusikas'], 'mina tahan lusikat'],
+    // "koos"
+    [['mina', 'minema', 'koos', 'ema'], 'mina lähen koos emaga'],
+    [['mina', 'minema', 'ema', 'koos'], 'mina lähen emaga koos'],
+    [['mina', 'minema', 'koos', 'suur', 'koer'], 'mina lähen koos suure koeraga'],
+    [['koos', 'sina'], 'koos sinuga'],
+    [['mina', 'ja', 'ema', 'koos', 'minema'], 'mina ja ema koos läheme'],
   ])('%j says "%s"', (cards, expected) => {
     expect(say(...cards)).toBe(expected)
   })
@@ -358,6 +386,18 @@ describe('the forms a board can say', () => {
       'koolis',
       'kodus',
     ])
+  })
+
+  it('has the forms with -ga a board calls for', () => {
+    expect(boardWordForms(cards('mina', 'mängima', 'suur', 'auto', 'jalgpall'))).toEqual([
+      'mängin',
+      'autoga',
+      'jalgpalli',
+      'suure',
+      'minuga',
+    ])
+    expect(boardWordForms(cards('mina', 'sõitma', 'buss', 'pall'))).toEqual(['sõidan', 'bussiga'])
+    expect(boardWordForms(cards('koos', 'ema', 'sina'))).toEqual(['emaga', 'sinuga'])
   })
 
   it('has nothing without a subject, "ei" or a verb', () => {

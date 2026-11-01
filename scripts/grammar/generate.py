@@ -6,7 +6,9 @@
 - src/utilities/grammar/wordForms.ts: the partitive of the picture bank's nouns (a plural noun's in
   the plural), adjectives and numerals (and of the people in words.txt), for objects ("tahan õuna")
   and numbers ("kaks kassi"); the local cases of the places in places.txt ("lähen kooli", "olen
-  koolis") and of the adjectives, for the adjectives before a place ("lähen suurde parki").
+  koolis") and of the adjectives, for the adjectives before a place ("lähen suurde parki"); the
+  comitative of the nouns and the genitive of the adjectives and numerals ("mängin suure autoga"),
+  and the picture bank's vehicles ("sõidan bussiga").
 
 Vabamorf (EstNLTK) makes the forms and tells nouns from adjectives. It is only needed here, on a
 developer's machine; the app reads the generated files.
@@ -79,6 +81,13 @@ PREFERRED: dict[tuple[str, str], str] = {
     ('tulp', 'S'): 'tulpi',
     ('vaal', 'S'): 'vaala',
     ('õlg', 'S'): 'õlga',
+    # Comitatives
+    ('jogurt', 'sg kom'): 'jogurtiga',
+    ('kaste', 'sg kom'): 'kastmega',
+    ('puding', 'sg kom'): 'pudinguga',
+    ('päike', 'sg kom'): 'päikesega',
+    ('põrsas', 'sg kom'): 'põrsaga',
+    ('äike', 'sg kom'): 'äikesega',
     # Adjectives
     ('armas', 'A'): 'armsat',
     # Numerals
@@ -122,6 +131,10 @@ LONG_ILLATIVE = {'bussipeatus', 'tsirkus'}
 PLACE_CASES = {'sisse': ('ill', 'sg in', 'sg el'), 'peale': ('sg all', 'sg ad', 'sg abl')}
 # The adjective cases, in this order, for the adjectives before a place.
 ADJECTIVE_PLACE_CASES = ('ill', 'sg in', 'sg el', 'sg all', 'sg ad', 'sg abl')
+
+# The picture bank's Transport words that are not vehicles; the Sport ones that are.
+NOT_VEHICLES = {'bussipeatus', 'foor', 'tankla', 'vilkur'}
+SPORT_VEHICLES = {'kelk', 'suusad', 'uisud'}
 
 # Vabamorf's parts of speech the board inflects, and the names of their lists in wordForms.ts.
 WORD_LISTS = {'S': 'NOUN_PARTITIVE', 'A': 'ADJECTIVE_PARTITIVE', 'N': 'NUMERAL_PARTITIVE'}
@@ -247,6 +260,30 @@ def verbs(problems: list[str]) -> tuple[list[tuple[str, str, str, dict[str, str]
     return rows, len(bank), skipped
 
 
+def comitative(word: str, partitive: str, plural: bool, problems: list[str]) -> str:
+    """A noun's comitative (autoga, nukuga, klotsidega). Of two, the one on the partitive's stem
+    (nukku gives nukuga, kooli kooliga)."""
+    found = synthesize(word, 'pl kom' if plural else 'sg kom', 'S')
+    if (word, 'sg kom') in PREFERRED and not plural:
+        return one(word, 'sg kom', 'S', problems)
+    if len(found) > 1:
+        on_stem = [form for form in found if form[-3] == partitive[-1]]
+        found = on_stem if len(on_stem) == 1 else found
+    if len(found) != 1:
+        problems.append(f'{word} kom: {found or "no form"}')
+        return found[0] if found else ''
+    return found[0]
+
+
+def vehicles() -> set[str]:
+    return {
+        row['sõna'].strip().lower()
+        for row in bank_rows()
+        if ONE_WORD.match(row['sõna'].strip().lower())
+        and (row['kategooria'] == 'Transport' or row['sõna'].strip().lower() in SPORT_VEHICLES)
+    } - NOT_VEHICLES
+
+
 def words(problems: list[str]) -> tuple[dict[str, dict[str, str]], list[str]]:
     """The partitive of every one-word bank word Vabamorf knows as a noun, adjective or numeral in the
     nominative singular, by part of speech. A word that is both (punane, tark) is in both lists."""
@@ -260,6 +297,8 @@ def words(problems: list[str]) -> tuple[dict[str, dict[str, str]], list[str]]:
     analyses = Vabamorf.instance().analyze(candidates, guess=False, disambiguate=False, propername=False)
 
     lists: dict[str, dict[str, str]] = {part: {} for part in WORD_LISTS}
+    lists['kom'] = {}
+    lists['g'] = {}
     unknown = []
     for word, analysis in zip(candidates, analyses):
         if not analysis['analysis']:
@@ -272,6 +311,11 @@ def words(problems: list[str]) -> tuple[dict[str, dict[str, str]], list[str]]:
         }
         for part in parts & set(WORD_LISTS):
             lists[part][word] = one(word, 'sg p', part, problems)
+            if part == 'S':
+                lists['kom'][word] = comitative(word, lists[part][word], False, problems)
+            elif word not in lists['g']:
+                # Before a noun in the comitative: suure autoga, kahe autoga (väikese, not väikse).
+                lists['g'][word] = (synthesize(word, 'sg g', part) or [''])[0]
         # A noun in the plural ("helbed", "lihapallid") takes the plural partitive: the short one
         # where there are two (kingi, sokke, not kingasid, sokkisid).
         if not parts:
@@ -279,6 +323,9 @@ def words(problems: list[str]) -> tuple[dict[str, dict[str, str]], list[str]]:
             found = sorted({form for lemma in lemmas for form in synthesize(lemma, 'pl p', 'S')})
             if found:
                 lists['S'][word] = min(found, key=len)
+                with_ = sorted({form for lemma in lemmas for form in synthesize(lemma, 'pl kom', 'S')})
+                if with_:
+                    lists['kom'][word] = min(with_, key=len)
     return lists, unknown
 
 
@@ -328,6 +375,20 @@ def main() -> None:
     lines += ['}', '']
     lines.append("// Places whose cases are \"on\" (turule, turul, turult), for the adjectives before them.")
     lines.append('export const ON_PLACES = new Set([' + ', '.join(f"'{word}'" for word in sorted(on_places)) + '])')
+    lines.append('')
+    lines.append('// The comitative of nouns: autoga, nukuga, klotsidega.')
+    lines.append('export const NOUN_COMITATIVE: Record<string, string> = {')
+    for word, form in sorted(word_lists['kom'].items()):
+        lines.append(f"  {key(word)}: '{form}',")
+    lines += ['}', '']
+    lines.append('// The genitive of adjectives and numerals, before a noun in the comitative: suure autoga, kahe autoga.')
+    lines.append('export const GENITIVE: Record<string, string> = {')
+    for word, form in sorted(word_lists['g'].items()):
+        if form:
+            lines.append(f"  {key(word)}: '{form}',")
+    lines += ['}', '']
+    lines.append("// The picture bank's vehicles: \"sõidan bussiga\".")
+    lines.append('export const VEHICLES = new Set([' + ', '.join(f"'{word}'" for word in sorted(vehicles())) + '])')
     lines.append('')
     lines.append('// Adjectives in the local cases: illative, inessive, elative, allative, adessive, ablative.')
     lines.append('export const ADJECTIVE_PLACE_FORMS: Record<string, readonly string[]> = {')

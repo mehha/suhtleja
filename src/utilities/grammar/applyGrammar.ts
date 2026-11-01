@@ -3,17 +3,20 @@ import { IRREGULAR_PRESENT, VERB_FORMS } from './verbForms'
 import {
   ADJECTIVE_PARTITIVE,
   ADJECTIVE_PLACE_FORMS,
+  GENITIVE,
+  NOUN_COMITATIVE,
   NOUN_PARTITIVE,
   NUMERAL_PARTITIVE,
   ON_PLACES,
   PLACE_FORMS,
+  VEHICLES,
 } from './wordForms'
 
 // The board's word forms (docs/rules/project/boards.md, "Word form rules"): a verb card in the
 // ma-infinitive takes the form the sentence gives it, and so do the nouns after it. "mina" +
 // "jooksma" says "mina jooksen", "ei" + "jooksma" "ei jookse", "tahan" + "sööma" "tahan süüa",
 // "tahan" + "suur" + "õun" "tahan suurt õuna", "kaks" + "kass" "kaks kassi", "lähen" + "kool"
-// "lähen kooli", "olen" + "kodu" "olen kodus". Pure, so the runner,
+// "lähen kooli", "olen" + "kodu" "olen kodus", "mängin" + "auto" "mängin autoga". Pure, so the runner,
 // the editor's hint, the speech cache and the tests share it. Tested in tests/int/grammar.int.spec.ts.
 
 export type Person = '1sg' | '2sg' | '3sg' | '1pl' | '2pl' | '3pl'
@@ -132,6 +135,43 @@ const SOURCE_VERBS = new Set(['lahkuma'])
 const PLACE_OBJECT_VERBS = new Set([
   'ehitama', 'joonistama', 'kaotama', 'leidma', 'meisterdama', 'otsima', 'pildistama', 'värvima',
 ])
+
+// What a noun is "with" (the comitative, -ga): after "mängima" anything but a game or an instrument
+// ("mängin autoga", "mängin emaga"; but "mängin jalgpalli", "mängin kitarri", in the partitive); a
+// vehicle after a verb of motion ("sõidan bussiga", "lähen autoga"); a tool after what it is for
+// ("joonistan pliiatsiga", "söön lusikaga"); and whatever comes with "koos" ("koos emaga").
+const PLAYED = new Set([
+  'arvutimäng', 'flööt', 'hoki', 'jalgpall', 'kabe', 'kaardimäng', 'keegel', 'kitarr', 'klaver',
+  'korvpall', 'kull', 'lauamäng', 'lauatennis', 'male', 'mäng', 'peitus', 'sulgpall', 'tennis',
+  'trompet', 'trumm', 'viiul', 'võrkpall',
+])
+const TOOL_VERBS = new Set([
+  'avama', 'ehitama', 'joonistama', 'jooma', 'kaevama', 'kammima', 'keerama', 'kirjutama', 'kleepima',
+  'kustutama', 'lõikama', 'lööma', 'meisterdama', 'mõõtma', 'parandama', 'pesema', 'sööma', 'värvima',
+])
+const TOOLS = new Set([
+  'haamer', 'hambahari', 'joonlaud', 'juuksehari', 'kahvel', 'kamm', 'kriit', 'kruvikeeraja',
+  'kustukumm', 'käärid', 'kõrs', 'labidas', 'liim', 'lusikas', 'nuga', 'pastakas', 'pintsel',
+  'pliiats', 'saag', 'teritaja', 'vahakriit', 'vildikas', 'võti', 'värvipliiats',
+])
+const COMITATIVE_PRONOUNS: Record<string, string> = {
+  mina: 'minuga',
+  ma: 'minuga',
+  sina: 'sinuga',
+  sa: 'sinuga',
+  tema: 'temaga',
+  ta: 'temaga',
+  meie: 'meiega',
+  me: 'meiega',
+  teie: 'teiega',
+  te: 'teiega',
+  nemad: 'nendega',
+  nad: 'nendega',
+  see: 'sellega',
+  too: 'tollega',
+  need: 'nendega',
+  keegi: 'kellegagi',
+}
 
 // Pronouns as objects: "ema kallistab mind", "tahan seda".
 const OBJECT_PRONOUNS: Record<string, string> = {
@@ -376,6 +416,14 @@ function takesObject(governor: Governor | null): boolean {
   return governor.negated || OBJECT_VERBS.has(governor.verb)
 }
 
+// The noun is what something is done with (-ga), from the verb before it.
+function takesComitative(governor: Governor | null, word: string): boolean {
+  if (!governor) return false
+  if (governor.verb === 'mängima') return !PLAYED.has(word)
+  if (MOTION_VERBS.has(governor.verb)) return VEHICLES.has(word)
+  return TOOL_VERBS.has(governor.verb) && TOOLS.has(word)
+}
+
 // Where a place is: where to, where or where from (an index into PLACE_FORMS), 'object' when the
 // place is the object, or null when it keeps its form ("mul on kodu", "see on kool").
 function placeCase(governor: Governor | null): 0 | 1 | 2 | 'object' | null {
@@ -434,10 +482,38 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
   let phrase: Array<{ index: number; word: PhraseWord }> = []
   // The object just said, for a "ja" after it.
   let lastObject: 'noun' | 'pronoun' | null = null
+  // A "koos" before: the next noun or pronoun is in the comitative ("koos emaga").
+  let withNext = false
+  // The noun or pronoun just said after the verb, for a "koos" after it ("lähen emaga koos").
+  type Said = { index: number; phrase: Array<{ index: number; word: PhraseWord }>; pronoun: string | null }
+  let lastSaid: Said | null = null
+
+  // A noun (or pronoun) in the comitative, its adjectives and numerals in the genitive: "suure
+  // autoga", "kahe autoga", "minuga". A noun without a comitative stays as it is.
+  const comitative = ({ index, phrase: words, pronoun }: Said) => {
+    const form = pronoun ?? NOUN_COMITATIVE[normalizeWord(tokens[index]!.text)]
+    if (!form) return
+    out[index] = withCase(tokens[index]!.text, form)
+    for (const { index: at } of words) {
+      const genitive = GENITIVE[normalizeWord(tokens[at]!.text)]
+      if (genitive) out[at] = withCase(tokens[at]!.text, genitive)
+    }
+  }
 
   const nounPhrase = (index: number, noun: PhraseWord) => {
     const governor = governorOf(clause)
+    const word = normalizeWord(tokens[index]!.text)
     const place = placeForms(tokens[index]!.text, tokens[index]!.wordClass)
+    const said: Said = { index, phrase, pronoun: null }
+    if (withNext || (!place && takesComitative(governor, word))) {
+      comitative(said)
+      withNext = false
+      phrase = []
+      lastObject = 'noun'
+      return
+    }
+    if (governor) lastSaid = said
+
     const where = place ? placeCase(governor) : null
     if (place && typeof where === 'number') {
       // The adjectives before it take the place's case ("lähen suurde parki"); numerals stay.
@@ -451,7 +527,8 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
       return
     }
 
-    const object = takesObject(governor)
+    // "mängin jalgpalli", "mängin kitarri": a game or an instrument is what is played.
+    const object = takesObject(governor) || (governor?.verb === 'mängima' && PLAYED.has(word))
     const counted = phrase.some(({ word }) => word.counts)
     if (object || counted) {
       for (const { index: at, word } of phrase) {
@@ -474,6 +551,8 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
     const word = normalizeWord(text)
     const objectBefore = lastObject
     lastObject = null
+    const saidBefore = lastSaid
+    lastSaid = null
 
     const inPhrase = phraseWord(text, wordClass)
     if (inPhrase && inPhrase.kind !== 'noun' && !subjectOf(text, wordClass)) {
@@ -490,6 +569,15 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
 
     if (NEW_CLAUSE.has(word)) {
       clause = newClause()
+      withNext = false
+      return
+    }
+    // "koos": the noun or pronoun just said after the verb takes the comitative ("lähen emaga
+    // koos"), or else the next one does ("koos emaga"). After subjects it is "together" ("mina ja
+    // ema koos").
+    if (word === 'koos') {
+      if (saidBefore) comitative(saidBefore)
+      else withNext = true
       return
     }
     if (JOINING.has(word) || KEEPS_SUBJECT.has(word)) {
@@ -518,6 +606,22 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
 
     const subject = subjectOf(text, wordClass)
     if (subject) {
+      // With someone: "koos emaga", "koos sinuga", "mängin sõbraga".
+      if (withNext || (clause.finite && governorOf(clause)?.verb === 'mängima')) {
+        const pronoun = COMITATIVE_PRONOUNS[word]
+        const person = phraseWord(text, wordClass)
+        if (pronoun) {
+          comitative({ index, phrase: phraseBefore, pronoun })
+          withNext = false
+          lastObject = 'pronoun'
+          return
+        }
+        if (person?.kind === 'noun') {
+          phrase = phraseBefore
+          nounPhrase(index, person)
+          return
+        }
+      }
       const objectPronoun = OBJECT_PRONOUNS[word]
       const asObject =
         clause.finite || clause.carried
@@ -540,6 +644,8 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
       }
       if (clause.carried) clause.carried = null
       if (!clause.finite) addSubject(clause, subject)
+      // After the verb, a person or pronoun a "koos" can follow ("lähen emaga koos").
+      else lastSaid = { index, phrase: phraseBefore, pronoun: COMITATIVE_PRONOUNS[word] ?? null }
       return
     }
     if (EXPERIENCERS.has(word)) {
@@ -553,6 +659,7 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
     const card = verbCard(text, wordClass)
     if (card) {
       clause.carried = null
+      withNext = false
       if (clause.finite) {
         const form = clause.lastVerb && DA_VERBS.has(clause.lastVerb) ? verbForm(card, 'da') : null
         clause.lastVerb = card.verb
@@ -593,7 +700,9 @@ export function canChangeForm(text: string, wordClass?: string | null): boolean 
  * verbs in the persons of its subject cards (and their plurals when it has "ja"), after "ei" and in
  * the da-infinitive when it has a card that calls for them; its nouns and adjectives in the
  * partitive when it has a verb that takes an object, "ei" or a counting numeral; its places where
- * to, where and where from as its verbs call for them; its pronouns and numerals as objects.
+ * to, where and where from as its verbs call for them; its nouns, pronouns and adjectives "with"
+ * (-ga) after "mängima" or "koos", its vehicles after a verb of motion and its tools after what they
+ * are for; its pronouns and numerals as objects.
  */
 export function boardWordForms(cards: GrammarToken[]): string[] {
   const kinds = new Set<VerbFormKind>()
@@ -602,6 +711,8 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
   const pronouns: Array<{ text: string; object: string }> = []
   const places: Array<{ text: string; forms: readonly string[] }> = []
   const placeCases = new Set<number>()
+  const verbsOnBoard = new Set<string>()
+  let together = false
   let joining = false
   let objects = false
   let counting = false
@@ -612,6 +723,7 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
     if (JOINING.has(word)) joining = true
     if (word === 'ei') kinds.add('neg')
     if (word === 'pole') objects = true
+    if (word === 'koos') together = true
     if (EXPERIENCERS.has(word)) kinds.add('3sg')
 
     const subject = subjectOf(text, wordClass)
@@ -624,6 +736,7 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
     if (verb && DA_VERBS.has(verb)) kinds.add('da')
     if (verb && OBJECT_VERBS.has(verb)) objects = true
     if (verb) placeCases.add(MOTION_VERBS.has(verb) ? 0 : SOURCE_VERBS.has(verb) ? 2 : 1)
+    if (verb) verbsOnBoard.add(verb)
 
     const place = placeForms(text, wordClass)
     if (place) places.push({ text, forms: place.forms })
@@ -660,6 +773,39 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
   for (const where of [0, 1, 2]) {
     if (!placeCases.has(where)) continue
     for (const { text, forms: placeForm } of places) forms.add(withCase(text, placeForm[where]!))
+  }
+
+  // With something (-ga): what "mängima" or "koos" can take, vehicles and tools.
+  const playing = verbsOnBoard.has('mängima')
+  const moving = [...verbsOnBoard].some((verb) => MOTION_VERBS.has(verb))
+  const making = [...verbsOnBoard].some((verb) => TOOL_VERBS.has(verb))
+  const withForm = (text: string) => NOUN_COMITATIVE[normalizeWord(text)]
+  let withNoun = false
+  for (const { text, word } of phraseWords) {
+    if (word.kind !== 'noun') continue
+    const key = normalizeWord(text)
+    const played = PLAYED.has(key)
+    const taken =
+      ((together || playing) && !played && !placeForms(text)) ||
+      (moving && VEHICLES.has(key)) ||
+      (making && TOOLS.has(key))
+    if (taken && withForm(text)) {
+      forms.add(withCase(text, withForm(text)!))
+      withNoun = true
+    }
+    if (playing && played) forms.add(withCase(text, word.partitive))
+  }
+  if (withNoun) {
+    for (const { text, word } of phraseWords) {
+      const genitive = word.kind !== 'noun' ? GENITIVE[normalizeWord(text)] : undefined
+      if (genitive) forms.add(withCase(text, genitive))
+    }
+  }
+  if (together || playing) {
+    for (const { text } of pronouns) {
+      const pronoun = COMITATIVE_PRONOUNS[normalizeWord(text)]
+      if (pronoun) forms.add(withCase(text, pronoun))
+    }
   }
   if (objects) {
     for (const { text, object } of pronouns) forms.add(withCase(text, object))
