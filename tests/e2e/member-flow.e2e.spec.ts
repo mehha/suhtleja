@@ -251,7 +251,8 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     // all" doesn't fetch it again.
     const saved = speech.filter((entry) => entry.path.startsWith(`/next/tts-cache/${boardId}/`))
     expect(new Set(saved.map((entry) => entry.path)).size, 'saved words loaded').toBe(words.length + 1)
-    expect(saved.every((entry) => entry.status === 200), JSON.stringify(saved)).toBe(true)
+    // 206 is a part of the file: a browser playing audio may ask for it in ranges.
+    expect(saved.every((entry) => entry.status === 200 || entry.status === 206), JSON.stringify(saved)).toBe(true)
     expect(speech.filter((entry) => entry.path === '/next/tts-ms')).toEqual([{ path: '/next/tts-ms', status: 200 }])
   })
 
