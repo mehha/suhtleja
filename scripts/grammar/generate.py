@@ -8,7 +8,7 @@
   and numbers ("kaks kassi"); the local cases of the places in places.txt ("lähen kooli", "olen
   koolis") and of the adjectives, for the adjectives before a place ("lähen suurde parki"); the
   comitative of the nouns and the genitive of the adjectives and numerals ("mängin suure autoga"),
-  and the picture bank's vehicles ("sõidan bussiga"); the plural partitive of the nouns and
+  and the picture bank's vehicles ("sõidan bussiga") and animals (an owner: "kassi toit"); the plural partitive of the nouns and
   adjectives ("palju suuri kasse") and the substances in mass.txt ("palju vett").
 
 Vabamorf (EstNLTK) makes the forms and tells nouns from adjectives. It is only needed here, on a
@@ -301,6 +301,14 @@ def comitative(word: str, partitive: str, plural: bool, problems: list[str]) -> 
     return found[0]
 
 
+def animals() -> set[str]:
+    return {
+        row['sõna'].strip().lower()
+        for row in bank_rows()
+        if row['kategooria'] == 'Loomad' and ONE_WORD.match(row['sõna'].strip().lower())
+    }
+
+
 def vehicles() -> set[str]:
     return {
         row['sõna'].strip().lower()
@@ -446,6 +454,9 @@ def main() -> None:
         sys.exit(1)
     lines.append('// Substances, after "palju" in the partitive singular: palju vett.')
     lines.append('export const MASS_NOUNS = new Set([' + ', '.join(f"'{word}'" for word in mass) + '])')
+    lines.append('')
+    lines.append("// The picture bank's animals, which can own what comes after them: \"kassi toit\".")
+    lines.append('export const ANIMALS = new Set([' + ', '.join(f"'{word}'" for word in sorted(animals())) + '])')
     lines.append('')
     lines.append("// The picture bank's vehicles: \"sõidan bussiga\".")
     lines.append('export const VEHICLES = new Set([' + ', '.join(f"'{word}'" for word in sorted(vehicles())) + '])')

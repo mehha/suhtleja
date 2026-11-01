@@ -3,6 +3,7 @@ import { IRREGULAR_PAST, IRREGULAR_PRESENT, VERB_FORMS } from './verbForms'
 import {
   ADJECTIVE_PARTITIVE,
   ADJECTIVE_PLACE_FORMS,
+  ANIMALS,
   GENITIVE,
   MASS_NOUNS,
   NOUN_COMITATIVE,
@@ -18,7 +19,8 @@ import {
 // ma-infinitive takes the form the sentence gives it, and so do the nouns after it. "mina" +
 // "jooksma" says "mina jooksen", "ei" + "jooksma" "ei jookse", "tahan" + "sööma" "tahan süüa",
 // "tahan" + "suur" + "õun" "tahan suurt õuna", "kaks" + "kass" "kaks kassi", "lähen" + "kool"
-// "lähen kooli", "olen" + "kodu" "olen kodus", "mängin" + "auto" "mängin autoga". Pure, so the runner,
+// "lähen kooli", "olen" + "kodu" "olen kodus", "mängin" + "auto" "mängin autoga", "kass" + "toit"
+// "kassi toit", "laud" + "peal" "laua peal". Pure, so the runner,
 // the editor's hint, the speech cache and the tests share it. Tested in tests/int/grammar.int.spec.ts.
 
 export type Person = '1sg' | '2sg' | '3sg' | '1pl' | '2pl' | '3pl'
@@ -173,6 +175,32 @@ const COMITATIVE_PRONOUNS: Record<string, string> = {
   too: 'tollega',
   need: 'nendega',
   keegi: 'kellegagi',
+}
+
+// After these the noun or pronoun before them is in the genitive: "laua peal", "ema juurde", "minu
+// jaoks", "suure maja taga".
+const POSTPOSITIONS = new Set([
+  'all', 'alla', 'alt', 'asemel', 'ees', 'eest', 'ette', 'jaoks', 'juurde', 'juures', 'juurest',
+  'järel', 'kaudu', 'keskel', 'kohal', 'kõrval', 'kõrvale', 'kõrvalt', 'lähedal', 'peal', 'peale',
+  'pealt', 'poole', 'sees', 'seest', 'sisse', 'taga', 'tagant', 'taha', 'vahel', 'vahele', 'ümber',
+])
+const GENITIVE_PRONOUNS: Record<string, string> = {
+  mina: 'minu',
+  ma: 'minu',
+  sina: 'sinu',
+  sa: 'sinu',
+  tema: 'tema',
+  ta: 'tema',
+  meie: 'meie',
+  me: 'meie',
+  teie: 'teie',
+  te: 'teie',
+  nemad: 'nende',
+  nad: 'nende',
+  see: 'selle',
+  too: 'tolle',
+  need: 'nende',
+  keegi: 'kellegi',
 }
 
 // Pronouns as objects: "ema kallistab mind", "tahan seda".
@@ -337,7 +365,8 @@ function phraseWord(text: string, wordClass?: string | null): PhraseWord | null 
   if (QUANTIFIERS[word]) return { kind: 'numeral', partitive: QUANTIFIERS[word], counts: true }
   // Pronouns have their own forms (OBJECT_PRONOUNS); Vabamorf also knows "mulle" and "meil" as nouns.
   if (isPronoun(word) || EXPERIENCERS.has(word) || OBJECT_PRONOUNS[word]) return null
-  const functionWord = FUNCTION_WORDS.has(word) || JOINING.has(word) || KEEPS_SUBJECT.has(word) || NEW_CLAUSE.has(word)
+  const functionWord =
+    FUNCTION_WORDS.has(word) || JOINING.has(word) || KEEPS_SUBJECT.has(word) || NEW_CLAUSE.has(word) || POSTPOSITIONS.has(word)
   if (functionWord && cardClass !== 'noun' && cardClass !== 'adjective') return null
   if (/^\d+$/.test(word)) return { kind: 'numeral', partitive: word, counts: Number(word) >= 2 }
   if (word.includes(' ')) return null
@@ -547,6 +576,51 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
     }
   }
 
+  // A noun (or pronoun) in the genitive, its adjectives and numerals too: "suure laua peal", "kassi
+  // toit", "minu jaoks". The genitive is the comitative without its -ga.
+  const genitive = ({ index, phrase: words, pronoun }: Said) => {
+    const form = pronoun ?? NOUN_COMITATIVE[normalizeWord(tokens[index]!.text)]?.slice(0, -2)
+    if (form) out[index] = withCase(tokens[index]!.text, form)
+    for (const { index: at } of words) {
+      const before = GENITIVE[normalizeWord(tokens[at]!.text)]
+      if (before) out[at] = withCase(tokens[at]!.text, before)
+    }
+  }
+  const beforePostposition = (index: number) =>
+    index + 1 < tokens.length && POSTPOSITIONS.has(normalizeWord(tokens[index + 1]!.text))
+  // The next noun (after its adjectives and numerals) is one this word can own: "kassi suur kauss".
+  // Not one before a postposition: "kass laua peal" is where the cat is.
+  const ownsNext = (index: number) => {
+    for (let at = index + 1; at < tokens.length; at++) {
+      const next = phraseWord(tokens[at]!.text, tokens[at]!.wordClass)
+      if (!next) return false
+      if (next.kind === 'noun') return !beforePostposition(at)
+    }
+    return false
+  }
+  // A verb later in the clause: two nouns before it may be its subject and object ("kass toit
+  // sööma"), not an owner and what it owns.
+  const verbLater = (index: number) => {
+    for (let at = index + 1; at < tokens.length; at++) {
+      const { text: later, wordClass: laterClass } = tokens[at]!
+      const laterWord = normalizeWord(later)
+      if (NEW_CLAUSE.has(laterWord) || JOINING.has(laterWord) || KEEPS_SUBJECT.has(laterWord)) return false
+      if (verbCard(later, laterClass) || verbOfForm(later, laterClass)?.finite) return true
+    }
+    return false
+  }
+  // A person or an animal that owns the noun after it ("kassi toit", "ema auto"), and a personal
+  // pronoun after the verb ("see on minu auto"; at the start "mina pall" is "mina tahan palli").
+  const isOwner = (index: number) => {
+    const { text, wordClass } = tokens[index]!
+    const word = normalizeWord(text)
+    const pronoun = Boolean(SUBJECT_PRONOUNS[word])
+    const animate = pronoun
+      ? clause.finite
+      : PEOPLE.has(word) || PEOPLE_PLURAL.has(word) || ANIMALS.has(word) || (wordClass === 'person' && !isPronoun(word))
+    return animate && ownsNext(index) && (clause.finite || !verbLater(index))
+  }
+
   const nounPhrase = (index: number, noun: PhraseWord) => {
     const governor = governorOf(clause)
     const word = normalizeWord(tokens[index]!.text)
@@ -613,6 +687,11 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
       return
     }
     if (inPhrase?.kind === 'noun' && !subjectOf(text, wordClass)) {
+      if (beforePostposition(index) || isOwner(index)) {
+        genitive({ index, phrase, pronoun: null })
+        phrase = []
+        return
+      }
       nounPhrase(index, inPhrase)
       return
     }
@@ -659,6 +738,11 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
 
     const subject = subjectOf(text, wordClass)
     if (subject) {
+      // Before a postposition, or owning the noun after it: "ema juurde", "minu jaoks", "ema auto".
+      if (beforePostposition(index) || isOwner(index)) {
+        genitive({ index, phrase: phraseBefore, pronoun: GENITIVE_PRONOUNS[word] ?? null })
+        return
+      }
       // With someone: "koos emaga", "koos sinuga", "mängin sõbraga".
       if (withNext || (clause.finite && governorOf(clause)?.verb === 'mängima')) {
         const pronoun = COMITATIVE_PRONOUNS[word]
@@ -755,7 +839,8 @@ export function canChangeForm(text: string, wordClass?: string | null): boolean 
  * partitive when it has a verb that takes an object, "ei" or a counting numeral; its places where
  * to, where and where from as its verbs call for them; its nouns, pronouns and adjectives "with"
  * (-ga) after "mängima" or "koos", its vehicles after a verb of motion and its tools after what they
- * are for; its pronouns and numerals as objects.
+ * are for; its nouns, pronouns and adjectives in the genitive with a postposition; its pronouns and
+ * numerals as objects.
  */
 export function boardWordForms(cards: GrammarToken[]): string[] {
   const kinds = new Set<VerbFormKind>()
@@ -767,6 +852,7 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
   const verbsOnBoard = new Set<string>()
   let together = false
   let past = false
+  let postposition = false
   let joining = false
   let objects = false
   let counting = false
@@ -778,6 +864,7 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
     if (word === 'ei') kinds.add('neg')
     if (word === 'pole') objects = true
     if (word === 'koos') together = true
+    if (POSTPOSITIONS.has(word)) postposition = true
     if (PAST_MARKERS.has(word)) past = true
     if (EXPERIENCERS.has(word)) kinds.add('3sg')
 
@@ -869,6 +956,20 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
   if (together || playing) {
     for (const { text } of pronouns) {
       const pronoun = COMITATIVE_PRONOUNS[normalizeWord(text)]
+      if (pronoun) forms.add(withCase(text, pronoun))
+    }
+  }
+
+  // The genitive of every noun, pronoun and adjective before a postposition ("laua peal", "minu
+  // juurde"). An owner ("kassi toit") could be any person or animal before any noun, so it is
+  // synthesized when said.
+  if (postposition) {
+    for (const { text, word } of phraseWords) {
+      const genitive = word.kind === 'noun' ? NOUN_COMITATIVE[normalizeWord(text)]?.slice(0, -2) : GENITIVE[normalizeWord(text)]
+      if (genitive) forms.add(withCase(text, genitive))
+    }
+    for (const { text } of pronouns) {
+      const pronoun = GENITIVE_PRONOUNS[normalizeWord(text)]
       if (pronoun) forms.add(withCase(text, pronoun))
     }
   }

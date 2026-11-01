@@ -222,6 +222,25 @@ describe('word forms', () => {
     // and the present again after "täna" or "homme"
     [['eile', 'mina', 'olema', 'haige', 'aga', 'täna', 'mina', 'olema', 'terve'], 'eile mina olin haige aga täna mina olen terve'],
     [['homme', 'mina', 'minema', 'pood'], 'homme mina lähen poodi'],
+    // The genitive before a postposition
+    [['kass', 'laud', 'peal'], 'kass laua peal'],
+    [['mina', 'panema', 'pall', 'kapp', 'sisse'], 'mina panen palli kapi sisse'],
+    [['mina', 'minema', 'ema', 'juurde'], 'mina lähen ema juurde'],
+    [['mina', 'minema', 'sõber', 'juurde'], 'mina lähen sõbra juurde'],
+    [['tule', 'mina', 'juurde'], 'tule minu juurde'],
+    [['kingitus', 'sina', 'jaoks'], 'kingitus sinu jaoks'],
+    [['mina', 'olema', 'suur', 'laud', 'taga'], 'mina olen suure laua taga'],
+    [['mina', 'minema', 'maja:place', 'taha'], 'mina lähen maja taha'],
+    [['kass', 'olema', 'see', 'peal'], 'kass olema selle peal'],
+    // An owner before what it owns
+    [['kass', 'toit'], 'kassi toit'],
+    [['sõber', 'pall'], 'sõbra pall'],
+    [['kass', 'suur', 'kauss'], 'kassi suur kauss'],
+    [['mina', 'tahtma', 'kass', 'toit'], 'mina tahan kassi toitu'],
+    [['mina', 'minema', 'ema', 'tuba:place'], 'mina lähen ema tuppa'],
+    [['mina', 'mängima', 'isa', 'auto'], 'mina mängin isa autoga'],
+    [['see', 'olema', 'mina', 'auto'], 'see on minu auto'],
+    [['mina', 'otsima', 'sina', 'pall'], 'mina otsin sinu palli'],
   ])('%j says "%s"', (cards, expected) => {
     expect(say(...cards)).toBe(expected)
   })
@@ -253,6 +272,10 @@ describe('word forms', () => {
     [['kool', 'minema']],
     [['mina', 'kool']],
     [['kaart', 'minema']],
+    // An owner only before a noun, and not before a verb that may make them subject and object
+    [['mina', 'pall']],
+    [['pall', 'auto']],
+    [['kass', 'toit', 'sööma']],
   ])('%j stays as tapped', (cards) => {
     expect(say(...cards)).toBe(cards.map((card) => card.split(':')[0]).join(' '))
   })
@@ -447,6 +470,11 @@ describe('the forms a board can say', () => {
 
   it('has the past with "eile"', () => {
     expect(boardWordForms(cards('mina', 'eile', 'ei', 'minema'))).toEqual(['lähen', 'lähe', 'läksin', 'läinud', 'mind'])
+  })
+
+  it('has the genitive with a postposition, but not every owner', () => {
+    expect(boardWordForms(cards('laud', 'peal', 'mina'))).toEqual(['laua', 'minu'])
+    expect(boardWordForms(cards('kass', 'toit'))).toEqual([])
   })
 
   it('has nothing without a subject, "ei" or a verb', () => {

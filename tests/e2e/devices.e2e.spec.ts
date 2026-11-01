@@ -342,6 +342,29 @@ test.describe('board', () => {
     await expect.poll(() => spoken).toContain('mina jooksma.')
   })
 
+  test('a noun before a postposition is in the genitive', async ({ page, member }) => {
+    const spoken: string[] = []
+    await page.route('**/next/tts-ms', async (route) => {
+      spoken.push(JSON.parse(route.request().postData() ?? '{}').text)
+      await route.fulfill({ body: silentWav(), contentType: 'audio/wav' })
+    })
+    const boardId = await createOwnBoard(page.request, `Omastav ${member.boardName}`, [
+      { title: 'kass', wordClass: 'noun' },
+      { title: 'laud', wordClass: 'noun' },
+      { title: 'peal', wordClass: 'other' },
+    ])
+    await page.goto(`/boards/${boardId}`)
+    const tile = (index: number) => page.locator('.layout > .react-grid-item').nth(index).getByRole('button')
+    const phrase = page.locator('.actionbar-container')
+
+    for (const index of [0, 1, 2]) await tile(index).tap()
+    // The noun took its form when the postposition came.
+    for (const word of ['kass', 'laua', 'peal']) {
+      await expect(phrase.getByText(word, { exact: true })).toBeVisible()
+    }
+    await expect.poll(() => spoken).toContain('kass laua peal.')
+  })
+
   test('after "eile" a verb is in the past', async ({ page, member }) => {
     const spoken: string[] = []
     await page.route('**/next/tts-ms', async (route) => {
