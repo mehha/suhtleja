@@ -4,11 +4,13 @@ import {
   ADJECTIVE_PARTITIVE,
   ADJECTIVE_PLACE_FORMS,
   GENITIVE,
+  MASS_NOUNS,
   NOUN_COMITATIVE,
   NOUN_PARTITIVE,
   NUMERAL_PARTITIVE,
   ON_PLACES,
   PLACE_FORMS,
+  PLURAL_PARTITIVE,
   VEHICLES,
 } from './wordForms'
 
@@ -193,8 +195,11 @@ const OBJECT_PRONOUNS: Record<string, string> = {
   keegi: 'kedagi',
 }
 
-// Words like numerals: a noun after them is in the partitive singular ("mitu kassi").
-const QUANTIFIERS: Record<string, string> = { mitu: 'mitut' }
+// Words like numerals: a noun after them is in the partitive singular ("mitu kassi", "natuke piima").
+const QUANTIFIERS: Record<string, string> = { mitu: 'mitut', natuke: 'natuke' }
+// After these a noun is in the partitive plural ("palju kasse", "palju suuri õunu"), or singular for
+// a substance (MASS_NOUNS: "palju vett"). They keep their own form.
+const PLURAL_QUANTIFIERS = new Set(['palju', 'vähe', 'rohkem', 'vähem'])
 // Numerals after which the noun keeps its form ("üks kass").
 const NOT_COUNTING = new Set(['üks', 'null'])
 
@@ -273,6 +278,8 @@ type PhraseWord = {
   partitive: string
   // A numeral after which the noun is in the partitive ("kaks kassi", not "üks kass").
   counts: boolean
+  // "palju": the noun after it is in the plural ("palju kasse").
+  plural?: boolean
 }
 
 const NEVER_INFLECTED_CLASSES = new Set(['verb', 'question', 'social'])
@@ -280,7 +287,7 @@ const NEVER_INFLECTED_CLASSES = new Set(['verb', 'question', 'social'])
 // Words that are a noun only rarely ("või" is also butter, "kaasa" a spouse, "liiga" a league): they
 // keep their form unless the card is classed as a noun or an adjective.
 const FUNCTION_WORDS = new Set(
-  'ei pole kas ka veel väga ainult liiga koos kaasa enne pärast siin seal nüüd natuke kõik miks anna tere stopp hurraa palun aitäh jah'.split(
+  'ei pole kas ka veel väga ainult liiga koos kaasa enne pärast siin seal nüüd kõik miks anna tere stopp hurraa palun aitäh jah'.split(
     ' ',
   ),
 )
@@ -289,6 +296,8 @@ function phraseWord(text: string, wordClass?: string | null): PhraseWord | null 
   const cardClass = wordClass ?? guessWordClass(text)
   if (cardClass && NEVER_INFLECTED_CLASSES.has(cardClass)) return null
   const word = normalizeWord(text)
+  if (PLURAL_QUANTIFIERS.has(word)) return { kind: 'numeral', partitive: word, counts: true, plural: true }
+  if (QUANTIFIERS[word]) return { kind: 'numeral', partitive: QUANTIFIERS[word], counts: true }
   // Pronouns have their own forms (OBJECT_PRONOUNS); Vabamorf also knows "mulle" and "meil" as nouns.
   if (isPronoun(word) || EXPERIENCERS.has(word) || OBJECT_PRONOUNS[word]) return null
   const functionWord = FUNCTION_WORDS.has(word) || JOINING.has(word) || KEEPS_SUBJECT.has(word) || NEW_CLAUSE.has(word)
@@ -505,7 +514,9 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
     const word = normalizeWord(tokens[index]!.text)
     const place = placeForms(tokens[index]!.text, tokens[index]!.wordClass)
     const said: Said = { index, phrase, pronoun: null }
-    if (withNext || (!place && takesComitative(governor, word))) {
+    // "palju" makes the phrase a partitive (below), whatever the verb: "mul on palju autosid".
+    const many = phrase.some(({ word: before }) => before.plural)
+    if (!many && (withNext || (!place && takesComitative(governor, word)))) {
       comitative(said)
       withNext = false
       phrase = []
@@ -514,7 +525,7 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
     }
     if (governor) lastSaid = said
 
-    const where = place ? placeCase(governor) : null
+    const where = place && !many ? placeCase(governor) : null
     if (place && typeof where === 'number') {
       // The adjectives before it take the place's case ("lähen suurde parki"); numerals stay.
       for (const { index: at, word } of phrase) {
@@ -531,12 +542,16 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
     const object = takesObject(governor) || (governor?.verb === 'mängima' && PLAYED.has(word))
     const counted = phrase.some(({ word }) => word.counts)
     if (object || counted) {
-      for (const { index: at, word } of phrase) {
+      // After "palju" the plural, but a substance stays singular ("palju kasse", "palju vett").
+      const plural = many && !MASS_NOUNS.has(word)
+      const partitive = (text: string, of: PhraseWord) =>
+        (plural && PLURAL_PARTITIVE[normalizeWord(text)]) || of.partitive
+      for (const { index: at, word: before } of phrase) {
         // A numeral is in the partitive only as part of an object ("tahan kahte õuna", "mul on kaks õuna").
-        if (word.kind === 'numeral' && !object) continue
-        out[at] = withCase(tokens[at]!.text, word.partitive)
+        if (before.kind === 'numeral' && !object) continue
+        out[at] = withCase(tokens[at]!.text, partitive(tokens[at]!.text, before))
       }
-      out[index] = withCase(tokens[index]!.text, noun.partitive)
+      out[index] = withCase(tokens[index]!.text, partitive(tokens[index]!.text, noun))
     }
     phrase = []
     lastObject = object ? 'noun' : null
@@ -799,6 +814,14 @@ export function boardWordForms(cards: GrammarToken[]): string[] {
     for (const { text, word } of phraseWords) {
       const genitive = word.kind !== 'noun' ? GENITIVE[normalizeWord(text)] : undefined
       if (genitive) forms.add(withCase(text, genitive))
+    }
+  }
+  // After "palju": things in the plural partitive (substances are in the singular above).
+  if (phraseWords.some(({ word }) => word.plural)) {
+    for (const { text, word } of phraseWords) {
+      const key = normalizeWord(text)
+      if (word.kind === 'numeral' || MASS_NOUNS.has(key) || !PLURAL_PARTITIVE[key]) continue
+      forms.add(withCase(text, PLURAL_PARTITIVE[key]))
     }
   }
   if (together || playing) {

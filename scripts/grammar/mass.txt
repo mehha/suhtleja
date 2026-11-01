@@ -1,0 +1,71 @@
+# Nouns that are a substance, not things to count: after "palju", "vähe", "rohkem", "vähem" they are
+# in the partitive singular ("palju vett", "natuke piima"), the others in the plural ("palju kasse").
+# generate.py reads it and stops at a word that isn't a noun it knows.
+
+# Drinks
+jook
+kakao
+keefir
+kissell
+kohv
+limonaad
+mahl
+morss
+piim
+smuuti
+tee
+vesi
+jää
+
+# Food
+hapukapsas
+juust
+kama
+kartulipuder
+kaste
+ketšup
+kodujuust
+kohupiim
+jogurt
+leib
+liha
+puder
+riis
+sai
+salat
+sink
+sool
+suhkur
+supp
+tatar
+vorst
+või
+jäätis
+mesi
+moos
+šokolaad
+vahukoor
+popkorn
+toit
+söök
+
+# Nature and weather
+liiv
+muru
+lumi
+udu
+vihm
+tuul
+tuli
+veri
+
+# Things and the like
+paber
+plastiliin
+liim
+rohi
+raha
+aeg
+muusika
+töö
+müra

@@ -8,7 +8,8 @@
   and numbers ("kaks kassi"); the local cases of the places in places.txt ("lähen kooli", "olen
   koolis") and of the adjectives, for the adjectives before a place ("lähen suurde parki"); the
   comitative of the nouns and the genitive of the adjectives and numerals ("mängin suure autoga"),
-  and the picture bank's vehicles ("sõidan bussiga").
+  and the picture bank's vehicles ("sõidan bussiga"); the plural partitive of the nouns and
+  adjectives ("palju suuri kasse") and the substances in mass.txt ("palju vett").
 
 Vabamorf (EstNLTK) makes the forms and tells nouns from adjectives. It is only needed here, on a
 developer's machine; the app reads the generated files.
@@ -33,6 +34,7 @@ EMOJI = ROOT / 'scripts/pildipank/emoji.csv'
 EXTRA_VERBS = ROOT / 'scripts/grammar/verbs.txt'
 EXTRA_WORDS = ROOT / 'scripts/grammar/words.txt'
 PLACES = ROOT / 'scripts/grammar/places.txt'
+MASS = ROOT / 'scripts/grammar/mass.txt'
 VERBS_OUT = ROOT / 'src/utilities/grammar/verbForms.ts'
 WORDS_OUT = ROOT / 'src/utilities/grammar/wordForms.ts'
 
@@ -292,6 +294,7 @@ def words(problems: list[str]) -> tuple[dict[str, dict[str, str]], list[str]]:
         {row['sõna'].strip().lower() for row in bank_rows() if row['kategooria'] != 'Tähed'}
         | word_list(EXTRA_WORDS)
         | extra_places
+        | word_list(MASS)
     )
     candidates = [word for word in candidates if ONE_WORD.match(word) and word not in NOT_INFLECTED]
     analyses = Vabamorf.instance().analyze(candidates, guess=False, disambiguate=False, propername=False)
@@ -299,6 +302,7 @@ def words(problems: list[str]) -> tuple[dict[str, dict[str, str]], list[str]]:
     lists: dict[str, dict[str, str]] = {part: {} for part in WORD_LISTS}
     lists['kom'] = {}
     lists['g'] = {}
+    lists['pl'] = {}
     unknown = []
     for word, analysis in zip(candidates, analyses):
         if not analysis['analysis']:
@@ -311,6 +315,12 @@ def words(problems: list[str]) -> tuple[dict[str, dict[str, str]], list[str]]:
         }
         for part in parts & set(WORD_LISTS):
             lists[part][word] = one(word, 'sg p', part, problems)
+            if part in ('S', 'A') and word not in lists['pl']:
+                # After "palju": the short plural partitive where there are two (kasse, not
+                # kassisid; õunu, not õunasid).
+                plural = synthesize(word, 'pl p', part)
+                if plural:
+                    lists['pl'][word] = min(plural, key=len)
             if part == 'S':
                 lists['kom'][word] = comitative(word, lists[part][word], False, problems)
             elif word not in lists['g']:
@@ -323,6 +333,7 @@ def words(problems: list[str]) -> tuple[dict[str, dict[str, str]], list[str]]:
             found = sorted({form for lemma in lemmas for form in synthesize(lemma, 'pl p', 'S')})
             if found:
                 lists['S'][word] = min(found, key=len)
+                lists['pl'][word] = lists['S'][word]
                 with_ = sorted({form for lemma in lemmas for form in synthesize(lemma, 'pl kom', 'S')})
                 if with_:
                     lists['kom'][word] = min(with_, key=len)
@@ -387,6 +398,21 @@ def main() -> None:
         if form:
             lines.append(f"  {key(word)}: '{form}',")
     lines += ['}', '']
+    lines.append('// The plural partitive of nouns and adjectives, after "palju": palju suuri kasse.')
+    lines.append('export const PLURAL_PARTITIVE: Record<string, string> = {')
+    for word, form in sorted(word_lists['pl'].items()):
+        lines.append(f"  {key(word)}: '{form}',")
+    lines += ['}', '']
+    mass = sorted(word_list(MASS))
+    for word in mass:
+        if word not in word_lists['S']:
+            problems.append(f'mass.txt: {word!r} is not a noun Vabamorf knows')
+    if problems:
+        print('Fix these:', *problems, sep='\n  ', file=sys.stderr)
+        sys.exit(1)
+    lines.append('// Substances, after "palju" in the partitive singular: palju vett.')
+    lines.append('export const MASS_NOUNS = new Set([' + ', '.join(f"'{word}'" for word in mass) + '])')
+    lines.append('')
     lines.append("// The picture bank's vehicles: \"sõidan bussiga\".")
     lines.append('export const VEHICLES = new Set([' + ', '.join(f"'{word}'" for word in sorted(vehicles())) + '])')
     lines.append('')

@@ -190,6 +190,20 @@ describe('word forms', () => {
     [['mina', 'minema', 'koos', 'suur', 'koer'], 'mina lähen koos suure koeraga'],
     [['koos', 'sina'], 'koos sinuga'],
     [['mina', 'ja', 'ema', 'koos', 'minema'], 'mina ja ema koos läheme'],
+    // "palju": things in the plural, substances in the singular
+    [['palju', 'kass'], 'palju kasse'],
+    [['mul', 'olema', 'palju', 'auto'], 'mul on palju autosid'],
+    [['tahan', 'palju', 'õun'], 'tahan palju õunu'],
+    [['palju', 'suur', 'kass'], 'palju suuri kasse'],
+    [['palju', 'klotsid'], 'palju klotse'],
+    [['rohkem', 'komm'], 'rohkem komme'],
+    [['vähe', 'raamat'], 'vähe raamatuid'],
+    [['palju', 'vesi'], 'palju vett'],
+    [['tahan', 'natuke', 'vesi'], 'tahan natuke vett'],
+    [['natuke', 'piim'], 'natuke piima'],
+    [['mina', 'mängima', 'palju', 'auto'], 'mina mängin palju autosid'],
+    [['mina', 'minema', 'palju', 'pood'], 'mina lähen palju poode'],
+    [['mina', 'sööma', 'palju'], 'mina söön palju'],
   ])('%j says "%s"', (cards, expected) => {
     expect(say(...cards)).toBe(expected)
   })
@@ -398,6 +412,10 @@ describe('the forms a board can say', () => {
     ])
     expect(boardWordForms(cards('mina', 'sõitma', 'buss', 'pall'))).toEqual(['sõidan', 'bussiga'])
     expect(boardWordForms(cards('koos', 'ema', 'sina'))).toEqual(['emaga', 'sinuga'])
+  })
+
+  it('has the plurals after "palju"', () => {
+    expect(boardWordForms(cards('palju', 'kass', 'vesi', 'suur'))).toEqual(['kassi', 'vett', 'suurt', 'kasse', 'suuri'])
   })
 
   it('has nothing without a subject, "ei" or a verb', () => {
