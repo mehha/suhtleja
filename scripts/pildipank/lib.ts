@@ -252,22 +252,24 @@ export function describesGroup(description: string): boolean {
 
 /**
  * Bank pictures a list change has replaced: a stored bank file that is no longer expected, whose word
- * belongs to exactly one expected picture (a homonym like "või" is left alone). Copies that
- * findDuplicateFiles pairs are not repeated here.
+ * belongs to exactly one expected picture, or, for a homonym like "või", to one in the same category.
+ * Copies that findDuplicateFiles pairs are not repeated here.
  */
 export function findReplacedFiles(
-  expected: Map<string, string>,
-  stored: Array<{ alt: string; name: string }>,
+  expected: Map<string, { category: string; word: string }>,
+  stored: Array<{ alt: string; category?: string | null; name: string }>,
   alreadyPaired: Set<string> = new Set(),
 ): Array<{ duplicate: string; original: string }> {
   const present = new Set(stored.map(({ name }) => name))
   const byWord = new Map<string, string[]>()
-  for (const [name, word] of expected) {
+  for (const [name, { word }] of expected) {
     if (present.has(name)) byWord.set(word, [...(byWord.get(word) ?? []), name])
   }
-  return stored.flatMap(({ alt, name }) => {
+  return stored.flatMap(({ alt, category, name }) => {
     if (expected.has(name) || alreadyPaired.has(name) || !name.startsWith('pildipank-')) return []
-    const candidates = byWord.get(alt) ?? []
+    let candidates = byWord.get(alt) ?? []
+    // A homonym ("või" the food and the conjunction): the picture in the same category.
+    if (candidates.length > 1) candidates = candidates.filter((c) => expected.get(c)?.category === category)
     return candidates.length === 1 ? [{ duplicate: name, original: candidates[0] }] : []
   })
 }
@@ -318,7 +320,7 @@ export function renderTextTile(text: string): string {
 
 const WEEKDAY_LETTERS = ['E', 'T', 'K', 'N', 'R', 'L', 'P']
 
-/** A drawn shape: ring, ruut, kolmnurk, ristkülik, ovaal, romb, värv:#hex, nädal[:N or :N-M], lipp:ee. */
+/** A drawn shape: ring, ruut, kolmnurk, ristkülik, ovaal, romb, värv:#hex, nädal[:N or :N-M], lipp:ee, ja, või, siis. */
 export function renderShape(spec: string): string {
   const shape = (inner: string) => svg(`<g fill="#fbbf24" stroke="#1f2937" stroke-width="8" stroke-linejoin="round">${inner}</g>`)
   const shapes: Record<string, string> = {
@@ -348,6 +350,43 @@ export function renderShape(spec: string): string {
       )
     })
     return svg(cells.join(''))
+  }
+
+  // Concept symbols for the conjunctions: "ja" joins two things, "või" chooses between them, "siis"
+  // is the second card of a first-then pair.
+  const thing = {
+    circle: (cx: number, cy: number, r: number) =>
+      `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#ef4444" stroke="#1f2937" stroke-width="6"/>`,
+    square: (x: number, y: number, size: number) =>
+      `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="4" fill="#3b82f6" stroke="#1f2937" stroke-width="6"/>`,
+  }
+  const arrowHead = (x: number, y: number, angle: number) =>
+    `<polygon points="0,0 -18,-10 -18,10" fill="#1f2937" transform="translate(${x} ${y}) rotate(${angle})"/>`
+  if (spec === 'ja') {
+    return svg(
+      thing.circle(40, 100, 28) +
+        '<path d="M100 82v36M82 100h36" stroke="#1f2937" stroke-width="11" stroke-linecap="round"/>' +
+        thing.square(134, 74, 52),
+    )
+  }
+  if (spec === 'või') {
+    return svg(
+      '<path d="M100 22v38M100 60L60 108M100 60l40 48" fill="none" stroke="#1f2937" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>' +
+        arrowHead(62, 106, 130) +
+        arrowHead(138, 106, 50) +
+        thing.circle(52, 152, 28) +
+        thing.square(122, 124, 56),
+    )
+  }
+  if (spec === 'siis') {
+    return svg(
+      '<rect x="10" y="52" width="72" height="96" rx="10" fill="#e5e7eb" stroke="#9ca3af" stroke-width="5"/>' +
+        '<rect x="118" y="52" width="72" height="96" rx="10" fill="#fef3c7" stroke="#1f2937" stroke-width="7"/>' +
+        '<circle cx="46" cy="100" r="18" fill="#9ca3af"/>' +
+        '<polygon points="154,78 160,94 177,94 163,104 168,121 154,111 140,121 145,104 131,94 148,94" fill="#f59e0b" stroke="#1f2937" stroke-width="3"/>' +
+        '<path d="M88 100h20" stroke="#1f2937" stroke-width="9" stroke-linecap="round"/>' +
+        arrowHead(116, 100, 0),
+    )
   }
 
   if (spec === 'lipp:ee') {

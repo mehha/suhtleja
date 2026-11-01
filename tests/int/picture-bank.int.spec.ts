@@ -152,13 +152,16 @@ describe('picture bank lists', () => {
     ])
   })
 
-  it("retires a word's old picture once it has a new one, but leaves homonyms and removed words", () => {
-    const file = (name: string, alt: string) => ({ alt, name })
+  it("retires a word's old picture once it has a new one, telling homonyms apart by category", () => {
+    const file = (name: string, alt: string, category: string | null = null) => ({ alt, category, name })
+    const current = (word: string, category: string) => ({ category, word })
     const expected = new Map([
-      ['pildipank-jooma-ai.jpg', 'jooma'],
-      ['pildipank-kuula-ai-v3.jpg', 'kuula'],
-      ['pildipank-voi-1f9c8.png', 'või'],
-      ['pildipank-voi-tekst.svg', 'või'],
+      ['pildipank-jooma-ai.jpg', current('jooma', 'Tegevused')],
+      ['pildipank-kuula-ai-v3.jpg', current('kuula', 'Suhtlemine')],
+      ['pildipank-voi-1f9c8.png', current('või', 'Toit')],
+      ['pildipank-voi-kujund.svg', current('või', 'Põhisõnad')],
+      ['pildipank-tee-1f375.png', current('tee', 'Joogid')],
+      ['pildipank-tee-mulberry.svg', current('tee', 'Põhisõnad')],
     ])
     expect(
       findReplacedFiles(expected, [
@@ -166,15 +169,19 @@ describe('picture bank lists', () => {
         file('pildipank-jooma-mulberry.svg', 'jooma'), // Mulberry swapped for AI
         file('pildipank-kuula-ai-v3.jpg', 'kuula'),
         file('pildipank-kuula-ai.jpg', 'kuula'), // an AI picture redone
-        file('pildipank-voi-1f9c8.png', 'või'),
-        file('pildipank-voi-tekst.svg', 'või'),
-        file('pildipank-voi-mulberry.svg', 'või'), // two pictures share the word: which one? left alone
+        file('pildipank-voi-1f9c8.png', 'või', 'Toit'),
+        file('pildipank-voi-kujund.svg', 'või', 'Põhisõnad'),
+        file('pildipank-voi-tekst.svg', 'või', 'Põhisõnad'), // homonym: the conjunction's old tile
+        file('pildipank-tee-1f375.png', 'tee', 'Joogid'),
+        file('pildipank-tee-mulberry.svg', 'tee', 'Põhisõnad'),
+        file('pildipank-tee-tekst.svg', 'tee', 'Kodu'), // homonym in neither category: left alone
         file('pildipank-vana-tekst.svg', 'vana'), // the word left the lists: kept for an admin
         file('oma-pilt.png', 'jooma'), // not a bank picture
       ]),
     ).toEqual([
       { duplicate: 'pildipank-jooma-mulberry.svg', original: 'pildipank-jooma-ai.jpg' },
       { duplicate: 'pildipank-kuula-ai.jpg', original: 'pildipank-kuula-ai-v3.jpg' },
+      { duplicate: 'pildipank-voi-tekst.svg', original: 'pildipank-voi-kujund.svg' },
     ])
   })
 
@@ -198,7 +205,7 @@ describe('picture bank tiles', () => {
   })
 
   it('draws every shape the vocabulary uses and highlights weekdays', () => {
-    for (const spec of ['ring', 'ruut', 'kolmnurk', 'ristkülik', 'ovaal', 'romb', 'värv:#f472b6', 'nädal', 'lipp:ee']) {
+    for (const spec of ['ring', 'ruut', 'kolmnurk', 'ristkülik', 'ovaal', 'romb', 'värv:#f472b6', 'nädal', 'lipp:ee', 'ja', 'või', 'siis']) {
       expect(renderShape(spec)).toMatch(/^<svg /)
     }
     const highlighted = (spec: string) => renderShape(spec).match(/#2563eb/g)?.length ?? 0

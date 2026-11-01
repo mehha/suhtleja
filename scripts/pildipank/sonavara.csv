@@ -20,8 +20,8 @@ jah,Küsisõnad,kumb,mulberry,https://globalsymbols.com/uploads/production/image
 jah,Suhtlemine,tere,emoji,👋,hello,a child waving hello,
 jah,Suhtlemine,head aega,AI,pildipank-head-aega-ai.jpg,goodbye,a child waving goodbye at a door,
 jah,Suhtlemine,palun,emoji,🙏,please,a child with hands pressed together asking nicely,
-jah,Suhtlemine,aitäh,emoji,🫶,thank you,"a child smiling and holding a gift, saying thank you",
-jah,Suhtlemine,vabandust,emoji,🙇,sorry,a child looking sorry with a hand on the chest,
+jah,Suhtlemine,aitäh,AI,pildipank-aitah-d4c093-ai.jpg,thank you,"a smiling child receiving a wrapped gift and saying thank you, one hand on the chest",AI-pilt
+jah,Suhtlemine,vabandust,AI,pildipank-vabandust-ai.jpg,sorry,a child with a sorry face handing a toy back to another child,AI-pilt
 jah,Suhtlemine,jah,emoji,✅,yes,a child nodding with a green check mark,
 jah,Suhtlemine,ei,emoji,❌,no,a child shaking the head with a red cross,
 jah,Suhtlemine,okei,emoji,👌,,a child showing an ok hand sign,
@@ -60,8 +60,8 @@ jah,Põhisõnad,koos,AI,pildipank-koos-ai.jpg,together,two children holding hand
 jah,Põhisõnad,üksi,AI,pildipank-uksi-ad0be2-ai.jpg,alone,one child standing alone,
 jah,Põhisõnad,sama,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/5561/13_5561_2425fdb5-5fbb-46e0-8bd3-41d774a2f991.svg,same,two identical red balls,
 jah,Põhisõnad,teine,AI,pildipank-teine-ai.jpg,different,"a red ball and a blue ball, the blue one highlighted",
-jah,Põhisõnad,ja,tekst,ja,,,
-jah,Põhisõnad,või,tekst,või,,,
+jah,Põhisõnad,ja,kujund,ja,,,sidesõna: joonistatud märk
+jah,Põhisõnad,või,kujund,või,,,sidesõna: joonistatud märk
 jah,Põhisõnad,lõpp,mulberry,https://globalsymbols.com/uploads/production/image/imagefile/4229/13_4229_d1cde643-5734-4a99-bce8-915fc7773450.svg,finish,a checkered finish flag,
 jah,Põhisõnad,järjekord,AI,pildipank-jarjekord-29eba4-ai.jpg,queue,three children standing in a line,
 jah,Põhisõnad,minu kord,AI,pildipank-minu-kord-ai.jpg,my turn,a child pointing at self while holding a die,
@@ -288,7 +288,7 @@ jah,Põhisõnad,edasi,mulberry,https://globalsymbols.com/uploads/production/imag
 jah,Põhisõnad,ka,tekst,ka,,,
 jah,Põhisõnad,väga,tekst,väga,,,
 jah,Põhisõnad,aga,tekst,aga,,,
-jah,Põhisõnad,siis,tekst,siis,,,
+jah,Põhisõnad,siis,kujund,siis,,,sidesõna: joonistatud märk
 jah,Põhisõnad,sest,tekst,sest,,,
 jah,Põhisõnad,ainult,tekst,ainult,,,
 jah,Põhisõnad,liiga,tekst,liiga,,,
@@ -525,7 +525,7 @@ jah,Loomad,rähn,AI,pildipank-rahn-87a7fd-ai.jpg,woodpecker,a woodpecker on a tr
 jah,Loomad,toonekurg,AI,pildipank-toonekurg-ai.jpg,stork,a white stork,
 jah,Loomad,nahkhiir,AI,pildipank-nahkhiir-ai.jpg,bat,a bat,
 jah,Tegevused,olema,tekst,olema,,,
-jah,Tegevused,oskama,tekst,oskama,,,
+jah,Tegevused,oskama,AI,pildipank-oskama-ai.jpg,can,"a proud child tying shoelaces all by themselves, a small star above",AI-pilt
 jah,Tegevused,võima,tekst,võima,,,
 jah,Tegevused,pidama,tekst,pidama,,,
 jah,Tegevused,tohtima,tekst,tohtima,,,

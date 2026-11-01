@@ -15,12 +15,12 @@ jah,Suhtlemine,halb,👎,ei meeldi,"ei meeldi, käsi, keha, pöial, pöial alla"
 jah,Suhtlemine,lööma,👊,rusikalöök,"käsi, keha, löök, rusikalöök, rusikas",oncoming fist,,assets/Oncoming fist/Default/3D/oncoming_fist_3d_default.png,1f44a
 jah,Suhtlemine,plaksutama,👏,plaksutavad käed,"aplaus, käsi, keha, plaksutamine, plaksutavad käed",clapping hands,,assets/Clapping hands/Default/3D/clapping_hands_3d_default.png,1f44f
 jah,Suhtlemine,hurraa,🙌,ülestõstetud käed,"hurraa, käed, tähistamine, ülestõstetud käed, žest",raising hands,,assets/Raising hands/Default/3D/raising_hands_3d_default.png,1f64c
-jah,Suhtlemine,aitäh,🫶,südant moodustavad käed,"<3, armastan sind, armastus, käed, süda, südant moodustavad käed",heart hands,,assets/Heart hands/Default/3D/heart_hands_3d_default.png,1faf6
+ei,Suhtlemine,aitäh,🫶,südant moodustavad käed,"<3, armastan sind, armastus, käed, süda, südant moodustavad käed",heart hands,asendatud AI-pildiga (sonavara.csv),assets/Heart hands/Default/3D/heart_hands_3d_default.png,1faf6
 jah,Suhtlemine,kokkulepe,🤝,käepigistus,"käepigistus, käsi, kohtumine, tervitus",handshake,,assets/Handshake/3D/handshake_3d.png,1f91d
 jah,Suhtlemine,palun,🙏,palveasendis käed,"aitäh, käed, palve, palveasendis käed, tänan, žest",folded hands,,assets/Folded hands/Default/3D/folded_hands_3d_default.png,1f64f
 jah,Suhtlemine,ei tohi,🙅,eitav žest,"ei, eitav, inimene, käsi, keelama, keelatud, žest",person gesturing NO,,assets/Person gesturing no/Default/3D/person_gesturing_no_3d_default.png,1f645
 jah,Suhtlemine,mina,🙋,kätt tõstev rõõmus inimene,"inimene, käed, käsi, kätt tõstev inimene, kätt tõstev rõõmus inimene, küsimus, mina tean, õnnelik, rõõmus, saan aidata, žest",person raising hand,,assets/Person raising hand/Default/3D/person_raising_hand_3d_default.png,1f64b
-jah,Suhtlemine,vabandust,🙇,kummardav inimene,"andestus, anumine, haletsus, inimene, kahetsus, kummardav inimene, kummardus, meditatsioon, mediteerimine, mees, vabandus, vabandust, žest",person bowing,,assets/Person bowing/Default/3D/person_bowing_3d_default.png,1f647
+ei,Suhtlemine,vabandust,🙇,kummardav inimene,"andestus, anumine, haletsus, inimene, kahetsus, kummardav inimene, kummardus, meditatsioon, mediteerimine, mees, vabandus, vabandust, žest",person bowing,asendatud AI-pildiga (sonavara.csv),assets/Person bowing/Default/3D/person_bowing_3d_default.png,1f647
 jah,Suhtlemine,oih,🤦,meeleheide,"aa, ei, hämming, inimene, jälle, lööma, meeleheide, mitte, nägu, omg, segadus, šokk",person facepalming,,assets/Person facepalming/Default/3D/person_facepalming_3d_default.png,1f926
 jah,Suhtlemine,ei tea,🤷,õlakehitus,"ei tea, idk, inimene, kehitus, kes teab, ma ei tea, mida iganes, õlakehitus, õlg, teadmatus, ükskõiksus, võib-olla",person shrugging,,assets/Person shrugging/Default/3D/person_shrugging_3d_default.png,1f937
 jah,Suhtlemine,üles,⬆️,nool üles,"nool, nool üles, põhi, suund",up arrow,,assets/Up arrow/3D/up_arrow_3d.png,2b06

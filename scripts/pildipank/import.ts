@@ -113,9 +113,23 @@ async function removeDuplicates(payload: Payload, items: BankItem[]) {
     where: { filename: { contains: 'pildipank-' } },
   })
   const byName = new Map(docs.map((media) => [media.filename ?? '', media]))
-  const expectedWords = new Map(items.map((item) => [`${item.key}.${extensionOf(item)}`, item.word]))
+  const expectedWords = new Map(
+    items.map((item) => [`${item.key}.${extensionOf(item)}`, { category: item.category, word: item.word }]),
+  )
   const expected = new Set(expectedWords.keys())
-  const stored = docs.map((media) => ({ alt: media.alt ?? '', name: media.filename ?? '' }))
+  const { docs: folders } = await payload.find({
+    collection: 'payload-folders',
+    depth: 0,
+    limit: 500,
+    overrideAccess: true,
+    pagination: false,
+  })
+  const folderName = new Map(folders.map((folder) => [folder.id, folder.name]))
+  const stored = docs.map((media) => ({
+    alt: media.alt ?? '',
+    category: folderName.get(relationId(media.folder) ?? -1) ?? null,
+    name: media.filename ?? '',
+  }))
   const copies = findDuplicateFiles(expected, stored)
   const replaced = findReplacedFiles(expectedWords, stored, new Set(copies.map(({ duplicate }) => duplicate)))
   if (replaced.length) console.log(`${replaced.length} pictures replaced by a new picture for the same word`)

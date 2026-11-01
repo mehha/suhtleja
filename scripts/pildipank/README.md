@@ -21,9 +21,11 @@ rerun the import.
   - `mulberry`: a Mulberry symbol (CC BY-SA 4.0) labelled exactly with the English word `inglise`
     (`viide` is its URL). Words whose English has several meanings ("back", "light", "cold", "cut")
     were left to AI;
-  - `tekst`: a text tile (`viide` is the text): letters, numbers, function words, abstract verbs;
+  - `tekst`: a text tile (`viide` is the text): letters, numbers, and function words and modal
+    verbs no picture shows well (olema, võima, pidama, tohtima, ka, väga, aga, sest, ainult, liiga);
   - `kujund`: a drawn shape (`viide`: `ring`, `ruut`, `kolmnurk`, `ristkülik`, `ovaal`, `romb`,
-    `värv:#hex`, `nädal`, `nädal:N` or `nädal:N-M` for weekdays, `lipp:ee`);
+    `värv:#hex`, `nädal`, `nädal:N` or `nädal:N-M` for weekdays, `lipp:ee`, and the conjunction
+    symbols `ja` (two things joined), `või` (a choice between two) and `siis` (first-then));
   - `AI`: generated in the card editor's pictogram style from `ai_kirjeldus` by `generate-ai.ts`
     (`viide` is the file in `ai-pildid/` once it exists).
 - `lib.ts`: the pure parts (CSV, which media to create, tiles and shapes, SVG sanitising), tested in
