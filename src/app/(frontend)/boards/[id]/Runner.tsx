@@ -23,6 +23,7 @@ import { CellLabel } from './CellLabel'
 import { toast } from 'sonner'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
 import { wordClassColor } from '@/utilities/wordClass'
+import { applyGrammar, verbCard, type GrammarToken } from '@/utilities/grammar/applyGrammar'
 
 const GRID_MARGIN: [number, number] = [16, 16]
 // The board keeps its own columns while a tile is at least this wide (the editor's minimum too), so
@@ -76,6 +77,8 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   const aiEnabled = board.extra?.ai ?? false
   const actionBarEnabled = board.actionBar?.enabled ?? false
   const wordClassColors = board.extra?.wordClassColors !== false
+  // Word forms (src/utilities/grammar): "mina" + "jooksma" says "mina jooksen".
+  const grammarEnabled = board.extra?.grammar !== false
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const gridContainerRef = useRef<HTMLDivElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -85,9 +88,16 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   const preloadPromisesRef = useRef<Map<string, Promise<void>>>(new Map())
   // Unsaved speech by its prepared text (see SPOKEN_AUDIO_KEEP).
   const spokenAudioRef = useRef<Map<string, Promise<string | null>>>(new Map())
+  // Preloads one saved speech file; the preload effect sets it, so its clean-up frees the file.
+  const preloadAudioRef = useRef<(url: string) => void>(() => undefined)
 
   const cols = Math.max(1, board.grid?.cols ?? 6)
-  const cells = (board.grid?.cells ?? []).filter((c) => !c.locked)
+  const cells = useMemo(() => (board.grid?.cells ?? []).filter((c) => !c.locked), [board.grid?.cells])
+  const cellById = useMemo(() => new Map(cells.map((c) => [String(c.id), c] as const)), [cells])
+  const verbCells = useMemo(
+    () => cells.filter((c) => c.title?.trim() && verbCard(c.title, c.wordClass)),
+    [cells],
+  )
   const ttsCacheManifest = useMemo(() => getBoardTTSCacheManifest(board), [board])
   const cachedAudioUrlByText = useMemo(
     () => new Map(ttsCacheManifest.entries.map((entry) => [entry.text, entry.url] as const)),
@@ -179,14 +189,22 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     return Math.max(96, Math.floor((gridWidth - horizontalGaps) / activeGridCols))
   }, [activeGridCols, gridWidth])
 
-  const tokens: SelectedToken[] = useMemo(
-    () =>
-      sequence.map((item) => ({
-        id: item.cellId,
-        text: item.text,
-      })),
-    [sequence],
+  const grammarInput = useCallback(
+    (items: SequenceItem[]): GrammarToken[] =>
+      items.map((item) => ({ text: item.text, wordClass: cellById.get(item.cellId)?.wordClass ?? null })),
+    [cellById],
   )
+
+  // The words as the sentence says them: in the board's word forms, which compounds then override.
+  const sentenceTokens = useCallback(
+    (items: SequenceItem[]): SelectedToken[] => {
+      const forms = grammarEnabled ? applyGrammar(grammarInput(items)) : null
+      return items.map((item, index) => ({ id: item.cellId, text: forms?.[index] ?? item.text }))
+    },
+    [grammarEnabled, grammarInput],
+  )
+
+  const tokens: SelectedToken[] = useMemo(() => sentenceTokens(sequence), [sequence, sentenceTokens])
 
   // AI sees: sõnaühendeid ei kasutata, jada jääb nagu on. AI väljas: rakenda sõnaühendid.
   const compoundsResult = useMemo(
@@ -371,15 +389,19 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     setPhrasePlaying(false)
     try {
       let surface = raw
+      const tapped: SequenceItem = { cellId: String(cell.id), text: raw }
+      // A word the board's word forms change ("jooksen") is said at once; the AI gets the others.
+      const ruled =
+        grammarEnabled && applyGrammar(grammarInput([...sequence, tapped])).at(-1) !== raw
 
       // AI korrigeerib ainult seda uut tokenit
-      if (aiEnabled && sequence.length > 0) {
+      if (aiEnabled && sequence.length > 0 && !ruled) {
         try {
           const mr = await fetch('/next/groq', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contextTail: sequence.slice(-2).map((s) => s.text),
+              contextTail: tokens.slice(-2).map((t) => t.text),
               token: raw,
             }),
             signal: AbortSignal.timeout(5000),
@@ -396,22 +418,20 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
       }
 
       // 1) Ehita nextSequence
-      const nextSequence: SequenceItem[] = [...sequence, { cellId: String(cell.id), text: surface }]
+      const nextSequence: SequenceItem[] = [...sequence, { ...tapped, text: surface }]
 
-      // 2) Teisenda SelectedTokeniteks
-      const nextTokens: SelectedToken[] = nextSequence.map((item) => ({
-        id: item.cellId,
-        text: item.text,
-      }))
+      // 2) The words as the sentence says them (word forms)
+      const nextTokens = sentenceTokens(nextSequence)
+      const form = nextTokens.at(-1)!.text
 
       // 3) Kui AI on väljas, proovi compounds; kui AI sees, ära kasuta compounds
       const compoundForm = !aiEnabled
         ? getCompoundFormForLastToken(nextTokens, board.compounds)
         : null
 
-      const spoken = compoundForm ? compoundForm.tts : surface
+      const spoken = compoundForm ? compoundForm.tts : form
       // The tile shows the written form; the speech form may be spelled for the voice.
-      const shown = compoundForm ? compoundForm.surface : surface
+      const shown = compoundForm ? compoundForm.surface : form
 
       // 4) Uuenda jada state
       setSequence(nextSequence)
@@ -515,29 +535,37 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     preloadedAudioUrlBySourceRef.current.clear()
     preloadPromisesRef.current.clear()
 
-    const startPreload = () => {
-      for (const url of cachedAudioUrlByText.values()) {
-        const preloadPromise = (async () => {
-          try {
-            const response = await fetch(url, { credentials: 'include' })
-            if (!response.ok) return
+    const preload = (url: string) => {
+      if (cancelled || preloadPromisesRef.current.has(url)) return
+      const preloadPromise = (async () => {
+        try {
+          const response = await fetch(url, { credentials: 'include' })
+          if (!response.ok) return
 
-            const blob = await response.blob()
-            const objectURL = URL.createObjectURL(blob)
+          const blob = await response.blob()
+          const objectURL = URL.createObjectURL(blob)
 
-            if (cancelled) {
-              URL.revokeObjectURL(objectURL)
-              return
-            }
-
-            objectURLs.push(objectURL)
-            preloadedAudioUrlBySourceRef.current.set(url, objectURL)
-          } catch {
-            // Ignore preload failures; playback falls back to the original cache URL.
+          if (cancelled) {
+            URL.revokeObjectURL(objectURL)
+            return
           }
-        })()
 
-        preloadPromisesRef.current.set(url, preloadPromise)
+          objectURLs.push(objectURL)
+          preloadedAudioUrlBySourceRef.current.set(url, objectURL)
+        } catch {
+          // Ignore preload failures; playback falls back to the original cache URL.
+        }
+      })()
+
+      preloadPromisesRef.current.set(url, preloadPromise)
+    }
+    preloadAudioRef.current = preload
+
+    // The cards and compounds load at once. A board has many more word forms than cards, so a
+    // form loads when the sentence makes it the next one (below).
+    const startPreload = () => {
+      for (const entry of ttsCacheManifest.entries) {
+        if (entry.source !== 'grammar') preload(entry.url)
       }
     }
 
@@ -589,7 +617,21 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
       preloadPromisesRef.current.clear()
       objectURLs.forEach((objectURL) => URL.revokeObjectURL(objectURL))
     }
-  }, [cachedAudioUrlByText])
+  }, [ttsCacheManifest.entries])
+
+  // The forms the verb cards take on the next tap ("jooksen" after "mina") load while the child
+  // looks for the card.
+  useEffect(() => {
+    if (!grammarEnabled || sequence.length === 0) return
+    const said = grammarInput(sequence)
+    for (const cell of verbCells) {
+      const title = cell.title!.trim()
+      const form = applyGrammar([...said, { text: title, wordClass: cell.wordClass }]).at(-1)!
+      if (form === title) continue
+      const url = cachedAudioUrlByText.get(prepareTextForTTS(form))
+      if (url) preloadAudioRef.current(url)
+    }
+  }, [grammarEnabled, sequence, grammarInput, verbCells, cachedAudioUrlByText])
 
   return (
     <div

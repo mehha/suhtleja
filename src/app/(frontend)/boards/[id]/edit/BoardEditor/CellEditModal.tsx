@@ -1,7 +1,7 @@
 // src/components/BoardEditor/CellEditModal.tsx
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { ArrowLeft, Copy, LayoutGrid, Sparkles, Upload } from 'lucide-react'
 
@@ -34,6 +34,7 @@ import {
   normalizeWord,
   type WordClass,
 } from '@/utilities/wordClass'
+import { verbCard, verbForm } from '@/utilities/grammar/applyGrammar'
 
 type SymbolBank = 'arasaac' | 'mulberry' | 'openmoji'
 
@@ -112,6 +113,8 @@ type CellEditModalProps = {
       }
     | null
   onSaveAction: (cellId: string, patch: CellImagePatch) => void
+  // The board's word forms (extra.grammar): the dialog shows a verb card's forms.
+  grammar?: boolean
 }
 
 // Where the card's word class came from: saved on the card, suggested from its text in this dialog
@@ -197,6 +200,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   onOpenChange,
   cell,
   onSaveAction,
+  grammar = true,
 }) => {
   const [title, setTitle] = useState('')
   const [pending, setPending] = useState<PendingImage | null>(null)
@@ -209,6 +213,17 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   const [wordClassSource, setWordClassSource] = useState<WordClassSource>('auto')
   const [classLookedUpFor, setClassLookedUpFor] = useState<string | null>(null)
   const wordClassSourceRef = useRef<WordClassSource>('auto')
+
+  // What the board's word forms make of a verb card, or that they leave it as it is.
+  const verbFormsHint = useMemo(() => {
+    if (!grammar || !title.trim()) return null
+    const card = verbCard(title, wordClass)
+    if (card) {
+      return `Lauses: mina ${verbForm(card, '1sg')} · tema ${verbForm(card, '3sg')} · ei ${verbForm(card, 'neg')}`
+    }
+    const unknownVerb = wordClass === 'verb' && /ma$/.test(normalizeWord(title))
+    return unknownVerb ? 'Seda tegusõna Suhtleja veel ei pööra. Vajadusel tee sõnaühend.' : null
+  }, [grammar, title, wordClass])
 
   // Search
   const [query, setQuery] = useState('')
@@ -687,6 +702,11 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                   ? 'Pakutud sõna järgi. Värv on kaardi ümber, muuda vajadusel.'
                   : 'Värv kaardi ümber aitab lapsel sõnu leida.'}
               </p>
+              {verbFormsHint ? (
+                <p data-testid="cell-verb-forms" className="text-xs text-slate-700">
+                  {verbFormsHint}
+                </p>
+              ) : null}
             </div>
           </div>
 

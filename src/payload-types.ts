@@ -1206,6 +1206,10 @@ export interface Board {
   extra?: {
     ai?: boolean | null;
     wordClassColors?: boolean | null;
+    /**
+     * Tegusõnakaart on lauses õiges vormis: "mina" + "jooksma" ütleb "mina jooksen".
+     */
+    grammar?: boolean | null;
   };
   grid?: {
     cols?: number | null;
@@ -2248,6 +2252,7 @@ export interface BoardsSelect<T extends boolean = true> {
     | {
         ai?: T;
         wordClassColors?: T;
+        grammar?: T;
       };
   grid?:
     | T

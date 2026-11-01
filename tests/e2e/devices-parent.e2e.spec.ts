@@ -276,6 +276,47 @@ test.describe('board editor', () => {
     ])
   })
 
+  test('the card dialog shows how a verb is said, and the board keeps the forms its sentences need', async ({
+    page,
+    member,
+    baseURL,
+  }) => {
+    await page.route('**/next/image-search**', (route) => route.fulfill({ json: { banks: [], library: [], mine: [] } }))
+    const boardId = await createOwnBoard(page.request, `Sõnavormid ${member.boardName}`, [
+      { title: 'mina', wordClass: 'person' },
+      { title: 'jooksma', wordClass: 'verb' },
+    ])
+    await enterParentView(page, baseURL)
+    await page.goto(`/boards/${boardId}/edit`)
+
+    const card = (word: string) => page.locator('.board-editor-grid > .react-grid-item').filter({ hasText: word })
+    await card('jooksma').getByRole('button', { name: 'Muuda kaarti' }).tap()
+    const dialog = page.getByRole('dialog', { name: 'Muuda' })
+    const forms = dialog.getByTestId('cell-verb-forms')
+    await expect(forms).toHaveText('Lauses: mina jooksen · tema jookseb · ei jookse')
+    await dialog.getByRole('textbox', { name: 'Tekst', exact: true }).fill('kirjeldama')
+    await expect(forms).toHaveText(/veel ei pööra/)
+    await dialog.getByRole('button', { name: 'Tühista' }).tap()
+    await expect(dialog).toBeHidden()
+
+    // The switch in Lisaseaded; turned off and on, the board has changes to save.
+    await page.getByRole('button', { name: 'Lisaseaded' }).tap()
+    const settings = page.getByRole('dialog', { name: 'Lisaseaded' })
+    await settings.getByRole('switch', { name: 'Sõnavormid lauses sees' }).tap()
+    await settings.getByRole('switch', { name: 'Sõnavormid lauses väljas' }).tap()
+    await expect(settings.getByRole('switch', { name: 'Sõnavormid lauses sees' })).toBeChecked()
+    await page.keyboard.press('Escape')
+    await expect(settings).toBeHidden()
+    await page.getByRole('button', { name: 'Salvesta', exact: true }).tap()
+    await expect(page.getByRole('button', { name: 'Salvestatud' })).toBeVisible()
+
+    // The speech cache has the form "mina" gives the verb, kept apart from the cards' words.
+    const saved = await (await page.request.get(`/api/boards/${boardId}?depth=0`)).json()
+    const entries = saved.ttsCache.entries as Array<{ source: string; text: string }>
+    expect(entries.filter((entry) => entry.source === 'grammar').map((entry) => entry.text)).toEqual(['jooksen.'])
+    expect(saved.extra.grammar).toBe(true)
+  })
+
   test('compounds are made by tapping cards', async ({ page, member, baseURL, viewport }) => {
     await enterParentView(page, baseURL)
     await page.goto(`/boards/${member.boardId}/compounds`)

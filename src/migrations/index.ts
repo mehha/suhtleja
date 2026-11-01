@@ -14,6 +14,7 @@ import * as migration_20261025_142826_how_it_works_and_contact_blocks from './20
 import * as migration_20261031_181817_symbol_generations from './20261031_181817_symbol_generations';
 import * as migration_20261031_185001_shared_ai_pictures from './20261031_185001_shared_ai_pictures';
 import * as migration_20261101_123024_word_class from './20261101_123024_word_class';
+import * as migration_20261101_144213_grammar from './20261101_144213_grammar';
 
 export const migrations = [
   {
@@ -94,6 +95,11 @@ export const migrations = [
   {
     up: migration_20261101_123024_word_class.up,
     down: migration_20261101_123024_word_class.down,
-    name: '20261101_123024_word_class'
+    name: '20261101_123024_word_class',
+  },
+  {
+    up: migration_20261101_144213_grammar.up,
+    down: migration_20261101_144213_grammar.down,
+    name: '20261101_144213_grammar'
   },
 ];

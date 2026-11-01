@@ -124,6 +124,13 @@ export const Boards: CollectionConfig = {
           defaultValue: true,
           label: 'Sõnaliigi värvid kaartidel',
         },
+        {
+          name: 'grammar',
+          type: 'checkbox',
+          defaultValue: true,
+          label: 'Sõnavormid lauses',
+          admin: { description: 'Tegusõnakaart on lauses õiges vormis: "mina" + "jooksma" ütleb "mina jooksen".' },
+        },
       ],
     },
     {
@@ -261,9 +268,11 @@ export const Boards: CollectionConfig = {
           return data
         }
 
+        // The word forms (extra.grammar) decide which verb forms the board says.
         const touchesSpeechInputs =
           Object.prototype.hasOwnProperty.call(data, 'grid') ||
-          Object.prototype.hasOwnProperty.call(data, 'compounds')
+          Object.prototype.hasOwnProperty.call(data, 'compounds') ||
+          Object.prototype.hasOwnProperty.call(data, 'extra')
 
         if (!touchesSpeechInputs || !originalDoc?.id) {
           return data

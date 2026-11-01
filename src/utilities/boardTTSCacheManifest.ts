@@ -5,7 +5,8 @@ export type BoardTTSCacheEntry = {
   contentType: string
   hash: string
   key: string
-  source: 'cell' | 'compound'
+  // compound: a compound's speech form; grammar: a verb card's form in a sentence.
+  source: 'cell' | 'compound' | 'grammar'
   text: string
   url: string
   voice: string
@@ -25,7 +26,7 @@ function toObjectValue(value: unknown): Record<string, unknown> | null {
 }
 
 function toEntrySource(value: unknown): BoardTTSCacheEntry['source'] {
-  return value === 'compound' ? 'compound' : 'cell'
+  return value === 'compound' || value === 'grammar' ? value : 'cell'
 }
 
 // Same-origin path, so cached audio plays on whichever host serves the board (prod, stage, local).

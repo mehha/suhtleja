@@ -176,6 +176,11 @@ export function normalizeWord(text: string): string {
   return text.trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
+/** A personal pronoun in one of the cases above (the board's word forms tell them from names). */
+export function isPronoun(text: string): boolean {
+  return PRONOUNS.has(normalizeWord(text))
+}
+
 /**
  * The class a card's text suggests. `category` is the picture bank category of a bank picture with
  * exactly this word, if there is one. Null when nothing is known: the card stays without a colour

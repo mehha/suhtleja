@@ -19,7 +19,7 @@ tags: [suhtleja, frontend, symbols, groq, api]
 - Collection: `src/collections/SymbolGenerations.ts` (`symbol-generations`)
 - Consumers:
   - `boards/[id]/edit/BoardEditor/Toolbar.tsx` (symbols with `preferLocal`, groq, word-class), `CellEditModal.tsx` (image-search, picture-bank, symbol-generate, symbol-generate/save, word-class)
-  - `boards/[id]/Runner.tsx` (groq surface-form correction)
+  - `boards/[id]/Runner.tsx` (groq surface-form correction, for words the board's word forms leave alone)
   - `src/components/ConnectDots/ConnectDotsEditorField.tsx`, `ConnectDotsFrontendEditor.tsx` (symbols)
 
 ## Auth Gate
@@ -86,7 +86,7 @@ tags: [suhtleja, frontend, symbols, groq, api]
 - Groq retires models. Both uses fail soft (the word stays as typed, no search terms), so a retired model turns the features off without an error in the UI; the route logs `Groq word form failed` / `Groq symbol search terms failed` with `model_not_found`. `qwen/qwen3-32b` was retired in 2026. On 2026-10-26, `openai/gpt-oss-120b` gave correct forms for test sentences ("koer joob vett", "ema loeb raamatut", "mina lähen kooli") at about 0.7 s per word; `qwen/qwen3.8-27b` left verbs unconjugated and `openai/gpt-oss-20b` often returned invalid JSON.
 - Two modes, body `{ token, contextTail?, task? }`:
   - `task: 'symbol-search-terms'`: returns `{ terms: string[] }` (up to 8 lowercase English ARASAAC search terms).
-  - Default: Estonian morphology fix for one token using the last 2 context words, returns `{ surface }`. Without context the token is returned unchanged and Groq is not called.
+  - Default: Estonian morphology fix for one token using the last 2 context words, returns `{ surface }`. Without context the token is returned unchanged and Groq is not called. The runner sends the context as the sentence says it and doesn't ask for a word the board's word forms already change (see `boards.md`, "Word form rules").
 - Soft-fail rule: on Groq errors respond `200` with the original `surface` (or empty `terms`) plus an `error` string, so board playback is never blocked by the LLM.
 - Do not send user PII to the prompt; only the card label and up to 2 preceding words.
 

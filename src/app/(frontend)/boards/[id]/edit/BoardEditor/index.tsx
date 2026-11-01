@@ -126,6 +126,8 @@ export default function BoardEditor({
     updateAi,
     wordClassColors,
     updateWordClassColors,
+    grammar,
+    updateGrammar,
   } = useBoardGrid(board)
 
   const [editingCellId, setEditingCellId] = useState<string | null>(null)
@@ -479,6 +481,19 @@ export default function BoardEditor({
                         {wordClassColors ? 'Sõnaliigi värvid sees' : 'Sõnaliigi värvid väljas'}
                       </Label>
                     </div>
+                    <div className={TOGGLE_CARD_CLASS}>
+                      <Switch
+                        id="grammar-toggle"
+                        className={COMPACT_SWITCH_CLASS}
+                        checked={grammar}
+                        onCheckedChange={(checked) => {
+                          void updateGrammar(checked)
+                        }}
+                      />
+                      <Label htmlFor="grammar-toggle">
+                        {grammar ? 'Sõnavormid lauses sees' : 'Sõnavormid lauses väljas'}
+                      </Label>
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -616,6 +631,7 @@ export default function BoardEditor({
               : null
           }
           onSaveAction={handleModalSave}
+          grammar={grammar}
         />
 
         <UnsavedChangesDialog

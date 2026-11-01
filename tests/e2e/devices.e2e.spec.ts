@@ -292,6 +292,55 @@ test.describe('board', () => {
     await page.reload({ waitUntil: 'domcontentloaded' })
     await expect.poll(() => border('mina')).toBe('rgb(226, 232, 240)')
   })
+
+  test('a verb takes the form the sentence gives it, in the speech, the tile and the phrase', async ({
+    page,
+    member,
+  }) => {
+    const spoken: string[] = []
+    await page.route('**/next/tts-ms', async (route) => {
+      spoken.push(JSON.parse(route.request().postData() ?? '{}').text)
+      await route.fulfill({ body: silentWav(), contentType: 'audio/wav' })
+    })
+    const boardId = await createOwnBoard(page.request, `Sõnavormid ${member.boardName}`, [
+      { title: 'mina', wordClass: 'person' },
+      { title: 'ei' },
+      { title: 'jooksma', wordClass: 'verb' },
+    ])
+    await page.goto(`/boards/${boardId}`)
+
+    // By place: a tapped tile shows the word's form ("jooksen") as its name.
+    const tile = (index: number) => page.locator('.layout > .react-grid-item').nth(index).getByRole('button')
+    const phrase = page.locator('.actionbar-container')
+
+    // Speech the board hasn't saved comes from /next/tts-ms: the tapped word, then the sentence,
+    // which the runner fetches ahead for "play all".
+    await tile(0).tap()
+    await expect.poll(() => spoken).toContain('mina.')
+    await tile(2).tap()
+    await expect.poll(() => spoken).toContain('jooksen.')
+    await expect.poll(() => spoken).toContain('mina jooksen.')
+    await expect(tile(2)).toHaveAccessibleName('jooksen')
+    await expect(phrase.getByText('jooksen', { exact: true })).toBeVisible()
+
+    // Undo and say it with "ei".
+    await page.getByRole('button', { name: 'Võta viimane tagasi' }).tap()
+    await tile(1).tap()
+    await tile(2).tap()
+    await expect.poll(() => spoken).toContain('jookse.')
+    await expect(phrase.getByText('jookse', { exact: true })).toBeVisible()
+
+    // The parent can turn the word forms off for the board. (The save also caches the cards'
+    // speech, so the words now come from the cache.)
+    const off = await page.request.patch(`/api/boards/${boardId}?depth=0`, { data: { extra: { grammar: false } } })
+    expect(off.status(), await off.text()).toBe(200)
+    await page.goto(`/boards/${boardId}`)
+    await tile(0).tap()
+    await tile(2).tap()
+    await expect(tile(2)).toHaveAccessibleName('jooksma')
+    await expect(phrase.getByText('jooksma', { exact: true })).toBeVisible()
+    await expect.poll(() => spoken).toContain('mina jooksma.')
+  })
 })
 
 test.describe('parent view', () => {

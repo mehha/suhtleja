@@ -13,8 +13,10 @@ import {
   buildBoardTTSCacheURL,
   getBoardTTSCacheManifest,
 } from '@/utilities/boardTTSCacheManifest'
+import { boardVerbForms } from '@/utilities/grammar/applyGrammar'
 
 type BoardLike = Pick<Board, 'compounds' | 'grid' | 'id'> & {
+  extra?: Board['extra']
   ttsCache?: unknown
 }
 
@@ -51,12 +53,18 @@ export function getTTSObjectKey(voice: string, hash: string, extension = 'mp3'):
   return `tts/ms/${sanitizeVoiceForKey(voice)}/${hash}.${extension}`
 }
 
-export function collectBoardTTSInputs(board: Pick<Board, 'compounds' | 'grid'>): Array<{
-  source: 'cell' | 'compound'
+// A board with many verb cards and subjects has many forms; the most used are kept, and the rest are
+// synthesized when the child says them, like any unsaved speech.
+export const GRAMMAR_SPEECH_MAX = 120
+
+export function collectBoardTTSInputs(
+  board: Pick<Board, 'compounds' | 'grid'> & { extra?: Board['extra'] },
+): Array<{
+  source: BoardTTSCacheEntry['source']
   text: string
 }> {
   const seen = new Set<string>()
-  const inputs: Array<{ source: 'cell' | 'compound'; text: string }> = []
+  const inputs: Array<{ source: BoardTTSCacheEntry['source']; text: string }> = []
 
   for (const cell of board.grid?.cells ?? []) {
     const prepared = prepareTextForTTS(cell.title ?? '')
@@ -71,6 +79,19 @@ export function collectBoardTTSInputs(board: Pick<Board, 'compounds' | 'grid'>):
       if (!prepared || seen.has(prepared)) continue
       seen.add(prepared)
       inputs.push({ source: 'compound', text: prepared })
+    }
+  }
+
+  // The forms the board's verb cards take in its sentences ("jooksen" after "mina").
+  if (board.extra?.grammar !== false) {
+    const cards = (board.grid?.cells ?? []).map((cell) => ({ text: cell.title ?? '', wordClass: cell.wordClass }))
+    let kept = 0
+    for (const form of boardVerbForms(cards)) {
+      const prepared = prepareTextForTTS(form)
+      if (!prepared || seen.has(prepared)) continue
+      if (kept++ >= GRAMMAR_SPEECH_MAX) break
+      seen.add(prepared)
+      inputs.push({ source: 'grammar', text: prepared })
     }
   }
 
@@ -109,6 +130,11 @@ export async function ensureBoardTTSManifest({
     let objectKey = ''
     let contentType = 'audio/mpeg'
     const existingEntry = existingManifest.entries.find((entry) => entry.hash === hash)
+    // A word form already in the manifest isn't looked up again: a board has many, and
+    // /next/tts-cache makes one whose audio is missing.
+    if (input.source === 'grammar' && existingEntry?.key) {
+      return { ...existingEntry, source: input.source, url: buildBoardTTSCacheURL(boardId, hash) }
+    }
 
     if (existingEntry?.key) {
       objectKey = existingEntry.key

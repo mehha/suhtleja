@@ -83,6 +83,9 @@ export function useBoardGrid(board: Board) {
     () => board.extra?.wordClassColors !== false,
   )
 
+  // Word forms are on unless the parent turned them off (src/utilities/grammar).
+  const [grammar, setGrammar] = useState<boolean>(() => board.extra?.grammar !== false)
+
   const [cells, setCells] = useState<LocalCell[]>(() => {
     const initial = board.grid?.cells ?? []
     return initial.map((c) => c as LocalCell)
@@ -128,6 +131,7 @@ export function useBoardGrid(board: Board) {
             ...(board.extra || {}),
             ai: aiEnabled,
             wordClassColors,
+            grammar,
           },
           grid: { ...(board.grid || {}), cols: baseCols, cells: cellsForServer },
         }),
@@ -153,7 +157,7 @@ export function useBoardGrid(board: Board) {
         setSaveProgress(0)
       }, 250)
     }
-  }, [board.id, board.grid, baseCols, cells, actionBar, aiEnabled, wordClassColors, board.extra, saving])
+  }, [board.id, board.grid, baseCols, cells, actionBar, aiEnabled, wordClassColors, grammar, board.extra, saving])
 
   // ---- RGL change: mark dirty, no save ----
   const onLayoutChange = useCallback(
@@ -316,6 +320,15 @@ export function useBoardGrid(board: Board) {
     [wordClassColors],
   )
 
+  const updateGrammar = useCallback(
+    (enabled: boolean) => {
+      if (grammar === enabled) return
+      setGrammar(enabled)
+      setDirty(true)
+    },
+    [grammar],
+  )
+
   return {
     saving,
     saveProgress,
@@ -326,6 +339,7 @@ export function useBoardGrid(board: Board) {
     actionBar,
     aiEnabled,
     wordClassColors,
+    grammar,
     onLayoutChange,
     addCell,
     appendBlock,
@@ -337,5 +351,6 @@ export function useBoardGrid(board: Board) {
     saveDraft,
     updateAi,
     updateWordClassColors,
+    updateGrammar,
   }
 }
