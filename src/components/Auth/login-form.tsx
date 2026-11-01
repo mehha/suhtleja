@@ -27,14 +27,17 @@ type AuthResponse = {
 export function LoginForm({ className, ...props }: LoginFormProps) {
   const router = useRouter()
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+    // Read from the form, not from React state: a password manager can fill the fields before the
+    // page's JavaScript runs, and state would miss that.
+    const fields = new FormData(e.currentTarget)
+    const email = String(fields.get('email') ?? '')
+    const password = String(fields.get('password') ?? '')
     setLoading(true)
 
     try {
@@ -89,12 +92,11 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
               <Label htmlFor="email">E-post</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 autoComplete="email"
                 placeholder="nimi@example.com"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -111,11 +113,10 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
               </div>
               <Input
                 id="password"
+                name="password"
                 type="password"
                 autoComplete="current-password"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
               />
             </div>

@@ -50,16 +50,21 @@ function getRegisterErrorMessage(body: PayloadErrorResponse | null): string {
 export function RegisterForm({ className, ...props }: RegisterFormProps) {
   const router = useRouter()
 
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [passwordConfirm, setPasswordConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+
+    // The fields are read from the form, not from React state: a password manager, or a person on a
+    // slow connection, can fill them before the page's JavaScript runs, and state would miss that.
+    const fields = new FormData(e.currentTarget)
+    const field = (key: string) => String(fields.get(key) ?? '')
+    const name = field('name')
+    const email = field('email')
+    const password = field('password')
+    const passwordConfirm = field('passwordConfirm')
 
     if (!name.trim()) {
       setError('Sisesta oma nimi.')
@@ -156,11 +161,10 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
               <Label htmlFor="name">Nimi</Label>
               <Input
                 id="name"
+                name="name"
                 autoComplete="name"
                 placeholder="nt. Mari Maasikas"
                 required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -169,12 +173,11 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
               <Label htmlFor="email">E-post</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 autoComplete="email"
                 placeholder="nimi@example.com"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -183,11 +186,10 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
               <Label htmlFor="password">Parool</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
                 autoComplete="new-password"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -196,11 +198,10 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
               <Label htmlFor="passwordConfirm">Korda parooli</Label>
               <Input
                 id="passwordConfirm"
+                name="passwordConfirm"
                 type="password"
                 autoComplete="new-password"
                 required
-                value={passwordConfirm}
-                onChange={(e) => setPasswordConfirm(e.target.value)}
                 disabled={loading}
               />
             </div>
