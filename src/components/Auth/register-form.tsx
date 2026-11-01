@@ -59,8 +59,10 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
 
     // The fields are read from the form, not from React state: a password manager, or a person on a
     // slow connection, can fill them before the page's JavaScript runs, and state would miss that.
-    const fields = new FormData(e.currentTarget)
-    const field = (key: string) => String(fields.get(key) ?? '')
+    // They are found by id and have no name, so a form sent before the JavaScript runs doesn't put
+    // the password in the address.
+    const form = e.currentTarget
+    const field = (id: string) => (form.elements.namedItem(id) as HTMLInputElement | null)?.value ?? ''
     const name = field('name')
     const email = field('email')
     const password = field('password')
@@ -161,7 +163,6 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
               <Label htmlFor="name">Nimi</Label>
               <Input
                 id="name"
-                name="name"
                 autoComplete="name"
                 placeholder="nt. Mari Maasikas"
                 required
@@ -173,7 +174,6 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
               <Label htmlFor="email">E-post</Label>
               <Input
                 id="email"
-                name="email"
                 type="email"
                 autoComplete="email"
                 placeholder="nimi@example.com"
@@ -186,7 +186,6 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
               <Label htmlFor="password">Parool</Label>
               <Input
                 id="password"
-                name="password"
                 type="password"
                 autoComplete="new-password"
                 required
@@ -198,7 +197,6 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
               <Label htmlFor="passwordConfirm">Korda parooli</Label>
               <Input
                 id="passwordConfirm"
-                name="passwordConfirm"
                 type="password"
                 autoComplete="new-password"
                 required

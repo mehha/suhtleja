@@ -33,11 +33,12 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-    // Read from the form, not from React state: a password manager can fill the fields before the
-    // page's JavaScript runs, and state would miss that.
-    const fields = new FormData(e.currentTarget)
-    const email = String(fields.get('email') ?? '')
-    const password = String(fields.get('password') ?? '')
+    // Read from the fields, not from React state: a password manager can fill them before the page's
+    // JavaScript runs, and state would miss that. They are found by id and have no name, so a form
+    // sent before the JavaScript runs doesn't put the password in the address.
+    const field = (id: string) => (e.currentTarget.elements.namedItem(id) as HTMLInputElement | null)?.value ?? ''
+    const email = field('email')
+    const password = field('password')
     setLoading(true)
 
     try {
@@ -92,7 +93,6 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
               <Label htmlFor="email">E-post</Label>
               <Input
                 id="email"
-                name="email"
                 type="email"
                 autoComplete="email"
                 placeholder="nimi@example.com"
@@ -113,7 +113,6 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
               </div>
               <Input
                 id="password"
-                name="password"
                 type="password"
                 autoComplete="current-password"
                 required
