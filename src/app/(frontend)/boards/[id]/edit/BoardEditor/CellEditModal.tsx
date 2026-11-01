@@ -34,7 +34,7 @@ import {
   normalizeWord,
   type WordClass,
 } from '@/utilities/wordClass'
-import { nounPartitive, verbCard, verbForm } from '@/utilities/grammar/applyGrammar'
+import { nounPartitive, placeFormsOf, verbCard, verbForm } from '@/utilities/grammar/applyGrammar'
 
 type SymbolBank = 'arasaac' | 'mulberry' | 'openmoji'
 
@@ -214,13 +214,15 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   const [classLookedUpFor, setClassLookedUpFor] = useState<string | null>(null)
   const wordClassSourceRef = useRef<WordClassSource>('auto')
 
-  // What the board's word forms make of a verb or noun card, or that they leave a verb as it is.
+  // What the board's word forms make of a verb, place or noun card, or that they leave a verb as it is.
   const verbFormsHint = useMemo(() => {
     if (!grammar || !title.trim()) return null
     const card = verbCard(title, wordClass)
     if (card) {
       return `Lauses: mina ${verbForm(card, '1sg')} · tema ${verbForm(card, '3sg')} · ei ${verbForm(card, 'neg')}`
     }
+    const place = placeFormsOf(title, wordClass)
+    if (place) return `Lauses: lähen ${place.to} · olen ${place.at}`
     const partitive = nounPartitive(title, wordClass)
     if (partitive) return `Lauses: tahan ${partitive} · kaks ${partitive}`
     const unknownVerb = wordClass === 'verb' && /ma$/.test(normalizeWord(title))

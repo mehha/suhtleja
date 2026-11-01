@@ -368,6 +368,31 @@ test.describe('board', () => {
     await expect.poll(() => spoken).toContain('mina tahan suurt õuna.')
   })
 
+  test('a place takes its case from the verb, and its adjective with it', async ({ page, member }) => {
+    const spoken: string[] = []
+    await page.route('**/next/tts-ms', async (route) => {
+      spoken.push(JSON.parse(route.request().postData() ?? '{}').text)
+      await route.fulfill({ body: silentWav(), contentType: 'audio/wav' })
+    })
+    const boardId = await createOwnBoard(page.request, `Kohad ${member.boardName}`, [
+      { title: 'mina', wordClass: 'person' },
+      { title: 'minema', wordClass: 'verb' },
+      { title: 'suur', wordClass: 'adjective' },
+      { title: 'park', wordClass: 'place' },
+    ])
+    await page.goto(`/boards/${boardId}`)
+    const tile = (index: number) => page.locator('.layout > .react-grid-item').nth(index).getByRole('button')
+    const phrase = page.locator('.actionbar-container')
+
+    for (const index of [0, 1, 2, 3]) await tile(index).tap()
+    await expect.poll(() => spoken).toContain('parki.')
+    await expect(tile(3)).toHaveAccessibleName('parki')
+    for (const word of ['mina', 'lähen', 'suurde', 'parki']) {
+      await expect(phrase.getByText(word, { exact: true })).toBeVisible()
+    }
+    await expect.poll(() => spoken).toContain('mina lähen suurde parki.')
+  })
+
   test("with AI on, a tap speaks at once and the AI's form follows into the phrase", async ({ page, member }) => {
     const spoken: string[] = []
     await page.route('**/next/tts-ms', async (route) => {

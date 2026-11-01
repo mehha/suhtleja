@@ -5,7 +5,8 @@
   conjugates) and verbs.txt;
 - src/utilities/grammar/wordForms.ts: the partitive of the picture bank's nouns (a plural noun's in
   the plural), adjectives and numerals (and of the people in words.txt), for objects ("tahan õuna")
-  and numbers ("kaks kassi").
+  and numbers ("kaks kassi"); the local cases of the places in places.txt ("lähen kooli", "olen
+  koolis") and of the adjectives, for the adjectives before a place ("lähen suurde parki").
 
 Vabamorf (EstNLTK) makes the forms and tells nouns from adjectives. It is only needed here, on a
 developer's machine; the app reads the generated files.
@@ -29,13 +30,15 @@ BANK = ROOT / 'scripts/pildipank/sonavara.csv'
 EMOJI = ROOT / 'scripts/pildipank/emoji.csv'
 EXTRA_VERBS = ROOT / 'scripts/grammar/verbs.txt'
 EXTRA_WORDS = ROOT / 'scripts/grammar/words.txt'
+PLACES = ROOT / 'scripts/grammar/places.txt'
 VERBS_OUT = ROOT / 'src/utilities/grammar/verbForms.ts'
 WORDS_OUT = ROOT / 'src/utilities/grammar/wordForms.ts'
 
-# The form the board says where Vabamorf gives two: (word, form) -> word. A verb's 1st person
-# singular sets its stem; a person form with two variants then takes the one on that stem ("lähe"
-# gives "läheme", not "lähme"). For homonyms, the meaning the picture bank has (kool is a school,
-# not cola; kurk a cucumber, tall a lamb).
+# The form the board says where Vabamorf gives two: (word, form) -> word, and (word, part of
+# speech) -> word for a noun's, adjective's or numeral's partitive. A verb's 1st person singular sets
+# its stem; a person form with two variants then takes the one on that stem ("lähe" gives "läheme",
+# not "lähme"). For homonyms, the meaning the picture bank has (kool is a school, not cola; kurk a
+# cucumber, tall a lamb).
 PREFERRED: dict[tuple[str, str], str] = {
     # Verbs
     ('jooksma', 'da'): 'joosta',
@@ -51,6 +54,9 @@ PREFERRED: dict[tuple[str, str], str] = {
     ('kapp', 'S'): 'kappi',
     ('kook', 'S'): 'kooki',
     ('kool', 'S'): 'kooli',
+    ('kool', 'adt'): 'kooli',
+    ('kool', 'sg in'): 'koolis',
+    ('kool', 'sg el'): 'koolist',
     ('kott', 'S'): 'kotti',
     ('kruus', 'S'): 'kruusi',
     ('kurk', 'S'): 'kurki',
@@ -67,6 +73,7 @@ PREFERRED: dict[tuple[str, str], str] = {
     ('siil', 'S'): 'siili',
     ('silm', 'S'): 'silma',
     ('sool', 'S'): 'soola',
+    ('staadion', 'S'): 'staadionit',
     ('süst', 'S'): 'süsti',
     ('tall', 'S'): 'talle',
     ('tulp', 'S'): 'tulpi',
@@ -107,6 +114,15 @@ ONE_WORD = re.compile(r'^[a-zäöüõšž]{2,}$')
 # inflect before a noun ("täis klaasi"), and "kohe" is "at once" (Vabamorf: "fluffy").
 NOT_INFLECTED = {'kohe', 'täis', 'valmis'}
 
+# Places whose short illative is rarer than the long one ("tsirkusesse", not "tsirkusse").
+LONG_ILLATIVE = {'bussipeatus', 'tsirkus'}
+
+# The local cases of a place: sisse (illative, inessive, elative) or peale (allative, adessive,
+# ablative), each where to, where and where from.
+PLACE_CASES = {'sisse': ('ill', 'sg in', 'sg el'), 'peale': ('sg all', 'sg ad', 'sg abl')}
+# The adjective cases, in this order, for the adjectives before a place.
+ADJECTIVE_PLACE_CASES = ('ill', 'sg in', 'sg el', 'sg all', 'sg ad', 'sg abl')
+
 # Vabamorf's parts of speech the board inflects, and the names of their lists in wordForms.ts.
 WORD_LISTS = {'S': 'NOUN_PARTITIVE', 'A': 'ADJECTIVE_PARTITIVE', 'N': 'NUMERAL_PARTITIVE'}
 
@@ -131,7 +147,7 @@ def one(word: str, form: str, part: str, problems: list[str], on_stem: str | Non
     found = synthesize(word, form, part)
     if on_stem and len(found) > 1 and on_stem in found:
         return on_stem
-    key_ = (word, form) if part == 'V' else (word, part)
+    key_ = (word, part) if form == 'sg p' and part != 'V' else (word, form)
     if key_ in PREFERRED:
         preferred = PREFERRED[key_]
         if preferred not in found:
@@ -141,6 +157,65 @@ def one(word: str, form: str, part: str, problems: list[str], on_stem: str | Non
         problems.append(f'{word} {form} {part}: {found or "no form"}')
         return found[0] if found else ''
     return found[0]
+
+
+def illative(word: str, part: str, problems: list[str], short: bool = True) -> str:
+    """The short illative where Vabamorf has one (kooli, koju, majja), else the long (haiglasse)."""
+    if short and synthesize(word, 'adt', part):
+        return one(word, 'adt', part, problems)
+    return one(word, 'sg ill', part, problems)
+
+
+def places(problems: list[str]) -> tuple[dict[str, tuple[str, str, str]], set[str]]:
+    """The local cases of every place in places.txt, and the places whose cases are "on" (peale)."""
+    listed: dict[str, tuple[str, str]] = {}
+    for line in PLACES.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        word, cases, *lemma = line.split()
+        if cases not in (*PLACE_CASES, '-'):
+            problems.append(f'places.txt: {word}: {cases!r} is not sisse, peale or -')
+            continue
+        listed[word] = (cases, lemma[0] if lemma else word)
+
+    bank_places = {
+        row['sõna'].strip().lower()
+        for row in bank_rows()
+        if row['kategooria'] == 'Kohad' and ONE_WORD.match(row['sõna'].strip().lower())
+    }
+    for word in sorted(bank_places - set(listed)):
+        problems.append(f'places.txt: the picture bank place {word!r} is not listed')
+
+    forms: dict[str, tuple[str, str, str]] = {}
+    on: set[str] = set()
+    for word, (cases, lemma) in sorted(listed.items()):
+        if cases == '-':
+            continue
+        where_to, where, where_from = PLACE_CASES[cases]
+        to = illative(lemma, 'S', problems, short=lemma not in LONG_ILLATIVE) if where_to == 'ill' else one(lemma, where_to, 'S', problems)
+        forms[word] = (to, one(lemma, where, 'S', problems), one(lemma, where_from, 'S', problems))
+        if cases == 'peale':
+            on.add(word)
+    return forms, on
+
+
+def adjective_place_forms(adjectives: list[str]) -> dict[str, tuple[str, ...]]:
+    """Each adjective in the local cases. Where Vabamorf has two forms the first is taken (väikeses,
+    not väikses): both are right, and this list isn't reviewed word by word. The short illative only
+    where it is the usual one before a noun (suurde, uude, väikesse); "musta majja" is "mustasse"."""
+    result = {}
+    for word in adjectives:
+        found = []
+        for case in ADJECTIVE_PLACE_CASES:
+            if case == 'ill':
+                short = [form for form in synthesize(word, 'adt', 'A') if form.endswith(('de', 'sse'))]
+                found.append((short or synthesize(word, 'sg ill', 'A') or [''])[0])
+            else:
+                found.append((synthesize(word, case, 'A') or [''])[0])
+        if all(found):
+            result[word] = tuple(found)
+    return result
 
 
 def verbs(problems: list[str]) -> tuple[list[tuple[str, str, str, dict[str, str]]], int, list[str]]:
@@ -175,9 +250,11 @@ def verbs(problems: list[str]) -> tuple[list[tuple[str, str, str, dict[str, str]
 def words(problems: list[str]) -> tuple[dict[str, dict[str, str]], list[str]]:
     """The partitive of every one-word bank word Vabamorf knows as a noun, adjective or numeral in the
     nominative singular, by part of speech. A word that is both (punane, tark) is in both lists."""
+    extra_places = {line.split()[0] for line in word_list(PLACES)}
     candidates = sorted(
         {row['sõna'].strip().lower() for row in bank_rows() if row['kategooria'] != 'Tähed'}
         | word_list(EXTRA_WORDS)
+        | extra_places
     )
     candidates = [word for word in candidates if ONE_WORD.match(word) and word not in NOT_INFLECTED]
     analyses = Vabamorf.instance().analyze(candidates, guess=False, disambiguate=False, propername=False)
@@ -209,6 +286,8 @@ def main() -> None:
     problems: list[str] = []
     verb_rows, bank_verbs, skipped = verbs(problems)
     word_lists, unknown = words(problems)
+    place_forms, on_places = places(problems)
+    adjective_forms = adjective_place_forms(sorted(word_lists['A']))
 
     if problems:
         print('Fix these (PREFERRED or the lists):', *problems, sep='\n  ', file=sys.stderr)
@@ -242,11 +321,24 @@ def main() -> None:
         for word, partitive in sorted(word_lists[part].items()):
             lines.append(f"  {key(word)}: '{partitive}',")
         lines += ['}', '']
+    lines.append('// Places in the local cases: where to, where, where from (kooli, koolis, koolist).')
+    lines.append('export const PLACE_FORMS: Record<string, readonly [to: string, at: string, from: string]> = {')
+    for word, (to, at, from_) in place_forms.items():
+        lines.append(f"  {key(word)}: ['{to}', '{at}', '{from_}'],")
+    lines += ['}', '']
+    lines.append("// Places whose cases are \"on\" (turule, turul, turult), for the adjectives before them.")
+    lines.append('export const ON_PLACES = new Set([' + ', '.join(f"'{word}'" for word in sorted(on_places)) + '])')
+    lines.append('')
+    lines.append('// Adjectives in the local cases: illative, inessive, elative, allative, adessive, ablative.')
+    lines.append('export const ADJECTIVE_PLACE_FORMS: Record<string, readonly string[]> = {')
+    for word, forms in adjective_forms.items():
+        lines.append(f"  {key(word)}: [{', '.join(repr(form) for form in forms)}],")
+    lines += ['}', '']
     WORDS_OUT.write_text('\n'.join(lines), encoding='utf-8')
 
     print(f'{len(verb_rows)} verbs ({bank_verbs} from the picture bank) -> {VERBS_OUT.relative_to(ROOT)}')
     counts = ', '.join(f'{len(word_lists[part])} {name}' for part, name in WORD_LISTS.items())
-    print(f'{counts} -> {WORDS_OUT.relative_to(ROOT)}')
+    print(f'{counts}, {len(place_forms)} places, {len(adjective_forms)} adjectives in the local cases -> {WORDS_OUT.relative_to(ROOT)}')
     if skipped:
         print('Bank words in -ma that are not verbs:', ', '.join(skipped))
     if unknown:

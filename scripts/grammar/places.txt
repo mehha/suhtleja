@@ -1,0 +1,63 @@
+# Places the board puts in the local cases: "lähen kooli", "olen koolis", "tulen koolist". One per
+# line: the word, then its cases, then the word to inflect when it isn't the card's (pulmad → pulm:
+# "lähen pulma"). generate.py reads it and stops at a picture bank place (Kohad) not listed here.
+#
+#   sisse  kooli, koolis, koolist (the short illative where there is one: koju, majja, poodi)
+#   peale  turule, turul, turult
+#   -      not a place, though the bank files it with them
+
+aed sisse
+apteek sisse
+haigla sisse
+järv sisse
+jõgi sisse
+karussell peale
+kino sisse
+kirik sisse
+kodu sisse
+kohvik sisse
+kool sisse
+linn sisse
+liumägi peale
+loomaaed sisse
+loss sisse
+lennujaam sisse
+maja sisse
+meri sisse
+mets sisse
+muuseum sisse
+mänguväljak peale
+park sisse
+pood sisse
+pulmad sisse pulm
+raamatukogu sisse
+rongijaam sisse
+sild peale
+tsirkus sisse
+tualett sisse
+turg peale
+tänav peale
+ujula sisse
+vaateratas peale
+võimla sisse
+õu sisse
+ülekäigurada peale
+
+# Not in the picture bank's Kohad
+bussipeatus sisse
+hoov sisse
+köök sisse
+lasteaed sisse
+rand sisse
+saun sisse
+staadion peale
+trenn sisse
+tuba sisse
+töö peale
+vannituba sisse
+väljak peale
+
+# Filed with the places, but not places
+kaart -
+kraana -
+maakera -

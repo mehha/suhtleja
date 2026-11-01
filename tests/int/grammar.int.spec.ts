@@ -10,9 +10,9 @@ import { describe, expect, it } from 'vitest'
 
 import { applyCompounds } from '@/app/(frontend)/boards/[id]/compounds/applyCompounds'
 import { collectBoardTTSInputs, GRAMMAR_SPEECH_MAX } from '@/utilities/boardTTSCache'
-import { applyGrammar, boardWordForms, nounPartitive, verbCard, verbForm } from '@/utilities/grammar/applyGrammar'
+import { applyGrammar, boardWordForms, nounPartitive, placeFormsOf, verbCard, verbForm } from '@/utilities/grammar/applyGrammar'
 import { VERB_FORMS } from '@/utilities/grammar/verbForms'
-import { ADJECTIVE_PARTITIVE, NUMERAL_PARTITIVE } from '@/utilities/grammar/wordForms'
+import { ADJECTIVE_PARTITIVE, NUMERAL_PARTITIVE, PLACE_FORMS } from '@/utilities/grammar/wordForms'
 
 // Cards as "word" or "word:class".
 const say = (...cards: string[]) =>
@@ -129,6 +129,39 @@ describe('word forms', () => {
     [['mina', 'mängima', 'auto'], 'mina mängin auto'],
     [['mina', 'tahtma', 'frisbi'], 'mina tahan frisbi'],
     [['ema', 'mina', 'kallistama'], 'ema mina kallistan'],
+    [['see', 'ei', 'olema', 'pall'], 'see ei ole pall'],
+    [['mina', 'ei', 'olema', 'kass'], 'mina ei ole kass'],
+    // Places: where to after a verb of motion
+    [['mina', 'minema', 'kool'], 'mina lähen kooli'],
+    [['mina', 'minema', 'kodu'], 'mina lähen koju'],
+    [['tema', 'tulema', 'kodu'], 'tema tuleb koju'],
+    [['mina', 'jooksma', 'õu'], 'mina jooksen õue'],
+    [['mina', 'minema', 'mänguväljak'], 'mina lähen mänguväljakule'],
+    [['mina', 'tahtma', 'minema', 'park'], 'mina tahan minna parki'],
+    [['mina', 'pidama', 'minema', 'pood'], 'mina pean minema poodi'],
+    [['mina', 'ei', 'minema', 'lasteaed'], 'mina ei lähe lasteaeda'],
+    [['mina', 'minema', 'kool', 'ja', 'pood'], 'mina lähen kooli ja poodi'],
+    [['mina', 'minema', 'suur', 'park'], 'mina lähen suurde parki'],
+    [['mina', 'minema', 'suur', 'mänguväljak'], 'mina lähen suurele mänguväljakule'],
+    [['lähen', 'meri'], 'lähen merre'],
+    // Where, after any other verb
+    [['mina', 'olema', 'kodu'], 'mina olen kodus'],
+    [['ema', 'olema', 'pood'], 'ema on poes'],
+    [['mina', 'ei', 'olema', 'kodu'], 'mina ei ole kodus'],
+    [['mina', 'mängima', 'õu'], 'mina mängin õues'],
+    [['mina', 'sööma', 'kodu'], 'mina söön kodus'],
+    [['mina', 'olema', 'mänguväljak'], 'mina olen mänguväljakul'],
+    [['mina', 'olema', 'väike', 'maja'], 'mina olen väikeses majas'],
+    // Where from
+    [['mina', 'lahkuma', 'kool'], 'mina lahkun koolist'],
+    // A place that is the object
+    [['mina', 'otsima', 'haigla'], 'mina otsin haiglat'],
+    // A place that keeps its form
+    [['mul', 'olema', 'kodu'], 'mul on kodu'],
+    [['see', 'olema', 'kool'], 'see on kool'],
+    [['mul', 'ei', 'olema', 'haigla'], 'mul ei ole haiglat'],
+    [['mina', 'minema', 'köök:noun'], 'mina lähen köök'],
+    [['mina', 'minema', 'köök:place'], 'mina lähen kööki'],
   ])('%j says "%s"', (cards, expected) => {
     expect(say(...cards)).toBe(expected)
   })
@@ -156,12 +189,17 @@ describe('word forms', () => {
     [['üks', 'kass']],
     [['tahtma', 'õun']],
     [['pall', 'ja', 'auto']],
+    // A place before the verb, or without one
+    [['kool', 'minema']],
+    [['mina', 'kool']],
+    [['kaart', 'minema']],
   ])('%j stays as tapped', (cards) => {
     expect(say(...cards)).toBe(cards.map((card) => card.split(':')[0]).join(' '))
   })
 
-  it('changes no noun after a verb that takes no object', () => {
-    expect(say('mina', 'jooksma', 'staadion', 'juust')).toBe('mina jooksen staadion juust')
+  it('puts only the place in a case after a verb of motion: the thing after it keeps its form', () => {
+    // Another AAC app said "jooksen staadionisse juustu".
+    expect(say('mina', 'jooksma', 'staadion', 'juust')).toBe('mina jooksen staadionile juust')
   })
 
   it('follows a pronoun over a person or "see" when two come without "ja"', () => {
@@ -221,6 +259,26 @@ describe('the verb list', () => {
     expect(nounPartitive('jooksma')).toBeNull()
     expect(nounPartitive('või')).toBeNull()
     expect(nounPartitive('või', 'noun')).toBe('võid')
+  })
+
+  it("gives a place card's forms for the card dialog", () => {
+    expect(placeFormsOf('kodu')).toEqual({ to: 'koju', at: 'kodus' })
+    expect(placeFormsOf('Mänguväljak')).toEqual({ to: 'Mänguväljakule', at: 'Mänguväljakul' })
+    expect(placeFormsOf('köök', 'noun')).toBeNull()
+    expect(placeFormsOf('kaart')).toBeNull()
+  })
+
+  it('has every place of the picture bank in the local cases', () => {
+    const notPlaces = ['kaart', 'kraana', 'maakera']
+    const bank = [
+      ...readFileSync(path.resolve(__dirname, '../../scripts/pildipank/sonavara.csv'), 'utf8').split('\n'),
+      ...readFileSync(path.resolve(__dirname, '../../scripts/pildipank/emoji.csv'), 'utf8').split('\n'),
+    ]
+      .map((line) => line.split(','))
+      .filter((row) => row[0] === 'jah' && row[1] === 'Kohad' && !row[2]!.includes(' '))
+      .map((row) => row[2]!.trim().toLowerCase())
+    expect(bank.length).toBeGreaterThan(30)
+    expect(bank.filter((word) => !notPlaces.includes(word) && !PLACE_FORMS[word])).toEqual([])
   })
 
   it('has the partitive of every noun, adjective and numeral of the picture bank', () => {
@@ -289,6 +347,17 @@ describe('the forms a board can say', () => {
 
   it('has the nouns in the partitive with a counting numeral', () => {
     expect(boardWordForms(cards('kaks', 'kass', 'suur'))).toEqual(['kassi', 'suurt'])
+  })
+
+  it('has the places in the cases its verbs call for', () => {
+    expect(boardWordForms(cards('mina', 'minema', 'olema', 'kool', 'kodu'))).toEqual([
+      'lähen',
+      'olen',
+      'kooli',
+      'koju',
+      'koolis',
+      'kodus',
+    ])
   })
 
   it('has nothing without a subject, "ei" or a verb', () => {

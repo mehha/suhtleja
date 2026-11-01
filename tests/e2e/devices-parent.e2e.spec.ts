@@ -299,6 +299,9 @@ test.describe('board editor', () => {
     // A noun card shows its object form.
     await dialog.getByRole('textbox', { name: 'Tekst', exact: true }).fill('õun')
     await expect(forms).toHaveText('Lauses: tahan õuna · kaks õuna')
+    // A place card shows where to and where.
+    await dialog.getByRole('textbox', { name: 'Tekst', exact: true }).fill('kool')
+    await expect(forms).toHaveText('Lauses: lähen kooli · olen koolis')
     await dialog.getByRole('button', { name: 'Tühista' }).tap()
     await expect(dialog).toBeHidden()
 
