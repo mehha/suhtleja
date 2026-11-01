@@ -82,8 +82,9 @@ jobs:
 
       # What the browser saw when a test failed: page snapshots, and traces of the retries
       # (`pnpm exec playwright show-trace <trace.zip>`). Only throwaway test data from the runner.
+      # Also when the run is cancelled, since a cancelled run never prints the errors.
       - name: Upload failed test results
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-test-results

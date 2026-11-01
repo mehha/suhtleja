@@ -1,6 +1,7 @@
 import { type Page } from '@playwright/test'
 
 import { DEFAULT_PIN } from './member'
+import { pageReady } from './ready'
 import { testAccountEmail } from './testAccounts'
 import {
   DOTS,
@@ -52,10 +53,7 @@ async function holdScripts(page: Page) {
   })
   return async () => {
     release()
-    await page.waitForFunction(() => {
-      const form = document.querySelector('form')
-      return !!form && Object.keys(form).some((key) => key.startsWith('__reactFiber'))
-    })
+    await pageReady(page)
   }
 }
 
@@ -86,6 +84,28 @@ test.describe('logged out', () => {
 
     await page.locator('form').getByRole('button', { name: 'Logi sisse' }).tap()
     await expect(page).toHaveURL(/\/kodu$/, { timeout: 60_000 })
+  })
+
+  test('a form sent before the page is ready keeps the password out of the address', async ({ page }) => {
+    // Before React takes over, the browser sends the form its own way: a GET to the page with every
+    // named field in the address (history, server logs). The fields have no names, so nothing goes.
+    const password = 'e2e-never-in-a-url'
+    const addresses: string[] = []
+    page.on('request', (request) => addresses.push(request.url()))
+    await holdScripts(page)
+    const forms = { '/login': ['E-post', 'Parool'], '/register': ['Nimi', 'E-post', 'Parool', 'Korda parooli'] }
+    for (const [path, labels] of Object.entries(forms)) {
+      await page.goto(path, { waitUntil: 'commit' })
+      // Every field is filled, or the browser holds a required one back and sends nothing.
+      for (const label of labels) {
+        const value = label === 'Nimi' ? 'Testija' : label === 'E-post' ? testAccountEmail('never') : password
+        await page.getByLabel(label, { exact: true }).fill(value)
+      }
+      const sent = page.waitForRequest((request) => request.isNavigationRequest() && request.method() === 'GET')
+      await page.getByLabel('E-post').press('Enter')
+      await sent
+    }
+    expect(addresses.filter((address) => address.includes(password) || address.includes('never%40'))).toEqual([])
   })
 
   for (const path of ['/login', '/register']) {

@@ -3,6 +3,7 @@ import { expect as baseExpect, test } from '@playwright/test'
 
 import { countPlayedAudio } from './audio'
 import { startTrial } from './member'
+import { pageReady } from './ready'
 import { testAccountEmail } from './testAccounts'
 
 // A new customer's main path: register, start a trial, unlock the parent view with a PIN, put a
@@ -28,6 +29,11 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   // The compound step makes "kass" after "kaks" into "kassi".
   const words = ['kaks', 'kass']
   const playedAudio = await countPlayedAudio(page)
+  // Each page is used once React has taken it over (see ready.ts).
+  const open = async (path: string) => {
+    await page.goto(path)
+    await pageReady(page)
+  }
 
   const speech: Array<{ path: string; status: number }> = []
   page.on('response', (response) => {
@@ -36,7 +42,7 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   })
 
   await test.step('register', async () => {
-    await page.goto('/register')
+    await open('/register')
     await page.getByLabel('Nimi').fill('Testija')
     await page.getByLabel('E-post').fill(testAccountEmail(run))
     await page.getByLabel('Parool', { exact: true }).fill(password)
@@ -52,7 +58,7 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     const { user } = await (await page.request.get('/api/users/me')).json()
     await startTrial(page.request, user.id, run)
 
-    await page.goto('/profile')
+    await open('/profile')
     await expect(page.getByText(/^Prooviperiood lõpeb:/)).toBeVisible()
   })
 
@@ -71,26 +77,26 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   })
 
   await test.step('child home keeps the parent pages locked', async () => {
-    await page.goto('/kodu')
+    await open('/kodu')
     await expect(page.getByRole('heading', { level: 1, name: 'Kodu' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Vanema vaade', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Lisa tahvel' })).toHaveCount(0)
 
-    await page.goto('/koduhaldus')
+    await open('/koduhaldus')
     await expect(page).toHaveURL(/\/kodu$/)
 
     // The game page is a full-screen child page too: no site header or account menu.
-    await page.goto('/connect-dots')
+    await open('/connect-dots')
     await expect(page.getByRole('button', { name: 'Vanema vaade', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Kasutaja menüü' })).toHaveCount(0)
 
     // Managing the membership (which can cancel it) and the account name need the parent view.
-    await page.goto('/profile')
+    await open('/profile')
     await expect(page.getByText('Liikmelisuse haldamiseks ava vanema vaade')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Halda liikmelisust' })).toHaveCount(0)
     await expect(page.getByText('Nime muutmiseks ava vanema vaade')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Salvesta nimi' })).toHaveCount(0)
-    await page.goto('/kodu')
+    await open('/kodu')
   })
 
   await test.step('unlock the parent view with the PIN', async () => {
@@ -109,14 +115,15 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   })
 
   await test.step('change the name on the profile', async () => {
-    await page.goto('/profile')
+    await open('/profile')
     await page.getByLabel('Nimi').fill('  Testija Uus  ')
     await page.getByRole('button', { name: 'Salvesta nimi' }).click()
     await expect(page.getByText('Nimi salvestatud.')).toBeVisible()
 
     await page.reload()
+    await pageReady(page)
     await expect(page.getByLabel('Nimi')).toHaveValue('Testija Uus')
-    await page.goto('/kodu')
+    await open('/kodu')
   })
 
   let boardId = ''
@@ -144,7 +151,7 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   })
 
   await test.step('the board and its editor link to each other', async () => {
-    await page.goto(`/boards/${boardId}`)
+    await open(`/boards/${boardId}`)
     await expect(page.getByRole('heading', { level: 1, name: boardName })).toBeVisible()
     await page.getByRole('link', { name: 'Muuda tahvlit' }).click()
     await expect(page).toHaveURL(new RegExp(`/boards/${boardId}/edit$`))
@@ -153,7 +160,7 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   })
 
   await test.step('add a compound', async () => {
-    await page.goto(`/boards/${boardId}/compounds`)
+    await open(`/boards/${boardId}/compounds`)
     await page.getByRole('button', { name: 'Lisa esimene sõnaühend' }).click()
 
     // The cards are picked in the order the child taps them.
@@ -201,7 +208,7 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   })
 
   await test.step('put the board on the child home', async () => {
-    await page.goto('/koduhaldus')
+    await open('/koduhaldus')
     const row = page.getByRole('row').filter({ hasText: boardName })
     const homeSwitch = row.getByRole('switch', { name: `Näita koduvaates: ${boardName}` })
     await expect(homeSwitch).not.toBeChecked()
@@ -273,6 +280,7 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     await expect(page.getByText('Tahvel eemaldati koduvaatest.')).toBeVisible()
 
     await page.reload()
+    await pageReady(page)
     await expect(page.getByRole('heading', { level: 1, name: 'Kodu' })).toBeVisible()
     await expect(page.getByRole('button').filter({ hasText: boardName })).toHaveCount(0)
   })
@@ -281,7 +289,7 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     // As if the saved speech couldn't be served or made again: the word still speaks.
     const savedSpeech = `**/next/tts-cache/${boardId}/**`
     await page.route(savedSpeech, (route) => route.fulfill({ status: 502 }))
-    await page.goto(`/boards/${boardId}`)
+    await open(`/boards/${boardId}`)
 
     const live = page.waitForRequest((request) => new URL(request.url()).pathname === '/next/tts-ms')
     await page.getByRole('button', { name: 'kaks', exact: true }).click()
