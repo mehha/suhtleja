@@ -33,12 +33,15 @@ export async function countSymbolGenerationsThisMonth(
 }
 
 /** The image prompt: one consistent pictogram style around the scene Groq described. */
-export function buildPictogramPrompt(subject: string): string {
+export function buildPictogramPrompt(subject: string, { group = false }: { group?: boolean } = {}): string {
   return [
     `Pictogram for an AAC communication board: ${subject.trim()}.`,
     'Simple flat illustration with thick black outlines and bright flat colours,',
     'plain white background, one centred subject filling most of the frame,',
-    'minimal detail and at most two figures, friendly and clear for young children.',
+    // The picture bank's group words (meie, nemad, perekond) need more than two people.
+    group
+      ? 'minimal detail and only the figures described, friendly and clear for young children.'
+      : 'minimal detail and at most two figures, friendly and clear for young children.',
     'No text, no letters, no numbers, no frame, no shadows.',
   ].join(' ')
 }

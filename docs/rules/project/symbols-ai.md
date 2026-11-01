@@ -11,18 +11,19 @@ tags: [suhtleja, frontend, symbols, groq, api]
   - `symbols/route.ts` (`GET /next/symbols`)
   - `symbol-image/route.ts` (`GET /next/symbol-image`)
   - `image-search/route.ts` (`GET /next/image-search`)
+  - `picture-bank/route.ts` (`GET /next/picture-bank`)
   - `symbol-generate/route.ts` (`GET`/`POST /next/symbol-generate`), `symbol-generate/save/route.ts` (`POST /next/symbol-generate/save`)
   - `groq/route.ts` (`POST /next/groq`)
-- Helpers: `src/utilities/symbolProxy.ts`, `src/utilities/membershipStatus.ts`, `src/utilities/groq.ts` (Groq calls shared by the routes), `src/utilities/symbolSources.ts` (ARASAAC, Mulberry, OpenMoji searches and the Groq-term fallback), `src/utilities/findLibraryMedia.ts` (own and library pictures, the `AI-pildid` folder), `src/utilities/symbolGeneration.ts` (limits, prompt, saving AI pictures), `src/utilities/workersAI.ts` (Workers AI binding)
+- Helpers: `src/utilities/symbolProxy.ts`, `src/utilities/membershipStatus.ts`, `src/utilities/groq.ts` (Groq calls shared by the routes), `src/utilities/symbolSources.ts` (ARASAAC, Mulberry, OpenMoji searches and the Groq-term fallback), `src/utilities/findLibraryMedia.ts` (own and library pictures, the `AI-pildid` folder, the `Pildipank` categories), `src/utilities/symbolGeneration.ts` (limits, prompt, saving AI pictures), `src/utilities/workersAI.ts` (Workers AI binding)
 - Collection: `src/collections/SymbolGenerations.ts` (`symbol-generations`)
 - Consumers:
-  - `boards/[id]/edit/BoardEditor/Toolbar.tsx` (symbols with `preferLocal`, groq), `CellEditModal.tsx` (image-search, symbol-generate, symbol-generate/save)
+  - `boards/[id]/edit/BoardEditor/Toolbar.tsx` (symbols with `preferLocal`, groq), `CellEditModal.tsx` (image-search, picture-bank, symbol-generate, symbol-generate/save)
   - `boards/[id]/Runner.tsx` (groq surface-form correction)
   - `src/components/ConnectDots/ConnectDotsEditorField.tsx`, `ConnectDotsFrontendEditor.tsx` (symbols)
 
 ## Auth Gate
 - All routes call `payload.auth({ headers })` and return `401 { error: 'unauthorized' }` without a user.
-- `symbols`, `image-search`, `symbol-generate` (and `save`) and `groq` also require `hasActiveMembership(user)` and return `402 { error: 'membership_required' }` otherwise.
+- `symbols`, `image-search`, `picture-bank`, `symbol-generate` (and `save`) and `groq` also require `hasActiveMembership(user)` and return `402 { error: 'membership_required' }` otherwise.
 - `symbol-image` requires login only (no membership check), because already-saved board/puzzle images must keep rendering.
 
 ## `GET /next/symbols`
@@ -36,6 +37,12 @@ tags: [suhtleja, frontend, symbols, groq, api]
 - Every item carries `license` and `attribution`. Keep them; attribution is a license requirement for all three sources.
 - Licenses: ARASAAC is CC BY-NC-SA 4.0, and ARASAAC's terms exclude use in commercial products. Suhtleja is a paid membership, so ARASAAC needs written permission from ARASAAC (Gobierno de Aragón) or has to stop being the default. Mulberry (CC BY-SA 4.0, © Steve Lee) and OpenMoji (CC BY-SA 4.0) allow commercial use with attribution. Before adding a Global Symbols set, check its license in `/api/v1/symbolsets`: many are NC or ND.
 - Upstream failures return `{ items: [] }`, never a 5xx.
+
+## `GET /next/picture-bank` (card editor)
+- The picture bank is the library folder `Pildipank` (top level) and its subfolders, one per category. `scripts/pildipank/import.ts` fills it (see `media.md`); admins can rename, add or remove pictures there like any library media.
+- Without params returns `{ categories: [{ id, name, cover, count }] }`: the subfolders that hold images, in creation order (`sort: 'id'`), each with its oldest image as `cover`. The import creates the folders in the intended order and each category's cover picture first.
+- `?folder=<id>` returns `{ folder: { id, name }, pictures }` (`PictureItem`s with `mediaId`, oldest first, up to 400). `400 invalid_folder` for a non-numeric id, `404 not_found` when the folder is not a direct subfolder of `Pildipank`.
+- Bank pictures are ordinary library media, so the search (`library` group) and bulk add (`findLibraryMedia`, curated folders) find them by their alt text, which is the word.
 
 ## `GET /next/image-search` (card editor)
 - Params: `q` (trimmed, at most 80 characters; may be empty), `scope` (`all` default, `mine`, `library`, `arasaac`, `mulberry`, `openmoji`).

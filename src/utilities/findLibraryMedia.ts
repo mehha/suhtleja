@@ -7,6 +7,9 @@ const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg']
 /** The library folder that saved AI pictograms are filed into (src/collections/SymbolGenerations.ts). */
 export const AI_PICTURE_FOLDER_NAME = 'AI-pildid'
 
+/** The top library folder whose subfolders are the picture bank's categories (scripts/pildipank). */
+export const PICTURE_BANK_FOLDER_NAME = 'Pildipank'
+
 const exactWordMatch = (word: string): Where | null => {
   const variants = [...new Set([word.trim(), word.trim().toLowerCase()])].filter(Boolean)
   if (!variants.length) return null
@@ -163,4 +166,105 @@ export async function searchPictureMedia(
     const item = toPictureItem(media, scope)
     return item ? [item] : []
   })
+}
+
+export type PictureBankCategory = {
+  count: number
+  cover: string | null
+  id: number
+  name: string
+}
+
+/** The top-level folder named `rootName` (the picture bank), or null. */
+export async function findPictureBankFolderId(
+  payload: Payload,
+  rootName = PICTURE_BANK_FOLDER_NAME,
+): Promise<number | null> {
+  const { docs } = await payload.find({
+    collection: 'payload-folders',
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+    pagination: false,
+    where: { and: [{ name: { equals: rootName } }, { folder: { exists: false } }] },
+  })
+
+  return typeof docs[0]?.id === 'number' ? docs[0].id : null
+}
+
+const folderImages = (folderId: number): Where => ({
+  and: [{ folder: { equals: folderId } }, { mimeType: { contains: 'image' } }],
+})
+
+/**
+ * The picture bank's categories for the card editor: the subfolders of the bank folder that hold
+ * pictures, in the order they were created, each with its oldest picture as the cover.
+ */
+export async function listPictureBankCategories(
+  payload: Payload,
+  rootName = PICTURE_BANK_FOLDER_NAME,
+): Promise<PictureBankCategory[]> {
+  const rootId = await findPictureBankFolderId(payload, rootName)
+  if (!rootId) return []
+
+  const { docs: folders } = await payload.find({
+    collection: 'payload-folders',
+    depth: 0,
+    limit: 200,
+    overrideAccess: true,
+    pagination: false,
+    sort: 'id',
+    where: { folder: { equals: rootId } },
+  })
+
+  const categories = await Promise.all(
+    folders.map(async (folder) => {
+      const { docs, totalDocs } = await payload.find({
+        collection: 'media',
+        depth: 0,
+        limit: 1,
+        sort: 'id',
+        where: folderImages(folder.id),
+      })
+      return { count: totalDocs, cover: docs[0]?.url ?? null, id: folder.id, name: folder.name }
+    }),
+  )
+
+  return categories.filter((category) => category.count > 0)
+}
+
+/**
+ * The pictures in one picture bank category, oldest first (the import's order). Null when the folder
+ * is not a category of the bank.
+ */
+export async function listPictureBankPictures(
+  payload: Payload,
+  folderId: number,
+  { limit = 400, rootName = PICTURE_BANK_FOLDER_NAME }: { limit?: number; rootName?: string } = {},
+): Promise<{ name: string; pictures: PictureItem[] } | null> {
+  const [rootId, folder] = await Promise.all([
+    findPictureBankFolderId(payload, rootName),
+    payload
+      .findByID({ collection: 'payload-folders', depth: 0, id: folderId, overrideAccess: true })
+      .catch(() => null),
+  ])
+  const parentId = typeof folder?.folder === 'object' && folder.folder ? folder.folder.id : folder?.folder
+  if (!rootId || !folder || parentId !== rootId) return null
+
+  const { docs } = await payload.find({
+    collection: 'media',
+    depth: 0,
+    limit,
+    pagination: false,
+    sort: 'id',
+    where: folderImages(folderId),
+  })
+
+  return {
+    name: folder.name,
+    pictures: docs.flatMap((media) => {
+      const item = toPictureItem(media, 'library')
+      return item ? [item] : []
+    }),
+  }
 }

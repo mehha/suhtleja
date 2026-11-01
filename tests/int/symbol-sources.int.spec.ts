@@ -46,6 +46,13 @@ describe('AI pictogram generation', () => {
     expect(startOfMonthUTC(new Date('2026-11-01T00:30:00+02:00')).toISOString()).toBe('2026-10-01T00:00:00.000Z')
   })
 
+  it('allows more figures only in the group variant', () => {
+    expect(buildPictogramPrompt('three children')).toContain('at most two figures')
+    const group = buildPictogramPrompt('three children', { group: true })
+    expect(group).not.toContain('at most two figures')
+    expect(group).toContain('No text')
+  })
+
   it('wraps the subject in one pictogram style without text', () => {
     const prompt = buildPictogramPrompt('  a brown dog ')
     expect(prompt.startsWith('Pictogram for an AAC communication board: a brown dog.')).toBe(true)

@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { Copy, Sparkles, Upload } from 'lucide-react'
+import { ArrowLeft, Copy, LayoutGrid, Sparkles, Upload } from 'lucide-react'
 
 import { getClientSideURL } from '@/utilities/getURL'
 import { cn } from '@/utilities/ui'
@@ -45,6 +45,14 @@ type BankResult = {
   aiTerms?: string[]
   bank: SymbolBank
   items: PictureItem[]
+}
+
+// A picture bank category (/next/picture-bank): a library folder with a cover picture.
+type BankCategory = {
+  count: number
+  cover: string | null
+  id: number
+  name: string
 }
 
 type SearchResults = {
@@ -198,6 +206,12 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   const [genError, setGenError] = useState<string | null>(null)
   const [genQuota, setGenQuota] = useState<{ limit: number; remaining: number } | null>(null)
 
+  // Picture bank: its categories show while the search is empty.
+  const [bankCategories, setBankCategories] = useState<BankCategory[] | null>(null)
+  const [bankFolder, setBankFolder] = useState<{ id: number; name: string } | null>(null)
+  const [bankPictures, setBankPictures] = useState<{ folderId: number; items: PictureItem[] } | null>(null)
+  const [bankError, setBankError] = useState<string | null>(null)
+
   const initializedCellIdRef = useRef<string | null>(null)
 
   const currentImageSrc =
@@ -228,6 +242,8 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     setGenImages([])
     setGenGenerationId(null)
     setGenError(null)
+    setBankFolder(null)
+    setBankError(null)
   }, [open, cell])
 
   // One search over the member's own pictures, the shared library and the symbol banks. It starts with
@@ -287,6 +303,37 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     return () => controller.abort()
   }, [open, showGenerate, genQuota])
 
+  // The picture bank's categories, once per page load.
+  useEffect(() => {
+    if (!open || bankCategories) return
+    const controller = new AbortController()
+    fetch(`${getClientSideURL()}/next/picture-bank`, { credentials: 'include', signal: controller.signal })
+      .then((res) => (res.ok ? (res.json() as Promise<{ categories?: BankCategory[] }>) : null))
+      .then((json) => setBankCategories(Array.isArray(json?.categories) ? json.categories : []))
+      .catch(() => {})
+    return () => controller.abort()
+  }, [open, bankCategories])
+
+  // The pictures of the category being browsed.
+  useEffect(() => {
+    if (!open || !bankFolder || bankPictures?.folderId === bankFolder.id) return
+    const controller = new AbortController()
+    const folderId = bankFolder.id
+    fetch(`${getClientSideURL()}/next/picture-bank?folder=${folderId}`, {
+      credentials: 'include',
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? (res.json() as Promise<{ pictures?: PictureItem[] }>) : Promise.reject()))
+      .then((json) => {
+        setBankError(null)
+        setBankPictures({ folderId, items: Array.isArray(json.pictures) ? json.pictures : [] })
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setBankError('Ei õnnestu pilte laadida')
+      })
+    return () => controller.abort()
+  }, [open, bankFolder, bankPictures])
+
   const handleUpload = async (file: File) => {
     setUploading(true)
     try {
@@ -344,12 +391,21 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     }
   }
 
+  const openBank = () => {
+    setQuery('')
+    setBankFolder(null)
+    setBankError(null)
+    if (scope !== 'all' && scope !== 'library') setScope('all')
+  }
+
   const openGenerate = () => {
     setGenLabel(query.trim() || title)
     setShowGenerate(true)
   }
 
   const pickItem = (item: PictureItem) => {
+    // A card without text would say nothing: give it the picture's word.
+    if (!title.trim() && item.title) setTitle(item.title)
     if (typeof item.mediaId === 'number') {
       setPending({ kind: 'media', id: item.mediaId, url: item.preview })
     } else {
@@ -458,6 +514,8 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     })),
   ].filter((section) => section.items.length > 0)
   const ownAndLibraryCount = results.mine.length + results.library.length
+  const bankAvailable = (bankCategories?.length ?? 0) > 0
+  const showBank = bankAvailable && !hasQuery && (scope === 'all' || scope === 'library')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -512,13 +570,16 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
           {/* Picture search */}
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div className="flex min-w-[14rem] flex-1 items-center gap-2">
                 <Input
                   id="cell-picture-search"
                   value={query}
                   placeholder="Otsi pilti eesti või inglise keeles… (nt koer, sööma, dog)"
                   aria-label="Otsi pilti"
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => {
+                    setQuery(e.target.value)
+                    setBankFolder(null)
+                  }}
                   onKeyDown={(e) => {
                     // Search runs while typing; Enter must not submit or close anything.
                     if (e.key === 'Enter') e.preventDefault()
@@ -548,11 +609,92 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {bankAvailable && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={openBank}
+                  aria-pressed={showBank && !bankFolder}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  Kategooriad
+                </Button>
+              )}
             </div>
 
             {searchError && <p className="text-xs text-red-500">{searchError}</p>}
 
-            {searching ? (
+            {showBank ? (
+              <div className="flex max-h-96 flex-col gap-4 overflow-y-auto p-1">
+                {bankFolder ? (
+                  <section className="flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1 px-2"
+                        onClick={() => setBankFolder(null)}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Kategooriad
+                      </Button>
+                      <h3 className="text-sm font-semibold">{bankFolder.name}</h3>
+                    </div>
+                    {bankError ? (
+                      <p className="text-xs text-red-500">{bankError}</p>
+                    ) : bankPictures?.folderId === bankFolder.id ? (
+                      renderTiles(bankPictures.items)
+                    ) : (
+                      <p className="flex items-center gap-2 text-xs text-slate-500">
+                        <Spinner /> Laadin…
+                      </p>
+                    )}
+                  </section>
+                ) : (
+                  <>
+                    {results.mine.length > 0 && (
+                      <section className="flex flex-col gap-2">
+                        <h3 className="text-sm font-semibold">Minu viimased pildid</h3>
+                        {renderTiles(results.mine)}
+                      </section>
+                    )}
+                    <section className="flex flex-col gap-2">
+                      <h3 className="text-sm font-semibold">Pildipank</h3>
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                        {bankCategories?.map((category) => (
+                          <Button
+                            key={category.id}
+                            type="button"
+                            variant="outline"
+                            onClick={() => setBankFolder({ id: category.id, name: category.name })}
+                            className="flex aspect-square h-auto flex-col items-center gap-1 overflow-hidden whitespace-normal rounded-xl border-2 bg-white p-2 hover:border-primary"
+                          >
+                            <span className="text-center text-xs font-semibold leading-tight">
+                              {category.name}
+                            </span>
+                            {category.cover && (
+                              <span className="relative w-full flex-1">
+                                <Image
+                                  src={category.cover}
+                                  alt=""
+                                  fill
+                                  sizes="96px"
+                                  className="object-contain"
+                                  loading="lazy"
+                                  unoptimized
+                                />
+                              </span>
+                            )}
+                          </Button>
+                        ))}
+                      </div>
+                    </section>
+                  </>
+                )}
+              </div>
+            ) : searching ? (
               <p className="flex items-center gap-2 text-xs text-slate-500">
                 <Spinner /> Otsin…
               </p>
