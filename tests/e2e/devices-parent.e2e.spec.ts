@@ -282,6 +282,14 @@ test.describe('board editor', () => {
     baseURL,
   }) => {
     await page.route('**/next/image-search**', (route) => route.fulfill({ json: { banks: [], library: [], mine: [] } }))
+    // The dialog suggests a word's class from the picture bank's categories ("õun" is in a food
+    // category). The test database has no picture bank, so the suggestions come from here; the
+    // lookup itself is tested in tests/int/word-class.int.spec.ts.
+    const suggestedClasses: Record<string, string> = { jooksma: 'verb', kirjeldama: 'verb', kool: 'place', õun: 'noun' }
+    await page.route('**/next/word-class?**', (route) => {
+      const word = new URL(route.request().url()).searchParams.get('word') ?? ''
+      return route.fulfill({ json: { classes: { [word]: suggestedClasses[word] ?? null } } })
+    })
     const boardId = await createOwnBoard(page.request, `Sõnavormid ${member.boardName}`, [
       { title: 'mina', wordClass: 'person' },
       { title: 'jooksma', wordClass: 'verb' },
