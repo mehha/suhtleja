@@ -2,7 +2,14 @@ import { NextResponse } from 'next/server'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import type { User } from '@/payload-types'
-import { synthesizeAzureSpeech } from '@/utilities/azureTTS'
+import {
+  getTTSAudioMetadata,
+  getTTSCacheHash,
+  speechRate,
+  speechVoice,
+  synthesizeAzureSpeech,
+} from '@/utilities/azureTTS'
+import { getTTSObjectKey } from '@/utilities/boardTTSCache'
 import { getBoardTTSCacheManifest } from '@/utilities/boardTTSCacheManifest'
 import { getPayloadCloudflareContext } from '@/utilities/getCloudflareContext'
 import { hasActiveMembership } from '@/utilities/membershipStatus'
@@ -48,11 +55,25 @@ export async function GET(req: Request, { params }: RouteContext) {
   }
 
   const manifest = getBoardTTSCacheManifest(board)
-  const entry = manifest.entries.find((item) => item.hash === hash)
+  const found = manifest.entries.find((item) => item.hash === hash)
 
-  if (!entry) {
+  if (!found) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 })
   }
+
+  // The member's voice and rate (`?voice=&rate=`, from the profile page): the manifest has the
+  // site's voice, so another voice is the same word under its own key, made on its first request.
+  const query = new URL(req.url).searchParams
+  const voice = speechVoice(query.get('voice') ?? found.voice)
+  const rate = speechRate(query.get('rate'))
+  const entry =
+    voice === found.voice && rate === 'normal'
+      ? found
+      : {
+          ...found,
+          voice,
+          key: getTTSObjectKey(voice, getTTSCacheHash(found.text, voice, rate), getTTSAudioMetadata().extension),
+        }
 
   const cloudflare = await getPayloadCloudflareContext()
   const bucket = cloudflare.env.R2
@@ -63,7 +84,7 @@ export async function GET(req: Request, { params }: RouteContext) {
   // request is served from R2. Only the board's own words are synthesized, never free text.
   if (!object?.body) {
     try {
-      const synthesized = await synthesizeAzureSpeech({ text: entry.text, speaker: entry.voice })
+      const synthesized = await synthesizeAzureSpeech({ text: entry.text, speaker: entry.voice, rate })
       const audio = synthesized.audio.buffer.slice(
         synthesized.audio.byteOffset,
         synthesized.audio.byteOffset + synthesized.audio.byteLength,

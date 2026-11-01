@@ -22,7 +22,8 @@ tags: [suhtleja, tts, audio, frontend, nextjs]
 - Endpoint: `POST /next/tts-ms`
 - Request JSON:
   - `text: string` (required)
-  - `speaker?: string`
+  - `speaker?: string`: one of `TTS_VOICES` (`src/utilities/speechSettings.ts`: Anu, Kert) or the default; anything else is the default (`speechVoice`), so a request can't put its own text into the SSML.
+  - `rate?: 'slow' | 'normal' | 'fast'`: SSML prosody (`-25%`, none, `+20%`); anything else is `normal`.
 - Expected response:
   - Audio binary (`audio/mpeg` or `audio/wav`)
 
@@ -31,6 +32,11 @@ tags: [suhtleja, tts, audio, frontend, nextjs]
 - Optional:
   - `SPEECH_VOICE`
   - `SPEECH_OUTPUT_FORMAT`
+
+## The Member's Voice and Rate
+- A member picks the voice and the rate on the profile page (`Kõne`, `users.speechVoice` and `speechRate`, parent view only; `Kuula` plays a sample through `/next/tts-ms` before saving). Empty is the site's voice (`SPEECH_VOICE`) at the normal rate.
+- A board's saved speech is in the site's voice at the normal rate. For another voice or rate the board page passes them to the runner, which adds `?voice=&rate=` to the saved speech's URLs and sends them with `/next/tts-ms`. `/next/tts-cache` then makes the manifest word in that voice under its own key (`getTTSCacheHash(text, voice, rate)`, the same R2 keys for every board) on the first request, and serves it from R2 after that. It still only speaks the board's own words.
+- `getTTSCacheHash` adds the rate to the hashed text only for `slow` and `fast`, so the normal rate's hash, and the speech already in R2, stay as they were.
 
 ## Frontend Playback Rules
 - Normalize text before sending:

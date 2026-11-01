@@ -124,8 +124,34 @@ describe('serving a board word whose audio is missing', () => {
 
     expect(response.status).toBe(200)
     expect(Buffer.from(await response.arrayBuffer()).toString()).toBe('audio:kass.')
-    expect(synthesize).toHaveBeenCalledWith({ text: 'kass.', speaker: voice })
+    expect(synthesize).toHaveBeenCalledWith({ text: 'kass.', speaker: voice, rate: 'normal' })
     expect(bucket.put).toHaveBeenCalledWith(key, expect.anything(), expect.anything())
+  })
+
+  it("makes the word in the member's voice and rate under its own key, from the board's text", async () => {
+    bucket.get.mockResolvedValue(null)
+    const kert = 'et-EE-KertNeural'
+    const kertKey = getTTSObjectKey(kert, getTTSCacheHash('kass.', kert, 'slow'), 'mp3')
+
+    const response = await GET(new Request(`http://localhost/next/tts-cache/7/${hash}?voice=${kert}&rate=slow`), {
+      params: Promise.resolve({ boardId: '7', hash }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(bucket.get).toHaveBeenCalledWith(kertKey)
+    expect(synthesize).toHaveBeenCalledWith({ text: 'kass.', speaker: kert, rate: 'slow' })
+    expect(bucket.put).toHaveBeenCalledWith(kertKey, expect.anything(), expect.anything())
+  })
+
+  it('takes a voice it does not know as the saved one', async () => {
+    bucket.get.mockResolvedValue(null)
+
+    await GET(new Request(`http://localhost/next/tts-cache/7/${hash}?voice=%22%3E%3Cx&rate=loud`), {
+      params: Promise.resolve({ boardId: '7', hash }),
+    })
+
+    expect(bucket.get).toHaveBeenCalledWith(key)
+    expect(synthesize).toHaveBeenCalledWith({ text: 'kass.', speaker: voice, rate: 'normal' })
   })
 
   it('serves stored audio from R2 without synthesizing', async () => {

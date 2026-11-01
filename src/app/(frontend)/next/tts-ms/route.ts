@@ -4,17 +4,15 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import type { User } from '@/payload-types'
 import { hasActiveMembership } from '@/utilities/membershipStatus'
-import {
-  DEFAULT_TTS_VOICE,
-  synthesizeAzureSpeech,
-} from '@/utilities/azureTTS'
+import { speechRate, speechVoice, synthesizeAzureSpeech } from '@/utilities/azureTTS'
 
 export const runtime = 'nodejs'
 
-// sama shape, mis sul praegu: { text, speaker? }
+// The voice and rate are the member's (profile page); any other voice is the site's.
 type TTSRequestBody = {
   text?: string
   speaker?: string
+  rate?: string
 }
 
 export async function POST(req: Request) {
@@ -41,12 +39,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'missing text' }, { status: 400 })
   }
 
-  const voiceName = (body.speaker ?? DEFAULT_TTS_VOICE).toString()
-
   try {
     const synthesized = await synthesizeAzureSpeech({
       text: rawText,
-      speaker: voiceName,
+      speaker: speechVoice(body.speaker),
+      rate: speechRate(body.rate),
     })
 
     return new NextResponse(synthesized.audio, {

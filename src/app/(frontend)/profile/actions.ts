@@ -10,6 +10,7 @@ import { pinChangeNeedsPassword } from '@/utilities/parentPin'
 import { isParentModeUtil } from '@/utilities/uiMode'
 import { withToast } from '@/utilities/flashToast'
 import type { User } from '@/payload-types'
+import { SPEECH_RATES, TTS_VOICES, type SpeechRate } from '@/utilities/speechSettings'
 
 type PinState = {
   success: boolean
@@ -42,6 +43,36 @@ export async function updateNameAction(
     collection: 'users',
     id: user.id,
     data: { name },
+  })
+
+  revalidatePath('/profile')
+  return { success: true }
+}
+
+// The voice and the rate the boards speak with, in the parent view like the other settings.
+export async function updateSpeechAction(
+  _prevState: NameState,
+  formData: FormData,
+): Promise<NameState> {
+  const { user, payload } = await getCurrentUser()
+  if (!user) {
+    redirect('/admin')
+  }
+
+  if (!(await isParentModeUtil())) {
+    return { success: false, error: 'Hääle muutmiseks ava vanema vaade.' }
+  }
+
+  const voice = formData.get('voice')?.toString() ?? ''
+  const rate = formData.get('rate')?.toString() ?? ''
+  if (!(voice in TTS_VOICES) || !(rate in SPEECH_RATES)) {
+    return { success: false, error: 'Vali hääl ja kõnekiirus.' }
+  }
+
+  await payload.update({
+    collection: 'users',
+    id: user.id,
+    data: { speechVoice: voice as keyof typeof TTS_VOICES, speechRate: rate as SpeechRate },
   })
 
   revalidatePath('/profile')

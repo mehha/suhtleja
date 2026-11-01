@@ -6,6 +6,7 @@ import { isParentModeUtil } from '@/utilities/uiMode'
 import type { User } from '@/payload-types'
 import { ProfileNameForm } from '@/app/(frontend)/profile/ProfileNameForm'
 import { ProfilePageClient } from '@/app/(frontend)/profile/ProfilePageClient'
+import { ProfileSpeechForm } from '@/app/(frontend)/profile/ProfileSpeechForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const dynamic = 'force-dynamic'
@@ -60,6 +61,16 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
               <dd>{u.email}</dd>
             </div>
           </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-medium">Kõne</CardTitle>
+          <CardDescription>Hääl ja kiirus, millega tahvlid räägivad.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProfileSpeechForm voice={u.speechVoice} rate={u.speechRate} isParentMode={isParentMode} />
         </CardContent>
       </Card>
 

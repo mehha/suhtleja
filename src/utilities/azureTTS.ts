@@ -1,5 +1,9 @@
 import { createHash } from 'crypto'
 
+import { SPEECH_RATES, TTS_VOICES, type SpeechRate } from './speechSettings'
+
+export { SPEECH_RATES, TTS_VOICES, speechRate, type SpeechRate } from './speechSettings'
+
 const SPEECH_KEY = process.env.SPEECH_KEY
 const SPEECH_REGION = process.env.SPEECH_REGION
 
@@ -7,6 +11,11 @@ export const DEFAULT_TTS_VOICE =
   process.env.SPEECH_VOICE ?? 'en-US-Ava:DragonHDLatestNeural'
 export const TTS_OUTPUT_FORMAT =
   process.env.SPEECH_OUTPUT_FORMAT ?? 'audio-24khz-48kbitrate-mono-mp3'
+
+/** A voice the site speaks with: one of TTS_VOICES or the default; anything else is the default. */
+export function speechVoice(value: unknown): string {
+  return typeof value === 'string' && (value in TTS_VOICES || value === DEFAULT_TTS_VOICE) ? value : DEFAULT_TTS_VOICE
+}
 
 export function prepareTextForTTS(text: string): string {
   const trimmed = text.trim()
@@ -41,18 +50,34 @@ export function getTTSAudioMetadata(outputFormat = TTS_OUTPUT_FORMAT): {
   }
 }
 
-export function getTTSCacheHash(text: string, voice = DEFAULT_TTS_VOICE): string {
+// The normal rate keeps the hash it had before rates, so the speech already in R2 still serves.
+export function getTTSCacheHash(text: string, voice = DEFAULT_TTS_VOICE, rate: SpeechRate = 'normal'): string {
   return createHash('sha256')
-    .update(`${voice}:${text}`)
+    .update(rate === 'normal' ? `${voice}:${text}` : `${voice}:${rate}:${text}`)
     .digest('hex')
+}
+
+/** The SSML for a text in a voice and at a rate. The voice is one of ours (speechVoice). */
+export function buildSSML(text: string, speaker: string, rate: SpeechRate = 'normal'): string {
+  const prosody = SPEECH_RATES[rate].prosody
+  const words = escapeForSSML(text)
+  return `
+<speak version="1.0" xml:lang="et-EE">
+  <voice xml:lang="et-EE" name="${escapeForSSML(speaker)}">
+    ${prosody ? `<prosody rate="${prosody}">${words}</prosody>` : words}
+  </voice>
+</speak>
+`.trim()
 }
 
 export async function synthesizeAzureSpeech({
   text,
   speaker = DEFAULT_TTS_VOICE,
+  rate = 'normal',
 }: {
   text: string
   speaker?: string
+  rate?: SpeechRate
 }): Promise<{
   audio: Buffer
   contentType: string
@@ -69,13 +94,7 @@ export async function synthesizeAzureSpeech({
     throw new Error('missing_tts_text')
   }
 
-  const ssml = `
-<speak version="1.0" xml:lang="et-EE">
-  <voice xml:lang="et-EE" name="${speaker}">
-    ${escapeForSSML(normalizedText)}
-  </voice>
-</speak>
-`.trim()
+  const ssml = buildSSML(normalizedText, speaker, rate)
 
   const ttsRes = await fetch(
     `https://${SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/v1`,

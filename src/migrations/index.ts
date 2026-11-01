@@ -16,6 +16,7 @@ import * as migration_20261031_185001_shared_ai_pictures from './20261031_185001
 import * as migration_20261101_123024_word_class from './20261101_123024_word_class';
 import * as migration_20261101_144213_grammar from './20261101_144213_grammar';
 import * as migration_20261101_184319_card_opens_board from './20261101_184319_card_opens_board';
+import * as migration_20261101_190915_speech_settings from './20261101_190915_speech_settings';
 
 export const migrations = [
   {
@@ -106,6 +107,11 @@ export const migrations = [
   {
     up: migration_20261101_184319_card_opens_board.up,
     down: migration_20261101_184319_card_opens_board.down,
-    name: '20261101_184319_card_opens_board'
+    name: '20261101_184319_card_opens_board',
+  },
+  {
+    up: migration_20261101_190915_speech_settings.up,
+    down: migration_20261101_190915_speech_settings.down,
+    name: '20261101_190915_speech_settings'
   },
 ];

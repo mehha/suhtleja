@@ -42,6 +42,8 @@ type RunnerProps = {
   linkedBoards?: Record<number, string>
   // The board a card opened this one from.
   backTo?: { id: number; name: string } | null
+  // The member's voice and rate (profile page), or null for the site's voice at the normal rate.
+  speech?: { voice: string; rate: string } | null
 }
 
 // A card that opens another board hands the sentence over to it, and the back button hands it back:
@@ -108,7 +110,15 @@ function notifySpeechFailed() {
   toast.error('Heli ei õnnestunud. Puuduta uuesti.', { id: 'tts' })
 }
 
-export default function Runner({ board, isParentMode, canEdit, hasPin, linkedBoards = {}, backTo = null }: RunnerProps) {
+export default function Runner({
+  board,
+  isParentMode,
+  canEdit,
+  hasPin,
+  linkedBoards = {},
+  backTo = null,
+  speech = null,
+}: RunnerProps) {
   const router = useRouter()
   // UUS: hoiame cellId + teksti
   const [sequence, setSequence] = useState<SequenceItem[]>([])
@@ -169,9 +179,12 @@ export default function Runner({ board, isParentMode, canEdit, hasPin, linkedBoa
     [cells, grammar],
   )
   const ttsCacheManifest = useMemo(() => getBoardTTSCacheManifest(board), [board])
+  // The saved speech is in the site's voice; another voice or rate asks for the same word in it, which
+  // the route makes on the first request and keeps.
+  const speechQuery = speech ? `?voice=${encodeURIComponent(speech.voice)}&rate=${speech.rate}` : ''
   const cachedAudioUrlByText = useMemo(
-    () => new Map(ttsCacheManifest.entries.map((entry) => [entry.text, entry.url] as const)),
-    [ttsCacheManifest.entries],
+    () => new Map(ttsCacheManifest.entries.map((entry) => [entry.text, entry.url + speechQuery] as const)),
+    [ttsCacheManifest.entries, speechQuery],
   )
 
   const baseLayout: Layout[] = useMemo(
@@ -370,7 +383,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin, linkedBoa
     const loading: Promise<string | null> = fetch('/next/tts-ms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: preparedText }),
+      body: JSON.stringify({ text: preparedText, ...(speech ? { speaker: speech.voice, rate: speech.rate } : {}) }),
     })
       .then(async (res) => (res.ok ? URL.createObjectURL(await res.blob()) : null))
       .catch(() => null)
@@ -388,7 +401,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin, linkedBoa
     }
 
     return loading
-  }, [])
+  }, [speech])
 
   useEffect(() => {
     const store = spokenAudioRef.current
@@ -664,7 +677,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin, linkedBoa
     // form loads when the sentence makes it the next one (below).
     const startPreload = () => {
       for (const entry of ttsCacheManifest.entries) {
-        if (entry.source !== 'grammar') preload(entry.url)
+        if (entry.source !== 'grammar') preload(entry.url + speechQuery)
       }
     }
 
@@ -716,7 +729,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin, linkedBoa
       preloadPromisesRef.current.clear()
       objectURLs.forEach((objectURL) => URL.revokeObjectURL(objectURL))
     }
-  }, [ttsCacheManifest.entries])
+  }, [ttsCacheManifest.entries, speechQuery])
 
   // The forms the cards take on the next tap ("jooksen" after "mina", "õuna" after "tahan") load
   // while the child looks for the card, a few at a time.

@@ -1,5 +1,6 @@
 import { type Page } from '@playwright/test'
 
+import { silentWav } from './audio'
 import { DEFAULT_PIN } from './member'
 import { pageReady } from './ready'
 import { testAccountEmail } from './testAccounts'
@@ -330,6 +331,38 @@ test.describe('board editor', () => {
     const entries = saved.ttsCache.entries as Array<{ source: string; text: string }>
     expect(entries.filter((entry) => entry.source === 'grammar').map((entry) => entry.text)).toEqual(['jooksen.'])
     expect(saved.extra.grammar).toBe(true)
+  })
+
+  test('the profile sets the voice and the rate, and the boards speak with them', async ({ page, baseURL }) => {
+    const spoken: unknown[] = []
+    await page.route('**/next/tts-ms', async (route) => {
+      spoken.push(route.request().postDataJSON())
+      await route.fulfill({ body: silentWav(), contentType: 'audio/wav' })
+    })
+    await enterParentView(page, baseURL)
+    await page.goto('/profile')
+
+    await page.getByRole('combobox', { name: 'Hääl' }).tap()
+    await page.getByRole('option', { name: 'Kert' }).tap()
+    await page.getByRole('combobox', { name: 'Kõnekiirus' }).tap()
+    await page.getByRole('option', { name: 'Aeglane' }).tap()
+    await page.getByRole('button', { name: 'Kuula' }).tap()
+    await expect
+      .poll(() => spoken)
+      .toContainEqual({ text: 'Tere! Mina tahan mängida.', speaker: 'et-EE-KertNeural', rate: 'slow' })
+    await page.getByRole('button', { name: 'Salvesta hääl' }).tap()
+    await expect(page.getByText('Hääl salvestatud.')).toBeVisible()
+
+    // A board speaks in that voice, at that rate.
+    const boardId = await createOwnBoard(page.request, `Hääl ${Date.now()}`, [{ title: 'kass' }])
+    await page.goto(`/boards/${boardId}`)
+    await page.getByRole('button', { name: 'kass', exact: true }).tap()
+    await expect.poll(() => spoken).toContainEqual({ text: 'kass.', speaker: 'et-EE-KertNeural', rate: 'slow' })
+
+    // The other tests speak in the site's voice.
+    const { user } = await (await page.request.get('/api/users/me')).json()
+    const reset = await page.request.patch(`/api/users/${user.id}`, { data: { speechVoice: null, speechRate: 'normal' } })
+    expect(reset.status(), await reset.text()).toBe(200)
   })
 
   test('Koduhaldus makes a copy of a board and opens it in the editor', async ({ page, member, baseURL }) => {

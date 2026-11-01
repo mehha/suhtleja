@@ -5,6 +5,7 @@ import { isAdminFieldLevel } from '@/access/isAdminFieldLevel'
 import { isAdminOrSelf } from '@/access/isAdminOrSelf'
 import bcrypt from 'bcryptjs'
 import { validateUserName } from './validateName'
+import { SPEECH_RATES, TTS_VOICES } from '@/utilities/speechSettings'
 
 const DEFAULT_PARENT_PIN = process.env.DEFAULT_PARENT_PIN || '0000'
 
@@ -141,6 +142,21 @@ export const Users: CollectionConfig = {
         readOnly: true,
         position: 'sidebar',
       },
+    },
+    {
+      // The voice and the rate the boards speak with (src/utilities/azureTTS.ts), set on the profile
+      // page. Empty is the site's voice at the normal rate.
+      name: 'speechVoice',
+      type: 'select',
+      label: 'Hääl',
+      options: Object.entries(TTS_VOICES).map(([value, label]) => ({ label, value })),
+    },
+    {
+      name: 'speechRate',
+      type: 'select',
+      label: 'Kõnekiirus',
+      defaultValue: 'normal',
+      options: Object.entries(SPEECH_RATES).map(([value, { label }]) => ({ label, value })),
     },
     {
       name: 'hiddenSharedBoardIds',
