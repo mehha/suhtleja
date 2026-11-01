@@ -5,7 +5,7 @@ export type BoardTTSCacheEntry = {
   contentType: string
   hash: string
   key: string
-  // compound: a compound's speech form; grammar: a verb card's form in a sentence.
+  // compound: a compound's speech form; grammar: a card's form in a sentence ("jooksen", "õuna").
   source: 'cell' | 'compound' | 'grammar'
   text: string
   url: string

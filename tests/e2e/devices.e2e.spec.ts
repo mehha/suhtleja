@@ -342,6 +342,32 @@ test.describe('board', () => {
     await expect.poll(() => spoken).toContain('mina jooksma.')
   })
 
+  test('an object takes the partitive, and its adjective with it', async ({ page, member }) => {
+    const spoken: string[] = []
+    await page.route('**/next/tts-ms', async (route) => {
+      spoken.push(JSON.parse(route.request().postData() ?? '{}').text)
+      await route.fulfill({ body: silentWav(), contentType: 'audio/wav' })
+    })
+    const boardId = await createOwnBoard(page.request, `Käänded ${member.boardName}`, [
+      { title: 'mina', wordClass: 'person' },
+      { title: 'tahtma', wordClass: 'verb' },
+      { title: 'suur', wordClass: 'adjective' },
+      { title: 'õun', wordClass: 'noun' },
+    ])
+    await page.goto(`/boards/${boardId}`)
+    const tile = (index: number) => page.locator('.layout > .react-grid-item').nth(index).getByRole('button')
+    const phrase = page.locator('.actionbar-container')
+
+    for (const index of [0, 1, 2, 3]) await tile(index).tap()
+    await expect.poll(() => spoken).toContain('õuna.')
+    await expect(tile(3)).toHaveAccessibleName('õuna')
+    // The adjective took its form once the noun came.
+    for (const word of ['mina', 'tahan', 'suurt', 'õuna']) {
+      await expect(phrase.getByText(word, { exact: true })).toBeVisible()
+    }
+    await expect.poll(() => spoken).toContain('mina tahan suurt õuna.')
+  })
+
   test("with AI on, a tap speaks at once and the AI's form follows into the phrase", async ({ page, member }) => {
     const spoken: string[] = []
     await page.route('**/next/tts-ms', async (route) => {
@@ -355,12 +381,13 @@ test.describe('board', () => {
     await page.route('**/next/groq', async (route) => {
       asked.push(route.request().postDataJSON())
       await answered
-      await route.fulfill({ json: { surface: 'kassi' } })
+      await route.fulfill({ json: { surface: 'autoga' } })
     })
+    // The word forms leave "mängin auto" alone (toys take "-ga"); the AI gives "autoga".
     const boardId = await createOwnBoard(
       page.request,
       `AI ${member.boardName}`,
-      [{ title: 'kaks' }, { title: 'kass' }, { title: 'mina' }, { title: 'jooksma', wordClass: 'verb' }],
+      [{ title: 'mina' }, { title: 'mängima', wordClass: 'verb' }, { title: 'auto', wordClass: 'noun' }],
       { ai: true },
     )
     await page.goto(`/boards/${boardId}`)
@@ -368,26 +395,22 @@ test.describe('board', () => {
     const phrase = page.locator('.actionbar-container')
 
     await tile(0).tap()
-    await expect.poll(() => spoken).toContain('kaks.')
+    await expect.poll(() => spoken).toContain('mina.')
+    // A word the board's word forms change isn't sent to the AI.
     await tile(1).tap()
+    await expect.poll(() => spoken).toContain('mängin.')
+    await tile(2).tap()
     // Said while the AI is still answering.
-    await expect.poll(() => spoken).toContain('kass.')
-    expect(asked).toEqual([{ contextTail: ['kaks'], token: 'kass' }])
-    await expect(phrase.getByText('kass', { exact: true })).toBeVisible()
+    await expect.poll(() => spoken).toContain('auto.')
+    expect(asked).toEqual([{ contextTail: ['mina', 'mängin'], token: 'auto' }])
+    await expect(phrase.getByText('auto', { exact: true })).toBeVisible()
 
     answer()
-    await expect(phrase.getByText('kassi', { exact: true })).toBeVisible()
-    await expect(tile(1)).toHaveAccessibleName('kassi')
+    await expect(phrase.getByText('autoga', { exact: true })).toBeVisible()
+    await expect(tile(2)).toHaveAccessibleName('autoga')
     // "Play all" is fetched ahead once the AI's form is in, not before.
-    await expect.poll(() => spoken).toContain('kaks kassi.')
-    expect(spoken).not.toContain('kaks kass.')
-
-    // A word the board's word forms change isn't sent to the AI.
-    await page.getByRole('button', { name: 'Tühjenda fraas' }).tap()
-    await tile(2).tap()
-    await tile(3).tap()
-    await expect.poll(() => spoken).toContain('jooksen.')
-    expect(asked).toHaveLength(1)
+    await expect.poll(() => spoken).toContain('mina mängin autoga.')
+    expect(spoken).not.toContain('mina mängin auto.')
   })
 })
 

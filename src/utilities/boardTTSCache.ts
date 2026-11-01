@@ -13,7 +13,7 @@ import {
   buildBoardTTSCacheURL,
   getBoardTTSCacheManifest,
 } from '@/utilities/boardTTSCacheManifest'
-import { boardVerbForms } from '@/utilities/grammar/applyGrammar'
+import { boardWordForms } from '@/utilities/grammar/applyGrammar'
 
 type BoardLike = Pick<Board, 'compounds' | 'grid' | 'id'> & {
   extra?: Board['extra']
@@ -53,7 +53,7 @@ export function getTTSObjectKey(voice: string, hash: string, extension = 'mp3'):
   return `tts/ms/${sanitizeVoiceForKey(voice)}/${hash}.${extension}`
 }
 
-// A board with many verb cards and subjects has many forms; the most used are kept, and the rest are
+// A board with many verb and noun cards has many forms; the most used are kept, and the rest are
 // synthesized when the child says them, like any unsaved speech.
 export const GRAMMAR_SPEECH_MAX = 120
 
@@ -82,11 +82,11 @@ export function collectBoardTTSInputs(
     }
   }
 
-  // The forms the board's verb cards take in its sentences ("jooksen" after "mina").
+  // The forms the board's cards take in its sentences ("jooksen" after "mina", "õuna" after "tahan").
   if (board.extra?.grammar !== false) {
     const cards = (board.grid?.cells ?? []).map((cell) => ({ text: cell.title ?? '', wordClass: cell.wordClass }))
     let kept = 0
-    for (const form of boardVerbForms(cards)) {
+    for (const form of boardWordForms(cards)) {
       const prepared = prepareTextForTTS(form)
       if (!prepared || seen.has(prepared)) continue
       if (kept++ >= GRAMMAR_SPEECH_MAX) break

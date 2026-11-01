@@ -1,10 +1,12 @@
 import { guessWordClass, isPronoun, normalizeWord } from '@/utilities/wordClass'
 import { IRREGULAR_PRESENT, VERB_FORMS } from './verbForms'
+import { ADJECTIVE_PARTITIVE, NOUN_PARTITIVE, NUMERAL_PARTITIVE } from './wordForms'
 
-// The board's word forms (docs/rules/project/boards.md, "Word forms"): a verb card in the
-// ma-infinitive takes the form the sentence gives it. "mina" + "jooksma" says "mina jooksen",
-// "ei" + "jooksma" "ei jookse", "tahan" + "sööma" "tahan süüa". Pure, so the runner, the editor's
-// hint, the speech cache and the tests share it. Tested in tests/int/grammar.int.spec.ts.
+// The board's word forms (docs/rules/project/boards.md, "Word form rules"): a verb card in the
+// ma-infinitive takes the form the sentence gives it, and so do the nouns after it. "mina" +
+// "jooksma" says "mina jooksen", "ei" + "jooksma" "ei jookse", "tahan" + "sööma" "tahan süüa",
+// "tahan" + "suur" + "õun" "tahan suurt õuna", "kaks" + "kass" "kaks kassi". Pure, so the runner,
+// the editor's hint, the speech cache and the tests share it. Tested in tests/int/grammar.int.spec.ts.
 
 export type Person = '1sg' | '2sg' | '3sg' | '1pl' | '2pl' | '3pl'
 export type VerbFormKind = Person | 'neg' | 'da'
@@ -88,12 +90,62 @@ export const DA_VERBS = new Set([
   'võima',
 ])
 
+// Verbs whose object is in the partitive: "tahan õuna", "otsin kassi". In the present tense the
+// partitive is always right ("ostan jäätise", the whole of it, is left out). After any other verb a
+// noun keeps its form ("olen kass"), and after "ei" it is in the partitive whatever the verb ("mul ei
+// ole palli"). mängima is left out: its toys take "-ga" ("mängin autoga").
+export const OBJECT_VERBS = new Set([
+  'aitama', 'alustama', 'andestama', 'andma', 'armastama', 'avama', 'ehitama', 'ehmatama',
+  'eelistama', 'harjutama', 'igatsema', 'imema', 'jagama', 'joonistama', 'jooma', 'jätkama',
+  'kaevama', 'kallama', 'kallistama', 'kammima', 'kandma', 'kaotama', 'kartma', 'katsetama',
+  'katsuma', 'keerama', 'keetma', 'kiitma', 'kinkima', 'kinnitama', 'kirjutama', 'kleepima',
+  'koguma', 'koorima', 'korjama', 'koristama', 'kraapima', 'kuivatama', 'kustutama', 'kutsuma',
+  'kuulama', 'kuulma', 'külastama', 'küpsetama', 'küsima', 'leidma', 'loendama', 'lugema',
+  'lõhkuma', 'lõikama', 'lõpetama', 'lükkama', 'lööma', 'maitsma', 'meisterdama', 'murdma',
+  'mõistma', 'mõõtma', 'mäletama', 'neelama', 'nuusutama', 'nägema', 'näitama', 'närima',
+  'ootama', 'oskama', 'ostma', 'otsima', 'paitama', 'panema', 'parandama', 'peitma', 'pesema',
+  'pigistama', 'pildistama', 'proovima', 'puhastama', 'puudutama', 'püüdma', 'raputama', 'rebima',
+  'saama', 'segama', 'siduma', 'silitama', 'soovima', 'sorteerima', 'suudlema', 'sööma',
+  'tahtma', 'teadma', 'tegema', 'tervitama', 'tooma', 'tundma', 'tõmbama', 'tõstma', 'tänama',
+  'unustama', 'uskuma', 'uurima', 'vaatama', 'vahetama', 'vajama', 'vajutama', 'valama', 'valima',
+  'venitama', 'vihkama', 'viima', 'viskama', 'voltima', 'voolima', 'võitma', 'võtma', 'värvima',
+  'õpetama', 'õppima',
+])
+
+// Pronouns as objects: "ema kallistab mind", "tahan seda".
+const OBJECT_PRONOUNS: Record<string, string> = {
+  mina: 'mind',
+  ma: 'mind',
+  sina: 'sind',
+  sa: 'sind',
+  tema: 'teda',
+  ta: 'teda',
+  meie: 'meid',
+  me: 'meid',
+  teie: 'teid',
+  te: 'teid',
+  nemad: 'neid',
+  nad: 'neid',
+  see: 'seda',
+  too: 'toda',
+  need: 'neid',
+  keegi: 'kedagi',
+}
+
+// Words like numerals: a noun after them is in the partitive singular ("mitu kassi").
+const QUANTIFIERS: Record<string, string> = { mitu: 'mitut' }
+// Numerals after which the noun keeps its form ("üks kass").
+const NOT_COUNTING = new Set(['üks', 'null'])
+
 // "ja" joins subjects ("mina ja ema lähme") or, after a verb, starts a clause that keeps the
 // subject ("mina söön ja joon"). These start a clause that keeps it too.
 const JOINING = new Set(['ja', 'ning'])
 const KEEPS_SUBJECT = new Set(['aga', 'või', 'ega'])
 // These start a clause of its own.
 const NEW_CLAUSE = new Set(['sest', 'et', 'kui', 'siis', 'kuna', 'kuigi', 'kuni'])
+// After an object, these join another object to it: "õuna ja banaani", "õuna või banaani", "ei
+// taha õuna ega banaani".
+const JOINS_OBJECTS = new Set(['ja', 'ning', 'või', 'ega'])
 
 type VerbCard = {
   verb: string
@@ -151,6 +203,56 @@ function verbOfForm(text: string, wordClass?: string | null): { verb: string; fi
   return da ? { verb: da, finite: false } : null
 }
 
+// A word of a noun phrase: a noun, or an adjective or numeral that takes the form of the noun after
+// it. Its class (a parent's pick, or the picture bank's category) says which list comes first;
+// a word in only one list is what the list says ("ring" is a noun though shapes are filed with the
+// colours).
+type PhraseWord = {
+  kind: 'noun' | 'adjective' | 'numeral'
+  partitive: string
+  // A numeral after which the noun is in the partitive ("kaks kassi", not "üks kass").
+  counts: boolean
+}
+
+const NEVER_INFLECTED_CLASSES = new Set(['verb', 'question', 'social'])
+
+// Words that are a noun only rarely ("või" is also butter, "kaasa" a spouse, "liiga" a league): they
+// keep their form unless the card is classed as a noun or an adjective.
+const FUNCTION_WORDS = new Set(
+  'ei pole kas ka veel väga ainult liiga koos kaasa enne pärast siin seal nüüd natuke kõik miks anna tere stopp hurraa palun aitäh jah'.split(
+    ' ',
+  ),
+)
+
+function phraseWord(text: string, wordClass?: string | null): PhraseWord | null {
+  const cardClass = wordClass ?? guessWordClass(text)
+  if (cardClass && NEVER_INFLECTED_CLASSES.has(cardClass)) return null
+  const word = normalizeWord(text)
+  // Pronouns have their own forms (OBJECT_PRONOUNS); Vabamorf also knows "mulle" and "meil" as nouns.
+  if (isPronoun(word) || EXPERIENCERS.has(word) || OBJECT_PRONOUNS[word]) return null
+  const functionWord = FUNCTION_WORDS.has(word) || JOINING.has(word) || KEEPS_SUBJECT.has(word) || NEW_CLAUSE.has(word)
+  if (functionWord && cardClass !== 'noun' && cardClass !== 'adjective') return null
+  if (/^\d+$/.test(word)) return { kind: 'numeral', partitive: word, counts: Number(word) >= 2 }
+  if (word.includes(' ')) return null
+
+  const numeral = NUMERAL_PARTITIVE[word] ?? QUANTIFIERS[word]
+  const asNumeral = numeral ? { kind: 'numeral' as const, partitive: numeral, counts: !NOT_COUNTING.has(word) } : null
+  const noun = NOUN_PARTITIVE[word] ? { kind: 'noun' as const, partitive: NOUN_PARTITIVE[word], counts: false } : null
+  const adjective = ADJECTIVE_PARTITIVE[word]
+    ? { kind: 'adjective' as const, partitive: ADJECTIVE_PARTITIVE[word], counts: false }
+    : null
+
+  if (cardClass === 'adjective') return adjective ?? noun ?? asNumeral
+  if (cardClass === 'noun' || cardClass === 'person' || cardClass === 'place') return noun ?? adjective ?? asNumeral
+  return asNumeral ?? noun ?? adjective
+}
+
+/** A noun card's partitive ("õuna"), for the card dialog; null for other cards. */
+export function nounPartitive(text: string, wordClass?: string | null): string | null {
+  const word = phraseWord(text, wordClass)
+  return word?.kind === 'noun' ? withCase(text, word.partitive) : null
+}
+
 type Subject = {
   person: Person
   // A pronoun outranks a person or "see": "mina ema kallistama" is "mina kallistan ema". A subject
@@ -185,6 +287,9 @@ type Clause = {
   finite: boolean
   // The last verb, which decides the next one's form.
   lastVerb: string | null
+  // An object before a "ja": the words after it are objects too ("otsin kassi ja koera"), until a
+  // verb or a subject comes. After a pronoun, a pronoun is an object ("mind ja sind").
+  carriedObject: 'noun' | 'pronoun' | null
 }
 
 const newClause = (subjects: Subject[] = []): Clause => ({
@@ -194,7 +299,15 @@ const newClause = (subjects: Subject[] = []): Clause => ({
   negated: false,
   finite: false,
   lastVerb: null,
+  carriedObject: null,
 })
+
+// A noun here is an object: after one of OBJECT_VERBS, or any verb after "ei".
+function takesObject(clause: Clause): boolean {
+  if (clause.carriedObject) return true
+  if (!clause.finite || !clause.lastVerb) return false
+  return clause.negated || OBJECT_VERBS.has(clause.lastVerb)
+}
 
 // The person of the clause's subjects: "mina ja ema" are "meie", "sina ja ema" "teie".
 function personOf(clause: Clause): Person | null {
@@ -230,98 +343,193 @@ function withCase(original: string, form: string): string {
 }
 
 /**
- * The words of a sentence in the forms it gives them, one per token. Only verb cards in the
- * ma-infinitive change: after a subject or "ei" the first verb of a clause is finite, and a verb
- * after one of DA_VERBS takes the da-infinitive. Everything else stays as the card says.
+ * The words of a sentence in the forms it gives them, one per token. Verb cards in the
+ * ma-infinitive: after a subject or "ei" the first verb of a clause is finite, and a verb after one
+ * of DA_VERBS takes the da-infinitive. Nouns after the verb: an object is in the partitive, with
+ * the adjectives and numerals before it, and a noun after a counting numeral is in the partitive
+ * singular. Everything else stays as the card says.
  */
 export function applyGrammar(tokens: GrammarToken[]): string[] {
+  const out = tokens.map(({ text }) => text)
   let clause = newClause()
+  // Adjectives and numerals waiting for their noun, which decides their form. Without a noun after
+  // them they stay as tapped.
+  let phrase: Array<{ index: number; word: PhraseWord }> = []
+  // The object just said, for a "ja" after it.
+  let lastObject: 'noun' | 'pronoun' | null = null
 
-  return tokens.map(({ text, wordClass }) => {
+  const nounPhrase = (index: number, noun: PhraseWord) => {
+    const object = takesObject(clause)
+    const counted = phrase.some(({ word }) => word.counts)
+    if (object || counted) {
+      for (const { index: at, word } of phrase) {
+        // A numeral is in the partitive only as part of an object ("tahan kahte õuna", "mul on kaks õuna").
+        if (word.kind === 'numeral' && !object) continue
+        out[at] = withCase(tokens[at]!.text, word.partitive)
+      }
+      out[index] = withCase(tokens[index]!.text, noun.partitive)
+    }
+    phrase = []
+    lastObject = object ? 'noun' : null
+  }
+
+  tokens.forEach(({ text, wordClass }, index) => {
     const word = normalizeWord(text)
+    const objectBefore = lastObject
+    lastObject = null
+
+    const inPhrase = phraseWord(text, wordClass)
+    if (inPhrase && inPhrase.kind !== 'noun' && !subjectOf(text, wordClass)) {
+      phrase.push({ index, word: inPhrase })
+      return
+    }
+    if (inPhrase?.kind === 'noun' && !subjectOf(text, wordClass)) {
+      nounPhrase(index, inPhrase)
+      return
+    }
+    // The noun phrase ends without a noun: its words stay as tapped.
+    const phraseBefore = phrase
+    phrase = []
 
     if (NEW_CLAUSE.has(word)) {
       clause = newClause()
-      return text
+      return
     }
     if (JOINING.has(word) || KEEPS_SUBJECT.has(word)) {
-      if (clause.finite) {
+      if (clause.finite || clause.carriedObject) {
         const person = personOf(clause)
+        const carried = objectBefore && JOINS_OBJECTS.has(word) ? objectBefore : null
         clause = newClause(person ? [{ person, rank: 'kept' }] : [])
+        clause.carriedObject = carried
       } else if (JOINING.has(word) && clause.subjects.length > 0) {
         clause.joining = true
       }
-      return text
+      return
     }
     if (word === 'ei') {
       if (!clause.finite) clause.negated = true
-      return text
+      return
+    }
+    // "pole" is "ei ole".
+    if (word === 'pole') {
+      clause.carriedObject = null
+      clause.negated = true
+      clause.finite = true
+      clause.lastVerb = 'olema'
+      return
     }
 
     const subject = subjectOf(text, wordClass)
     if (subject) {
+      const objectPronoun = OBJECT_PRONOUNS[word]
+      const asObject =
+        clause.finite || clause.carriedObject
+          ? takesObject(clause) && (clause.finite || clause.carriedObject === 'pronoun' || !objectPronoun)
+          : false
+      if (asObject) {
+        // A person ("otsin sõpra") is a noun of the phrase; a pronoun takes its object form.
+        const person = phraseWord(text, wordClass)
+        if (!objectPronoun && person?.kind === 'noun') {
+          phrase = phraseBefore
+          nounPhrase(index, person)
+          return
+        }
+        if (objectPronoun) {
+          for (const { index: at, word: before } of phraseBefore) out[at] = withCase(tokens[at]!.text, before.partitive)
+          out[index] = withCase(text, objectPronoun)
+          lastObject = 'pronoun'
+        }
+        return
+      }
+      if (clause.carriedObject) clause.carriedObject = null
       if (!clause.finite) addSubject(clause, subject)
-      return text
+      return
     }
     if (EXPERIENCERS.has(word)) {
       if (!clause.finite) {
         clause.experiencer = true
         clause.subjects = clause.subjects.filter((s) => s.rank !== 'kept')
       }
-      return text
+      return
     }
 
     const card = verbCard(text, wordClass)
     if (card) {
+      clause.carriedObject = null
       if (clause.finite) {
         const form = clause.lastVerb && DA_VERBS.has(clause.lastVerb) ? verbForm(card, 'da') : null
         clause.lastVerb = card.verb
-        return form ? withCase(text, form) : text
+        if (form) out[index] = withCase(text, form)
+        return
       }
       const kind = clause.negated ? 'neg' : personOf(clause)
-      if (!kind) return text
+      if (!kind) return
       clause.finite = true
       clause.lastVerb = card.verb
-      return withCase(text, verbForm(card, kind))
+      out[index] = withCase(text, verbForm(card, kind))
+      return
     }
 
     // A finite form is the clause's verb; an infinitive only continues a verb chain.
     const form = verbOfForm(text, wordClass)
     if (form && (form.finite || clause.finite)) {
+      clause.carriedObject = null
       clause.finite = true
       clause.lastVerb = form.verb
     }
-    return text
   })
+
+  return out
 }
 
-const FORM_ORDER: VerbFormKind[] = ['1sg', '3sg', 'neg', 'da', '2sg', '1pl', '3pl', '2pl']
+const FIRST_FORMS: VerbFormKind[] = ['1sg', '3sg', 'neg', 'da']
+const LATER_FORMS: VerbFormKind[] = ['2sg', '1pl', '3pl', '2pl']
 const PLURAL_OF: Partial<Record<Person, Person>> = { '1sg': '1pl', '2sg': '2pl', '3sg': '3pl' }
 
+/** A card whose word a sentence can change: a verb, a noun, adjective or numeral, or a pronoun. */
+export function canChangeForm(text: string, wordClass?: string | null): boolean {
+  return Boolean(verbCard(text, wordClass) || phraseWord(text, wordClass) || OBJECT_PRONOUNS[normalizeWord(text)])
+}
+
 /**
- * The forms a board's verb cards can take in its sentences, most used first, for the speech cache:
- * the persons of the board's subject cards (and their plurals when it has "ja"), "ei" and the
- * da-infinitive when it has a card that calls for them.
+ * The forms a board's cards can take in its sentences, most used first, for the speech cache: its
+ * verbs in the persons of its subject cards (and their plurals when it has "ja"), after "ei" and in
+ * the da-infinitive when it has a card that calls for them; its nouns and adjectives in the
+ * partitive when it has a verb that takes an object, "ei" or a counting numeral; its pronouns and
+ * numerals as objects.
  */
-export function boardVerbForms(cards: GrammarToken[]): string[] {
+export function boardWordForms(cards: GrammarToken[]): string[] {
   const kinds = new Set<VerbFormKind>()
   const verbs: Array<{ text: string; card: VerbCard }> = []
+  const phraseWords: Array<{ text: string; word: PhraseWord }> = []
+  const pronouns: Array<{ text: string; object: string }> = []
   let joining = false
+  let objects = false
+  let counting = false
 
   for (const { text, wordClass } of cards) {
     const word = normalizeWord(text)
     if (!word) continue
     if (JOINING.has(word)) joining = true
     if (word === 'ei') kinds.add('neg')
+    if (word === 'pole') objects = true
     if (EXPERIENCERS.has(word)) kinds.add('3sg')
 
     const subject = subjectOf(text, wordClass)
     if (subject) kinds.add(subject.person)
+    if (OBJECT_PRONOUNS[word]) pronouns.push({ text, object: OBJECT_PRONOUNS[word] })
 
     const card = verbCard(text, wordClass)
     if (card) verbs.push({ text, card })
     const verb = card?.verb ?? verbOfForm(text, wordClass)?.verb
     if (verb && DA_VERBS.has(verb)) kinds.add('da')
+    if (verb && OBJECT_VERBS.has(verb)) objects = true
+
+    const inPhrase = phraseWord(text, wordClass)
+    if (inPhrase) {
+      phraseWords.push({ text, word: inPhrase })
+      if (inPhrase.counts) counting = true
+    }
   }
   if (joining) {
     for (const kind of [...kinds]) {
@@ -329,11 +537,27 @@ export function boardVerbForms(cards: GrammarToken[]): string[] {
       if (plural) kinds.add(plural)
     }
   }
+  if (kinds.has('neg') && verbs.length > 0) objects = true
 
   const forms = new Set<string>()
-  for (const kind of FORM_ORDER) {
-    if (!kinds.has(kind)) continue
-    for (const { text, card } of verbs) forms.add(withCase(text, verbForm(card, kind)))
+  const addVerbForms = (order: VerbFormKind[]) => {
+    for (const kind of order) {
+      if (!kinds.has(kind)) continue
+      for (const { text, card } of verbs) forms.add(withCase(text, verbForm(card, kind)))
+    }
   }
+  addVerbForms(FIRST_FORMS)
+  if (objects || counting) {
+    const hasNoun = phraseWords.some(({ word }) => word.kind === 'noun')
+    for (const kind of ['noun', 'adjective'] as const) {
+      if (kind === 'adjective' && !hasNoun) continue
+      for (const { text, word } of phraseWords) if (word.kind === kind) forms.add(withCase(text, word.partitive))
+    }
+  }
+  if (objects) {
+    for (const { text, object } of pronouns) forms.add(withCase(text, object))
+    for (const { text, word } of phraseWords) if (word.kind === 'numeral') forms.add(withCase(text, word.partitive))
+  }
+  addVerbForms(LATER_FORMS)
   return [...forms]
 }

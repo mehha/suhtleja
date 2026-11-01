@@ -296,6 +296,9 @@ test.describe('board editor', () => {
     await expect(forms).toHaveText('Lauses: mina jooksen · tema jookseb · ei jookse')
     await dialog.getByRole('textbox', { name: 'Tekst', exact: true }).fill('kirjeldama')
     await expect(forms).toHaveText(/veel ei pööra/)
+    // A noun card shows its object form.
+    await dialog.getByRole('textbox', { name: 'Tekst', exact: true }).fill('õun')
+    await expect(forms).toHaveText('Lauses: tahan õuna · kaks õuna')
     await dialog.getByRole('button', { name: 'Tühista' }).tap()
     await expect(dialog).toBeHidden()
 

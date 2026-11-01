@@ -23,7 +23,7 @@ import { CellLabel } from './CellLabel'
 import { toast } from 'sonner'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
 import { wordClassColor } from '@/utilities/wordClass'
-import { applyGrammar, verbCard, type GrammarToken } from '@/utilities/grammar/applyGrammar'
+import { applyGrammar, canChangeForm, type GrammarToken } from '@/utilities/grammar/applyGrammar'
 
 const GRID_MARGIN: [number, number] = [16, 16]
 // The board keeps its own columns while a tile is at least this wide (the editor's minimum too), so
@@ -61,6 +61,8 @@ const SPOKEN_AUDIO_KEEP = 12
 const SENTENCE_PREFETCH_DELAY_MS = 300
 // Longer runs of taps are rarely played as one sentence; "play all" still fetches them on demand.
 const SENTENCE_PREFETCH_MAX_WORDS = 10
+// Word forms the next tap can need, loaded after each tap (a board's nouns after "tahan").
+const NEXT_FORMS_PRELOAD_MAX = 24
 
 // The child view shows no other toasts: only this one, so a tap that made no sound isn't silent.
 // The id keeps repeated taps from stacking toasts.
@@ -99,8 +101,9 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   const cols = Math.max(1, board.grid?.cols ?? 6)
   const cells = useMemo(() => (board.grid?.cells ?? []).filter((c) => !c.locked), [board.grid?.cells])
   const cellById = useMemo(() => new Map(cells.map((c) => [String(c.id), c] as const)), [cells])
-  const verbCells = useMemo(
-    () => cells.filter((c) => c.title?.trim() && verbCard(c.title, c.wordClass)),
+  // Cards a sentence can change ("jooksen", "õuna"), for loading their forms ahead.
+  const formCells = useMemo(
+    () => cells.filter((c) => c.title?.trim() && canChangeForm(c.title, c.wordClass)),
     [cells],
   )
   const ttsCacheManifest = useMemo(() => getBoardTTSCacheManifest(board), [board])
@@ -635,19 +638,22 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
     }
   }, [ttsCacheManifest.entries])
 
-  // The forms the verb cards take on the next tap ("jooksen" after "mina") load while the child
-  // looks for the card.
+  // The forms the cards take on the next tap ("jooksen" after "mina", "õuna" after "tahan") load
+  // while the child looks for the card, a few at a time.
   useEffect(() => {
     if (!grammarEnabled || sequence.length === 0) return
     const said = grammarInput(sequence)
-    for (const cell of verbCells) {
+    let loading = 0
+    for (const cell of formCells) {
       const title = cell.title!.trim()
       const form = applyGrammar([...said, { text: title, wordClass: cell.wordClass }]).at(-1)!
       if (form === title) continue
       const url = cachedAudioUrlByText.get(prepareTextForTTS(form))
-      if (url) preloadAudioRef.current(url)
+      if (!url) continue
+      preloadAudioRef.current(url)
+      if (++loading >= NEXT_FORMS_PRELOAD_MAX) break
     }
-  }, [grammarEnabled, sequence, grammarInput, verbCells, cachedAudioUrlByText])
+  }, [grammarEnabled, sequence, grammarInput, formCells, cachedAudioUrlByText])
 
   return (
     <div

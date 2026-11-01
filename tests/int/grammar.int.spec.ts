@@ -10,8 +10,9 @@ import { describe, expect, it } from 'vitest'
 
 import { applyCompounds } from '@/app/(frontend)/boards/[id]/compounds/applyCompounds'
 import { collectBoardTTSInputs, GRAMMAR_SPEECH_MAX } from '@/utilities/boardTTSCache'
-import { applyGrammar, boardVerbForms, verbCard, verbForm } from '@/utilities/grammar/applyGrammar'
+import { applyGrammar, boardWordForms, nounPartitive, verbCard, verbForm } from '@/utilities/grammar/applyGrammar'
 import { VERB_FORMS } from '@/utilities/grammar/verbForms'
+import { ADJECTIVE_PARTITIVE, NUMERAL_PARTITIVE } from '@/utilities/grammar/wordForms'
 
 // Cards as "word" or "word:class".
 const say = (...cards: string[]) =>
@@ -88,6 +89,46 @@ describe('word forms', () => {
     // Capitals as on the card
     [['Mina', 'Jooksma'], 'Mina Jooksen'],
     [['MINA', 'JOOKSMA'], 'MINA JOOKSEN'],
+    // Objects in the partitive
+    [['mina', 'tahtma', 'õun'], 'mina tahan õuna'],
+    [['tahan', 'vesi'], 'tahan vett'],
+    [['mina', 'ei', 'tahtma', 'piim'], 'mina ei taha piima'],
+    [['mina', 'otsima', 'kass', 'ja', 'koer'], 'mina otsin kassi ja koera'],
+    [['mina', 'otsima', 'sõber'], 'mina otsin sõpra'],
+    [['mina', 'tahtma', 'sööma', 'õun'], 'mina tahan süüa õuna'],
+    [['mul', 'ei', 'olema', 'pall'], 'mul ei ole palli'],
+    [['mul', 'pole', 'pall'], 'mul pole palli'],
+    [['mina', 'sööma', 'leib', 'ja', 'sina', 'jooma', 'piim'], 'mina söön leiba ja sina jood piima'],
+    [['mina', 'sööma', 'leib', 'ja', 'jooma', 'vesi'], 'mina söön leiba ja joon vett'],
+    [['mina', 'tahtma', 'või:noun'], 'mina tahan võid'],
+    [['Mina', 'Tahtma', 'Õun'], 'Mina Tahan Õuna'],
+    // Pronouns as objects
+    [['tahan', 'see'], 'tahan seda'],
+    [['tahan', 'see', 'pall'], 'tahan seda palli'],
+    [['ema', 'kallistama', 'mina'], 'ema kallistab mind'],
+    [['ema', 'kallistama', 'mina', 'ja', 'sina'], 'ema kallistab mind ja sind'],
+    // Numerals
+    [['kaks', 'kass'], 'kaks kassi'],
+    [['mul', 'olema', 'kolm', 'auto'], 'mul on kolm autot'],
+    [['tahan', 'kaks', 'õun'], 'tahan kahte õuna'],
+    [['tahan', 'üks', 'õun'], 'tahan ühte õuna'],
+    [['mina', 'vaatama', 'mitu', 'kass'], 'mina vaatan mitut kassi'],
+    [['mina', 'tahtma', '2', 'õun'], 'mina tahan 2 õuna'],
+    [['mul', 'ei', 'olema', 'kaks', 'kass'], 'mul ei ole kahte kassi'],
+    // Adjectives take the noun's form
+    [['tahan', 'suur', 'punane', 'pall'], 'tahan suurt punast palli'],
+    [['tahan', 'kaks', 'suur', 'pall'], 'tahan kahte suurt palli'],
+    [['kaks', 'väike', 'kass'], 'kaks väikest kassi'],
+    // Nouns that keep their form
+    [['mul', 'olema', 'pall'], 'mul on pall'],
+    [['mina', 'olema', 'suur'], 'mina olen suur'],
+    [['mina', 'tahtma', 'suur'], 'mina tahan suur'],
+    [['mina', 'tahtma', 'natuke'], 'mina tahan natuke'],
+    [['mina', 'tahtma', 'õun', 'või', 'banaan'], 'mina tahan õuna või banaani'],
+    [['mina', 'ei', 'tahtma', 'õun', 'ega', 'banaan'], 'mina ei taha õuna ega banaani'],
+    [['mina', 'mängima', 'auto'], 'mina mängin auto'],
+    [['mina', 'tahtma', 'frisbi'], 'mina tahan frisbi'],
+    [['ema', 'mina', 'kallistama'], 'ema mina kallistan'],
   ])('%j says "%s"', (cards, expected) => {
     expect(say(...cards)).toBe(expected)
   })
@@ -110,13 +151,17 @@ describe('word forms', () => {
     [['minu', 'magama']],
     // A verb form classed as something else ("palun" is "please") doesn't start a verb chain
     [['palun:social', 'sööma']],
+    // Without a verb or a counting numeral, a noun phrase keeps its form
+    [['suur', 'pall']],
+    [['üks', 'kass']],
+    [['tahtma', 'õun']],
+    [['pall', 'ja', 'auto']],
   ])('%j stays as tapped', (cards) => {
     expect(say(...cards)).toBe(cards.map((card) => card.split(':')[0]).join(' '))
   })
 
-  it('changes only the verb: nouns keep their form', () => {
+  it('changes no noun after a verb that takes no object', () => {
     expect(say('mina', 'jooksma', 'staadion', 'juust')).toBe('mina jooksen staadion juust')
-    expect(say('mina', 'tahtma', 'õun')).toBe('mina tahan õun')
   })
 
   it('follows a pronoun over a person or "see" when two come without "ja"', () => {
@@ -169,6 +214,39 @@ describe('the verb list', () => {
     }
   })
 
+  it("gives a noun card's partitive for the card dialog", () => {
+    expect(nounPartitive('õun')).toBe('õuna')
+    expect(nounPartitive('Sõber')).toBe('Sõpra')
+    expect(nounPartitive('suur')).toBeNull()
+    expect(nounPartitive('jooksma')).toBeNull()
+    expect(nounPartitive('või')).toBeNull()
+    expect(nounPartitive('või', 'noun')).toBe('võid')
+  })
+
+  it('has the partitive of every noun, adjective and numeral of the picture bank', () => {
+    const bank = readFileSync(path.resolve(__dirname, '../../scripts/pildipank/sonavara.csv'), 'utf8')
+    const header = bank.split('\n')[0]!.split(',')
+    const word = header.indexOf('sõna')
+    const category = header.indexOf('kategooria')
+    const rows = bank
+      .split('\n')
+      .slice(1)
+      .map((line) => line.split(','))
+    const of = (name: string) => rows.filter((row) => row[category] === name).map((row) => row[word]!.trim())
+    // A sample of each kind; generate.py takes every word Vabamorf knows.
+    expect(of('Toit').filter((text) => !text.includes(' ') && !nounPartitive(text, 'noun'))).toEqual([])
+    expect(of('Inimesed').filter((text) => !text.includes(' ') && !/ma$/.test(text) && !nounPartitive(text, 'person'))).toEqual([])
+    expect(
+      of('Omadussõnad').filter(
+        // Words that don't inflect before a noun, and "valju", which Vabamorf knows as "vali".
+        (text) =>
+          !['lahti', 'kinni', 'katki', 'palju', 'vähe', 'valmis', 'täis', 'valju'].includes(text) &&
+          !ADJECTIVE_PARTITIVE[text],
+      ),
+    ).toEqual([])
+    expect(['kaks', 'kolm', 'kümme', 'sada'].map((text) => NUMERAL_PARTITIVE[text])).toEqual(['kahte', 'kolme', 'kümmet', 'sadat'])
+  })
+
   it('says a verb card in every form', () => {
     const card = verbCard('jooksma')!
     expect(['1sg', '2sg', '3sg', '1pl', '2pl', '3pl', 'neg', 'da'].map((kind) => verbForm(card, kind as never))).toEqual([
@@ -188,17 +266,34 @@ describe('the forms a board can say', () => {
   const cards = (...texts: string[]) => texts.map((text) => ({ text }))
 
   it('has the persons of its subjects, "ei" and the da-infinitive', () => {
-    expect(boardVerbForms(cards('mina', 'tema', 'jooksma', 'pall'))).toEqual(['jooksen', 'jookseb'])
-    expect(boardVerbForms(cards('mina', 'ei', 'tahtma', 'sööma'))).toEqual(['tahan', 'söön', 'taha', 'söö', 'tahta', 'süüa'])
+    expect(boardWordForms(cards('mina', 'tema', 'jooksma', 'pall'))).toEqual(['jooksen', 'jookseb'])
+    expect(boardWordForms(cards('mina', 'ei', 'tahtma', 'sööma'))).toEqual(['tahan', 'söön', 'taha', 'söö', 'tahta', 'süüa', 'mind'])
   })
 
   it('has the plurals when the board has "ja"', () => {
-    expect(boardVerbForms(cards('mina', 'ema', 'ja', 'minema'))).toEqual(['lähen', 'läheb', 'läheme', 'lähevad'])
+    expect(boardWordForms(cards('mina', 'ema', 'ja', 'minema'))).toEqual(['lähen', 'läheb', 'läheme', 'lähevad'])
+  })
+
+  it('has the nouns and adjectives in the partitive with a verb that takes an object', () => {
+    expect(boardWordForms(cards('mina', 'tahtma', 'suur', 'õun', 'kaks', 'see'))).toEqual([
+      'tahan',
+      'tahab',
+      'tahta',
+      'õuna',
+      'suurt',
+      'mind',
+      'seda',
+      'kahte',
+    ])
+  })
+
+  it('has the nouns in the partitive with a counting numeral', () => {
+    expect(boardWordForms(cards('kaks', 'kass', 'suur'))).toEqual(['kassi', 'suurt'])
   })
 
   it('has nothing without a subject, "ei" or a verb', () => {
-    expect(boardVerbForms(cards('jooksma', 'sööma'))).toEqual([])
-    expect(boardVerbForms(cards('mina', 'pall'))).toEqual([])
+    expect(boardWordForms(cards('jooksma', 'sööma'))).toEqual([])
+    expect(boardWordForms(cards('mina', 'pall'))).toEqual([])
   })
 })
 
@@ -214,6 +309,7 @@ describe('the speech cache', () => {
       { source: 'cell', text: 'tahan.' },
       { source: 'grammar', text: 'taha.' },
       { source: 'grammar', text: 'tahta.' },
+      { source: 'grammar', text: 'mind.' },
     ])
   })
 

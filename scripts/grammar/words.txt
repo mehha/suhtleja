@@ -1,0 +1,25 @@
+# Nouns the board inflects besides the picture bank's (sonavara.csv, emoji.csv), one nominative
+# singular per line: the people applyGrammar knows as subjects (PEOPLE), so they inflect as objects
+# too ("otsin sõpra"). generate.py reads it.
+
+beebi
+inimene
+kasvataja
+kokk
+laps
+mees
+memm
+naine
+poiss
+politsei
+politseinik
+sõbranna
+taat
+treener
+tüdruk
+vanaema
+vanaisa
+autojuht
+arst
+jõuluvana
+päkapikk
