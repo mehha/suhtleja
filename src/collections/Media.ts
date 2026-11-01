@@ -10,14 +10,15 @@ import {
 import { anyone } from '../access/anyone'
 import { authenticated } from '../access/authenticated'
 
+// A member changes or deletes only their own media outside the shared library. A file in a folder
+// (the picture bank, shared AI pictures) is on other members' boards and in their search, so only
+// admins may replace or delete it, even when a member made it.
 const canManageMedia = ({ req }: AccessArgs<User>): boolean | Where => {
   if (!req.user) return false
   if (req.user.role === 'admin') return true
 
   return {
-    owner: {
-      equals: req.user.id,
-    },
+    and: [{ owner: { equals: req.user.id } }, { folder: { exists: false } }],
   }
 }
 

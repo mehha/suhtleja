@@ -21,7 +21,7 @@ tags: [suhtleja, media, payload, access-control]
 - Uploaded media remains publicly readable because page, board, and puzzle surfaces need to render images and audio without document-specific media auth checks.
 - Auth is required to upload media.
 - Each new authenticated upload must get an `owner` relationship to the current user.
-- Non-admin users may update/delete only media they own.
+- Non-admin users may update/delete only media they own that is not in a folder. A file in a folder is part of the shared library (picture bank, shared AI pictures) and is on other members' boards and in their search, so only admins replace or delete it, even when a member made it. Unsharing an AI picture takes it out of the folder and gives it back to its maker.
 - Admin users may update/delete all media, including legacy media rows where `owner` is still empty.
 - Non-admin users must not be able to transfer media ownership to another user.
 - Non-admin users must not be able to put media in a folder or take it out of one: folders make the shared library (see `access-control.md`).
@@ -32,6 +32,7 @@ tags: [suhtleja, media, payload, access-control]
 ## Change Checklist
 - When changing media access:
   - verify Payload REST access does not allow authenticated users to update/delete another user's media
+  - verify members cannot update/delete media in a folder, including their own shared AI pictures
   - keep frontend board and connect-dots uploads assigning the current user as owner
   - keep public read behavior unless image serving is redesigned across all consumers
   - decide explicitly how legacy ownerless media should be handled before running a backfill

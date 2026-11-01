@@ -351,9 +351,40 @@ describe('media', () => {
     const filed = await payload.update({ collection: 'media', id: aliceMedia.id, data: { folder: folder.id } as never, ...as(admin) })
     expect(ownerId(filed.folder)).toBe(folder.id)
 
-    const keptInLibrary = await payload.update({ collection: 'media', id: aliceMedia.id, data: { folder: null } as never, ...as(alice) })
-    expect(ownerId(keptInLibrary.folder)).toBe(folder.id)
+    // Once in the library, the picture is the admins' to change, even for the member who made it.
+    await expect(payload.update({ collection: 'media', id: aliceMedia.id, data: { folder: null } as never, ...as(alice) })).rejects.toThrow()
+    const kept = await payload.findByID({ collection: 'media', id: aliceMedia.id, ...as(admin) })
+    expect(ownerId(kept.folder)).toBe(folder.id)
     await payload.update({ collection: 'media', id: aliceMedia.id, data: { folder: null } as never, ...as(admin) })
+  })
+
+  it('a customer cannot change or delete library pictures, even ones they made', async () => {
+    const folder = track('payload-folders', await payload.create({ collection: 'payload-folders', data: { name: `Bank ${run}` } as never, ...as(admin) }))
+    const upload = (name: string, owner?: number) =>
+      payload.create({
+        collection: 'media',
+        data: { alt: name, folder: folder.id, ...(owner ? { owner } : {}) } as never,
+        file: { data: tinyPng, mimetype: 'image/png', name: `access-${name}-${run}.png`, size: tinyPng.length },
+        overrideAccess: true,
+      })
+    // A picture bank picture (the import stores them without an owner) and a shared AI picture.
+    const bankPicture = track('media', await upload('bank'))
+    const sharedPicture = track('media', await upload('shared', alice.id))
+
+    for (const picture of [bankPicture, sharedPicture]) {
+      await expect(payload.update({ collection: 'media', id: picture.id, data: { alt: 'Hacked' }, ...as(alice) })).rejects.toThrow()
+      await expect(payload.delete({ collection: 'media', id: picture.id, ...as(alice) })).rejects.toThrow()
+      const stored = await payload.findByID({ collection: 'media', id: picture.id, ...as(admin) })
+      expect(stored.alt).not.toBe('Hacked')
+    }
+
+    // Out of the library again (unshared), the picture is the member's own to change.
+    await payload.update({ collection: 'media', id: sharedPicture.id, data: { folder: null } as never, ...as(admin) })
+    const renamed = await payload.update({ collection: 'media', id: sharedPicture.id, data: { alt: 'Mine' }, ...as(alice) })
+    expect(renamed.alt).toBe('Mine')
+
+    const updatedByAdmin = await payload.update({ collection: 'media', id: bankPicture.id, data: { alt: 'Fixed' }, ...as(admin) })
+    expect(updatedByAdmin.alt).toBe('Fixed')
   })
 })
 
