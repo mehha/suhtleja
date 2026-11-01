@@ -1,6 +1,7 @@
 import { type Page } from '@playwright/test'
 
 import { DEFAULT_PIN } from './member'
+import { testAccountEmail } from './testAccounts'
 import {
   DOTS,
   enterParentView,
@@ -39,8 +40,53 @@ async function expectDialogTouchFriendly(page: Page, name: string) {
   await expect(dialog).toBeHidden()
 }
 
+// Holds the page's JavaScript back until the returned function is called, which waits for React to
+// take over the form: a test can fill the form first, as a password manager or a person on a slow
+// connection does.
+async function holdScripts(page: Page) {
+  let release!: () => void
+  const held = new Promise<void>((resolve) => (release = resolve))
+  await page.route(/\/_next\/static\/chunks\//, async (route) => {
+    await held
+    await route.continue()
+  })
+  return async () => {
+    release()
+    await page.waitForFunction(() => {
+      const form = document.querySelector('form')
+      return !!form && Object.keys(form).some((key) => key.startsWith('__reactFiber'))
+    })
+  }
+}
+
 test.describe('logged out', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
+
+  test('a sign-up filled before the page is ready still goes through', async ({ page }) => {
+    const run = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+    const password = `e2e-${run}-Passw0rd`
+    const ready = await holdScripts(page)
+    await page.goto('/register', { waitUntil: 'commit' })
+    await page.getByLabel('Nimi').fill('Testija')
+    await page.getByLabel('E-post').fill(testAccountEmail(run))
+    await page.getByLabel('Parool', { exact: true }).fill(password)
+    await page.getByLabel('Korda parooli').fill(password)
+    await ready()
+
+    await page.getByRole('button', { name: 'Loo konto' }).tap()
+    await expect(page).toHaveURL(/\/profile\?membership=required$/, { timeout: 60_000 })
+  })
+
+  test('a login filled before the page is ready still goes through', async ({ page, member }) => {
+    const ready = await holdScripts(page)
+    await page.goto('/login', { waitUntil: 'commit' })
+    await page.getByLabel('E-post').fill(member.email)
+    await page.getByLabel('Parool', { exact: true }).fill(member.password)
+    await ready()
+
+    await page.locator('form').getByRole('button', { name: 'Logi sisse' }).tap()
+    await expect(page).toHaveURL(/\/kodu$/, { timeout: 60_000 })
+  })
 
   for (const path of ['/login', '/register']) {
     test(`${path} fits the screen and brings up the right keyboards`, async ({ page, viewport }) => {

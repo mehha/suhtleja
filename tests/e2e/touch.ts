@@ -40,6 +40,8 @@ export type Member = {
   boardId: number
   boardName: string
   cookies: Awaited<ReturnType<APIRequestContext['storageState']>>['cookies']
+  email: string
+  password: string
   puzzleId: number
   wideBoardId: number
 }
@@ -61,7 +63,7 @@ export const test = base.extend<object, { member: Member }>({
   member: [
     async ({ playwright }, use, workerInfo) => {
       const api = await playwright.request.newContext({ baseURL: workerInfo.project.use.baseURL })
-      const { run } = await createMember(api)
+      const { email, password, run } = await createMember(api)
 
       const createBoard = async (name: string, shape: BoardShape) => {
         const response = await api.post('/api/boards', {
@@ -85,7 +87,7 @@ export const test = base.extend<object, { member: Member }>({
       baseExpect(puzzle.status(), await puzzle.text()).toBe(201)
 
       const { cookies } = await api.storageState()
-      await use({ boardId, boardName, cookies, puzzleId: (await puzzle.json()).doc.id, wideBoardId })
+      await use({ boardId, boardName, cookies, email, password, puzzleId: (await puzzle.json()).doc.id, wideBoardId })
       await api.dispose()
     },
     { scope: 'worker' },

@@ -195,8 +195,6 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     const heardResponse = await heard
     expect(heardResponse.request().postDataJSON()).toEqual({ text: 'kaks kassi.' })
     expect(heardResponse.status()).toBe(200)
-    // The board's own speech is checked from here on.
-    speech.length = 0
 
     await page.getByRole('link', { name: 'Vaata tahvlit' }).click()
     await expect(page).toHaveURL(new RegExp(`/boards/${boardId}$`))
@@ -221,6 +219,9 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
   })
 
   await test.step('the board speaks', async () => {
+    // The board's own speech is checked from here on. An earlier visit's preload that was cut off by
+    // leaving the page shows up in WebKit as a response with status 0, so it's left out.
+    speech.length = 0
     await page.getByRole('button').filter({ hasText: boardName }).click()
     await expect(page).toHaveURL(new RegExp(`/boards/${boardId}$`))
 

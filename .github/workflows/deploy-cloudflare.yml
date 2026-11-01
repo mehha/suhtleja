@@ -80,6 +80,16 @@ jobs:
           pnpm test:e2e tests/e2e/member-flow.e2e.spec.ts tests/e2e/devices.e2e.spec.ts tests/e2e/devices-parent.e2e.spec.ts
           rm -rf .wrangler/state .next
 
+      # What the browser saw when a test failed: page snapshots, and traces of the retries
+      # (`pnpm exec playwright show-trace <trace.zip>`). Only throwaway test data from the runner.
+      - name: Upload failed test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 7
+
       - name: Check R2 cache upload configuration
         env:
           CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
