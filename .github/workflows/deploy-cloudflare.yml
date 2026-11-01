@@ -12,8 +12,129 @@ concurrency:
   # Deploy runs D1 migrations; never cancel a run halfway through them.
   cancel-in-progress: false
 
+# The checks and the browser tests run side by side, each on its own runner; the deploy waits for
+# all of them, so a failing check never leaves production migrated without the app that goes with
+# it. The whole run takes the concurrency group, not only the deploy job: runs then deploy in the
+# order they were pushed, and an older commit never lands after a newer one.
 jobs:
+  checks:
+    name: Type-check and integration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          # The runner cache can lag behind Payload's minimum Node 24 patch release.
+          check-latest: true
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      # The Payload-backed tests use a throwaway local D1 on the runner (no Cloudflare credentials in
+      # this job), so migrate it first. The secret only has to exist; it never touches production.
+      # The integration tests include a guard that rejects migrations which rebuild a table (that
+      # cascade-deletes child rows on D1).
+      - name: Integration tests
+        env:
+          PAYLOAD_SECRET: ci-test-secret
+        run: |
+          pnpm payload migrate
+          pnpm test:int
+
+  # A new customer's main path (register, trial, PIN, board speaks) and the device tests (the
+  # child's and the parent's pages on phones and tablets, upright and sideways), against a local dev
+  # server on a throwaway D1 and R2. The member flow test signs its own Stripe webhook event, so the
+  # Stripe values are placeholders and nothing calls Stripe; its speech uses the real Azure key.
+  # Split by device over three runners, so each has its own dev server and database: on one runner
+  # the tests took about 15 minutes, and two browsers sharing its dev server timed out.
+  browser-tests:
+    name: Browser tests (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      # Every job runs to the end, so one failure doesn't hide another.
+      fail-fast: false
+      # About as long each (5.5-7.5 minutes of tests).
+      matrix:
+        include:
+          - name: computer and Android phone
+            projects: --project=desktop --project=mobile
+            browsers: chromium
+          - name: iPhone
+            projects: --project=iphone
+            browsers: webkit
+          - name: iPad and Android tablet
+            projects: --project=ipad --project=android-tablet
+            browsers: chromium webkit
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          # The runner cache can lag behind Payload's minimum Node 24 patch release.
+          check-latest: true
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Chromium for the computer and Android projects, WebKit (Safari's engine) for iPhone and iPad.
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps ${{ matrix.browsers }}
+
+      - name: Member flow and device tests
+        env:
+          PAYLOAD_SECRET: ci-test-secret
+          STRIPE_SECRET_KEY: sk_test_ci_placeholder
+          STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
+          SPEECH_KEY: ${{ secrets.SPEECH_KEY }}
+          SPEECH_REGION: ${{ vars.SPEECH_REGION }}
+          SPEECH_VOICE: ${{ vars.SPEECH_VOICE }}
+        run: |
+          pnpm payload migrate
+          pnpm test:e2e tests/e2e/member-flow.e2e.spec.ts tests/e2e/devices.e2e.spec.ts tests/e2e/devices-parent.e2e.spec.ts ${{ matrix.projects }}
+
+      # What the browser saw when a test failed: page snapshots, and traces of the retries
+      # (`pnpm exec playwright show-trace <trace.zip>`). Only throwaway test data from the runner.
+      # Also when the run is cancelled, since a cancelled run never prints the errors.
+      - name: Upload failed test results
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results-${{ strategy.job-index }}
+          path: test-results/
+          retention-days: 7
+
   deploy:
+    needs: [checks, browser-tests]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -38,58 +159,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      # Checks run before the database migrations, so a failing check never leaves production
-      # migrated without the app that goes with it. The integration tests include a guard that
-      # rejects migrations which rebuild a table (that cascade-deletes child rows on D1).
-      - name: Type-check
-        run: pnpm exec tsc --noEmit
-
-      # The Payload-backed tests use a throwaway local D1 on the runner (no Cloudflare credentials in
-      # this step), so migrate it first. The secret only has to exist; it never touches production.
-      # Remove the local state afterwards: the build starts several workers that would all open it
-      # and fail with "database is locked".
-      - name: Integration tests
-        env:
-          PAYLOAD_SECRET: ci-test-secret
-        run: |
-          pnpm payload migrate
-          pnpm test:int
-          rm -rf .wrangler/state
-
-      # Chromium for the computer and Android projects, WebKit (Safari's engine) for iPhone and iPad.
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium webkit
-
-      # A new customer's main path (register, trial, PIN, board speaks) against a local dev server on
-      # a throwaway D1 and R2, like the integration tests. The test signs its own Stripe webhook event,
-      # so the Stripe values are placeholders and nothing calls Stripe. Speech uses the real Azure key.
-      # The device tests tap through the child's and the parent's pages on phones and tablets,
-      # upright and sideways.
-      # Remove the dev server's state and output so the build starts clean.
-      - name: Member flow and device tests
-        env:
-          PAYLOAD_SECRET: ci-test-secret
-          STRIPE_SECRET_KEY: sk_test_ci_placeholder
-          STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
-          SPEECH_KEY: ${{ secrets.SPEECH_KEY }}
-          SPEECH_REGION: ${{ vars.SPEECH_REGION }}
-          SPEECH_VOICE: ${{ vars.SPEECH_VOICE }}
-        run: |
-          pnpm payload migrate
-          pnpm test:e2e tests/e2e/member-flow.e2e.spec.ts tests/e2e/devices.e2e.spec.ts tests/e2e/devices-parent.e2e.spec.ts
-          rm -rf .wrangler/state .next
-
-      # What the browser saw when a test failed: page snapshots, and traces of the retries
-      # (`pnpm exec playwright show-trace <trace.zip>`). Only throwaway test data from the runner.
-      # Also when the run is cancelled, since a cancelled run never prints the errors.
-      - name: Upload failed test results
-        if: failure() || cancelled()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-test-results
-          path: test-results/
-          retention-days: 7
 
       - name: Check R2 cache upload configuration
         env:
@@ -128,6 +197,10 @@ jobs:
           STRIPE_KEYRING: ${{ secrets.STRIPE_KEYRING }}
           STRIPE_BILLING_PORTAL_CONFIGURATION_ID: ${{ vars.STRIPE_BILLING_PORTAL_CONFIGURATION_ID }}
         run: pnpm run deploy
+
+      # Chromium for the computer and Android projects, WebKit (Safari's engine) for iPhone and iPad.
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium webkit
 
       # Read-only smoke tests against the site that was just deployed: every public page has one h1,
       # images load, /demo redirects, the homepage speech works. A failure here means production
