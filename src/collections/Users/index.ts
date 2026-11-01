@@ -6,6 +6,7 @@ import { isAdminOrSelf } from '@/access/isAdminOrSelf'
 import bcrypt from 'bcryptjs'
 import { validateUserName } from './validateName'
 import { SPEECH_RATES, TTS_VOICES } from '@/utilities/speechSettings'
+import { LABEL_CASES } from '@/utilities/labelCase'
 
 const DEFAULT_PARENT_PIN = process.env.DEFAULT_PARENT_PIN || '0000'
 
@@ -157,6 +158,14 @@ export const Users: CollectionConfig = {
       label: 'Kõnekiirus',
       defaultValue: 'normal',
       options: Object.entries(SPEECH_RATES).map(([value, { label }]) => ({ label, value })),
+    },
+    {
+      // How the cards write their words (src/utilities/labelCase.ts), set on the profile page.
+      name: 'labelCase',
+      type: 'select',
+      label: 'Kaartide tekst',
+      defaultValue: 'upper',
+      options: Object.entries(LABEL_CASES).map(([value, label]) => ({ label, value })),
     },
     {
       name: 'hiddenSharedBoardIds',

@@ -9,6 +9,7 @@ import React from 'react'
 import { isParentModeUtil } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
 import { DEFAULT_TTS_VOICE, speechRate, speechVoice } from '@/utilities/azureTTS'
+import { labelCase } from '@/utilities/labelCase'
 
 type Args = {
   params: Promise<{
@@ -81,6 +82,7 @@ export default async function BoardRunPage({ params: paramsPromise, searchParams
         linkedBoards={linkedBoards}
         backTo={backTo}
         speech={speech}
+        letterCase={labelCase((user as User).labelCase)}
       />
     </>
   )

@@ -7,6 +7,7 @@ import { createHash } from 'crypto'
 import { describe, expect, it } from 'vitest'
 
 import { DEFAULT_TTS_VOICE, buildSSML, getTTSCacheHash, speechRate, speechVoice } from '@/utilities/azureTTS'
+import { LABEL_CASE_CLASS, labelCase } from '@/utilities/labelCase'
 
 describe('speech settings', () => {
   it('accepts only the listed voices and the default', () => {
@@ -31,6 +32,14 @@ describe('speech settings', () => {
     expect(normal).not.toContain('prosody')
     expect(normal).toContain('name="et-EE-AnuNeural"')
     expect(normal).toContain('kass &amp; koer.')
+  })
+
+  it('writes the cards in capitals unless the member picked small letters or a capital start', () => {
+    expect(labelCase('lower')).toBe('lower')
+    expect(labelCase('sentence')).toBe('sentence')
+    expect(labelCase('shouting')).toBe('upper')
+    expect(labelCase(null)).toBe('upper')
+    expect(LABEL_CASE_CLASS.sentence).toContain('first-letter:uppercase')
   })
 
   it('keeps the old hash for the normal rate, so the speech in R2 still serves', () => {

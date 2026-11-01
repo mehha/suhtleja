@@ -365,6 +365,42 @@ test.describe('board editor', () => {
     expect(reset.status(), await reset.text()).toBe(200)
   })
 
+  test('the profile sets how the cards write their words', async ({ page, member, baseURL }) => {
+    await enterParentView(page, baseURL)
+    await page.goto('/profile')
+    await page.getByRole('combobox', { name: 'Kaartide tekst' }).tap()
+    await page.getByRole('option', { name: 'väiketähed' }).tap()
+    await page.getByRole('button', { name: 'Salvesta', exact: true }).tap()
+    await expect(page.getByText('Kaartide tekst salvestatud.')).toBeVisible()
+
+    await page.goto(`/boards/${member.boardId}`)
+    const label = page.locator('.board-cell-label-text').first()
+    await expect.poll(() => label.evaluate((element) => getComputedStyle(element).textTransform)).toBe('lowercase')
+
+    // The other tests see the cards in capitals.
+    const { user } = await (await page.request.get('/api/users/me')).json()
+    const reset = await page.request.patch(`/api/users/${user.id}`, { data: { labelCase: 'upper' } })
+    expect(reset.status(), await reset.text()).toBe(200)
+  })
+
+  test('a board prints in its own layout, without the page around it', async ({ page, member, baseURL }) => {
+    await enterParentView(page, baseURL)
+    await page.goto(`/boards/${member.boardId}`)
+    await page.getByRole('link', { name: 'Prindi' }).tap()
+    await expect(page).toHaveURL(new RegExp(`/boards/${member.boardId}/print$`))
+    await expect(page.getByRole('heading', { level: 1, name: member.boardName })).toBeVisible()
+    await expect(page.getByTestId('print-card')).toHaveCount(BOARD.words.length)
+    await expectTouchFriendly(page, 'print view')
+
+    // On paper the buttons and the site's bars stay off.
+    const print = page.getByRole('button', { name: 'Prindi' })
+    await expect(print).toBeVisible()
+    await page.emulateMedia({ media: 'print' })
+    await expect(print).toBeHidden()
+    await expect(page.getByRole('link', { name: 'Kodu', exact: true })).toBeHidden()
+    await expect(page.getByTestId('print-card').first()).toBeVisible()
+  })
+
   test('Koduhaldus makes a copy of a board and opens it in the editor', async ({ page, member, baseURL }) => {
     await enterParentView(page, baseURL)
     await page.goto('/koduhaldus')
@@ -406,6 +442,8 @@ test.describe('board editor', () => {
     await expect(opens).toHaveText(food)
     await dialog.getByRole('button', { name: 'Salvesta' }).tap()
     await expect(dialog).toBeHidden()
+    // The card shows that it opens a board.
+    await expect(card('söök').getByRole('img', { name: `Avab tahvli: ${food}` })).toBeVisible()
     await page.getByRole('button', { name: 'Salvesta', exact: true }).tap()
     await expect(page.getByRole('button', { name: 'Salvestatud' })).toBeVisible()
 

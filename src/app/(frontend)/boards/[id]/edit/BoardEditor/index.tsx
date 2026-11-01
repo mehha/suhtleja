@@ -20,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
-import { Play, Trash, WholeWord, Edit3, Check, X, Settings2, GripVertical } from 'lucide-react'
+import { Play, Trash, WholeWord, Edit3, Check, X, Settings2, GripVertical, FolderOpen } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Switch } from '@/components/ui/switch'
@@ -33,6 +33,7 @@ import { toast } from 'sonner'
 import { CellLabel } from '../../CellLabel'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
 import { wordClassColor, type WordClass } from '@/utilities/wordClass'
+import type { LabelCase } from '@/utilities/labelCase'
 
 const COMPACT_SWITCH_CLASS =
   'h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4'
@@ -93,6 +94,8 @@ type Props = {
   board: Board
   // Boards a card can open (src/app/(frontend)/boards/[id]/edit/page.tsx).
   linkableBoards: Array<{ id: number; name: string }>
+  // How the cards write their words (profile page), as on the board.
+  letterCase?: LabelCase
   isAdmin: boolean
   renameBoard: (formData: FormData) => Promise<ActionResult>
   updateBoardHomeVisibility: (formData: FormData) => Promise<ActionResult>
@@ -103,6 +106,7 @@ type Props = {
 export default function BoardEditor({
   board,
   linkableBoards,
+  letterCase = 'upper',
   isAdmin,
   renameBoard,
   updateBoardHomeVisibility,
@@ -544,6 +548,11 @@ export default function BoardEditor({
             >
               {cells.map((cell) => {
                 const borderColor = wordClassColors ? wordClassColor(cell.wordClass) : null
+                // A card that opens another board, as on the board: a folder mark (below the grip).
+                const opens =
+                  typeof cell.linkBoard === 'number'
+                    ? (linkableBoards.find((target) => target.id === cell.linkBoard)?.name ?? 'tahvel, mis pole enam saadaval')
+                    : null
                 return (
                 <div
                   key={cell.id}
@@ -599,6 +608,17 @@ export default function BoardEditor({
                     </Button>
                   </div>
 
+                  {opens ? (
+                    <span
+                      role="img"
+                      aria-label={`Avab tahvli: ${opens}`}
+                      title={`Avab tahvli: ${opens}`}
+                      className="absolute left-2 top-10 z-10 inline-flex h-6 w-6 items-center justify-center rounded-[0.5rem] bg-white/90 text-slate-600 shadow-sm"
+                    >
+                      <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  ) : null}
+
                   {renderCellImage(cell)}
 
                   {cell.title && (
@@ -606,6 +626,7 @@ export default function BoardEditor({
                     <CellLabel
                       title={cell.title}
                       className={cellImageSrc(cell) ? undefined : 'pt-8'}
+                      letterCase={letterCase}
                     />
                   )}
                 </div>

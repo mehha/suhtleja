@@ -11,6 +11,7 @@ import { isParentModeUtil } from '@/utilities/uiMode'
 import { withToast } from '@/utilities/flashToast'
 import type { User } from '@/payload-types'
 import { SPEECH_RATES, TTS_VOICES, type SpeechRate } from '@/utilities/speechSettings'
+import { LABEL_CASES, type LabelCase } from '@/utilities/labelCase'
 
 type PinState = {
   success: boolean
@@ -73,6 +74,35 @@ export async function updateSpeechAction(
     collection: 'users',
     id: user.id,
     data: { speechVoice: voice as keyof typeof TTS_VOICES, speechRate: rate as SpeechRate },
+  })
+
+  revalidatePath('/profile')
+  return { success: true }
+}
+
+// How the cards write their words, in the parent view like the other settings.
+export async function updateLabelCaseAction(
+  _prevState: NameState,
+  formData: FormData,
+): Promise<NameState> {
+  const { user, payload } = await getCurrentUser()
+  if (!user) {
+    redirect('/admin')
+  }
+
+  if (!(await isParentModeUtil())) {
+    return { success: false, error: 'Kaartide teksti muutmiseks ava vanema vaade.' }
+  }
+
+  const letterCase = formData.get('labelCase')?.toString() ?? ''
+  if (!(letterCase in LABEL_CASES)) {
+    return { success: false, error: 'Vali, kuidas kaardid sõnu kirjutavad.' }
+  }
+
+  await payload.update({
+    collection: 'users',
+    id: user.id,
+    data: { labelCase: letterCase as LabelCase },
   })
 
   revalidatePath('/profile')

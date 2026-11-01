@@ -7,6 +7,7 @@ import type { Board, User } from '@/payload-types'
 import { findBoardForUser, getBoardOwnerId } from '@/utilities/findBoardForUser'
 import { requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
+import { labelCase } from '@/utilities/labelCase'
 import { ACTION_ERROR, type ActionResult } from '@/utilities/flashToast'
 
 type Params = {
@@ -177,6 +178,7 @@ export default async function BoardEditPage({
     <BoardEditor
       board={board}
       linkableBoards={linkable.docs.map((doc) => ({ id: doc.id, name: doc.name || 'Nimetu tahvel' }))}
+      letterCase={labelCase((user as User).labelCase)}
       isAdmin={isAdmin}
       renameBoard={renameBoard}
       updateBoardHomeVisibility={updateBoardHomeVisibility}

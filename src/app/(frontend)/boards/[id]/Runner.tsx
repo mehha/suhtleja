@@ -7,7 +7,7 @@ import type { Board, Media } from '@/payload-types'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Edit3, FolderOpen, Trash, Undo2, Volume2Icon } from 'lucide-react'
+import { ArrowLeft, Edit3, FolderOpen, Printer, Trash, Undo2, Volume2Icon } from 'lucide-react'
 import ReactGridLayout, { type Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
@@ -21,6 +21,8 @@ import { getBoardTTSCacheManifest } from '@/utilities/boardTTSCacheManifest'
 import { prepareTextForTTS } from '@/utilities/azureTTS'
 import { ChildModeBar } from '@/app/(frontend)/kodu/ChildModeBar'
 import { CellLabel } from './CellLabel'
+import { LABEL_CASE_CLASS, type LabelCase } from '@/utilities/labelCase'
+import { cn } from '@/utilities/ui'
 import { CopyBoardButton } from '../CopyBoardButton'
 import { toast } from 'sonner'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
@@ -44,6 +46,8 @@ type RunnerProps = {
   backTo?: { id: number; name: string } | null
   // The member's voice and rate (profile page), or null for the site's voice at the normal rate.
   speech?: { voice: string; rate: string } | null
+  // How the cards write their words (profile page).
+  letterCase?: LabelCase
 }
 
 // A card that opens another board hands the sentence over to it, and the back button hands it back:
@@ -118,6 +122,7 @@ export default function Runner({
   linkedBoards = {},
   backTo = null,
   speech = null,
+  letterCase = 'upper',
 }: RunnerProps) {
   const router = useRouter()
   // UUS: hoiame cellId + teksti
@@ -779,17 +784,31 @@ export default function Runner({
             <h1 className="text-3xl font-semibold">{board.name || 'Nimetu tahvel'}</h1>
           </div>
           {canEdit ? (
-            <Button asChild className="gap-2">
-              <Link href={`/boards/${board.id}/edit`}>
-                <Edit3 className="h-4 w-4" aria-hidden="true" />
-                Muuda tahvlit
-              </Link>
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline" className="gap-2">
+                <Link href={`/boards/${board.id}/print`}>
+                  <Printer className="h-4 w-4" aria-hidden="true" />
+                  Prindi
+                </Link>
+              </Button>
+              <Button asChild className="gap-2">
+                <Link href={`/boards/${board.id}/edit`}>
+                  <Edit3 className="h-4 w-4" aria-hidden="true" />
+                  Muuda tahvlit
+                </Link>
+              </Button>
+            </div>
           ) : (
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-sm text-slate-500">
                 Jagatud tahvel · muuta saab ainult tahvli looja
               </p>
+              <Button asChild variant="outline" className="gap-2">
+                <Link href={`/boards/${board.id}/print`}>
+                  <Printer className="h-4 w-4" aria-hidden="true" />
+                  Prindi
+                </Link>
+              </Button>
               <CopyBoardButton boardId={board.id} returnTo={`/boards/${board.id}`} variant="button" />
             </div>
           )}
@@ -822,7 +841,9 @@ export default function Runner({
                       return (
                         <div
                           key={`${cellId}-${index}`}
-                          className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white shadow-sm ${
+                          // The box centres a word without a picture: the word is a block, so its
+                          // first letter can be a capital (Suur algustäht).
+                          className={`relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm ${
                             phraseColor ? 'border-[3px]' : 'ring-1 ring-slate-200'
                           }`}
                           style={phraseColor ? { borderColor: phraseColor } : undefined}
@@ -842,7 +863,12 @@ export default function Runner({
                               <span className="sr-only">{text}</span>
                             </>
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] font-semibold uppercase leading-tight">
+                            <div
+                              className={cn(
+                                'w-full px-1 text-center text-[10px] font-semibold leading-tight',
+                                LABEL_CASE_CLASS[letterCase],
+                              )}
+                            >
                               {text}
                             </div>
                           )}
@@ -997,6 +1023,7 @@ export default function Runner({
                     <CellLabel
                       title={titleToShow}
                       className="pointer-events-none transition-colors duration-200"
+                      letterCase={letterCase}
                     />
                   )}
 

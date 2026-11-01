@@ -7,6 +7,7 @@ import type { User } from '@/payload-types'
 import { ProfileNameForm } from '@/app/(frontend)/profile/ProfileNameForm'
 import { ProfilePageClient } from '@/app/(frontend)/profile/ProfilePageClient'
 import { ProfileSpeechForm } from '@/app/(frontend)/profile/ProfileSpeechForm'
+import { ProfileLabelCaseForm } from '@/app/(frontend)/profile/ProfileLabelCaseForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const dynamic = 'force-dynamic'
@@ -71,6 +72,16 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
         </CardHeader>
         <CardContent>
           <ProfileSpeechForm voice={u.speechVoice} rate={u.speechRate} isParentMode={isParentMode} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-medium">Kaardid</CardTitle>
+          <CardDescription>Kuidas kaardid sõnu kirjutavad: lugema õppiv laps võib tunda üht kuju enne teist.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProfileLabelCaseForm value={u.labelCase} isParentMode={isParentMode} />
         </CardContent>
       </Card>
 

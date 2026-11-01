@@ -30,14 +30,18 @@ export function FrontendShell({
   const pathname = usePathname()
   const childFullscreen = uiMode === 'child' && isChildFullscreenPath(pathname)
 
+  // A printed page (a board's print view) is the page alone: the bars stay off paper. The wrappers
+  // are `contents`, so on screen the layout is as without them.
   return (
     <>
-      {!childFullscreen && adminBar}
-      {!childFullscreen && header}
-      <div className={cn(childFullscreen ? 'min-h-screen px-3 py-3' : 'px-4 py-10')}>
+      <div className="contents print:hidden">
+        {!childFullscreen && adminBar}
+        {!childFullscreen && header}
+      </div>
+      <div className={cn(childFullscreen ? 'min-h-screen px-3 py-3' : 'px-4 py-10', 'print:p-0')}>
         {children}
       </div>
-      {!childFullscreen && footer}
+      <div className="contents print:hidden">{!childFullscreen && footer}</div>
     </>
   )
 }

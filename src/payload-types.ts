@@ -403,6 +403,7 @@ export interface User {
   membershipCancelAtPeriodEnd?: boolean | null;
   speechVoice?: ('et-EE-AnuNeural' | 'et-EE-KertNeural') | null;
   speechRate?: ('slow' | 'normal' | 'fast') | null;
+  labelCase?: ('upper' | 'lower' | 'sentence') | null;
   hiddenSharedBoardIds?:
     | {
         [k: string]: unknown;
@@ -2217,6 +2218,7 @@ export interface UsersSelect<T extends boolean = true> {
   membershipCancelAtPeriodEnd?: T;
   speechVoice?: T;
   speechRate?: T;
+  labelCase?: T;
   hiddenSharedBoardIds?: T;
   hiddenSharedPuzzleIds?: T;
   sharedBoardOrder?: T;
