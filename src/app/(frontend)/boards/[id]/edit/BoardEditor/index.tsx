@@ -32,6 +32,7 @@ import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import { toast } from 'sonner'
 import { CellLabel } from '../../CellLabel'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
+import { wordClassColor, type WordClass } from '@/utilities/wordClass'
 
 const COMPACT_SWITCH_CLASS =
   'h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4'
@@ -123,6 +124,8 @@ export default function BoardEditor({
     saveDraft,
     aiEnabled,
     updateAi,
+    wordClassColors,
+    updateWordClassColors,
   } = useBoardGrid(board)
 
   const [editingCellId, setEditingCellId] = useState<string | null>(null)
@@ -189,6 +192,7 @@ export default function BoardEditor({
       externalImageURL?: string
       h?: number
       image?: string | number | { id: string | number; url?: string } | null
+      wordClass?: WordClass | null
     },
   ) => {
     void updateCellAction(cellId, patch as any)
@@ -462,6 +466,19 @@ export default function BoardEditor({
                         {aiEnabled ? 'AI sees' : 'AI väljas'}
                       </Label>
                     </div>
+                    <div className={TOGGLE_CARD_CLASS}>
+                      <Switch
+                        id="word-class-colors-toggle"
+                        className={COMPACT_SWITCH_CLASS}
+                        checked={wordClassColors}
+                        onCheckedChange={(checked) => {
+                          void updateWordClassColors(checked)
+                        }}
+                      />
+                      <Label htmlFor="word-class-colors-toggle">
+                        {wordClassColors ? 'Sõnaliigi värvid sees' : 'Sõnaliigi värvid väljas'}
+                      </Label>
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -506,10 +523,16 @@ export default function BoardEditor({
               // drags, so dragging from the whole cell kept the cell buttons from getting taps.
               draggableHandle=".board-cell-drag-handle"
             >
-              {cells.map((cell) => (
+              {cells.map((cell) => {
+                const borderColor = wordClassColors ? wordClassColor(cell.wordClass) : null
+                return (
                 <div
                   key={cell.id}
-                  className="relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-900/5"
+                  // A word class shows as the border colour, as on the board.
+                  className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white p-2 shadow-lg ${
+                    borderColor ? 'border-4' : 'ring-1 ring-gray-900/5'
+                  }`}
+                  style={borderColor ? { borderColor } : undefined}
                 >
                   {/* The cell's controls (grip, edit, delete and the resize corner, styled in
                       globals.css) are all 28px with 8px corners, and 8px from the edges, the cell's
@@ -567,7 +590,8 @@ export default function BoardEditor({
                     />
                   )}
                 </div>
-              ))}
+                )
+              })}
             </ReactGridLayout>
           ) : null}
         </div>
@@ -587,6 +611,7 @@ export default function BoardEditor({
                   externalImageURL: currentEditingCell.externalImageURL ?? '',
                   h: currentEditingCell.h ?? 1,
                   image: currentEditingCell.image,
+                  wordClass: currentEditingCell.wordClass ?? null,
                 }
               : null
           }

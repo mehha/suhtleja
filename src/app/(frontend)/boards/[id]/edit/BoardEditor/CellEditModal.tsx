@@ -27,6 +27,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import {
+  WORD_CLASSES,
+  WORD_CLASS_INFO,
+  isWordClass,
+  normalizeWord,
+  type WordClass,
+} from '@/utilities/wordClass'
 
 type SymbolBank = 'arasaac' | 'mulberry' | 'openmoji'
 
@@ -85,6 +92,7 @@ type SaveGeneratedResponse = {
 
 type CellImagePatch = {
   title?: string
+  wordClass?: WordClass | null
   externalImageURL?: string
   h?: number
   image?: string | number | { id: string | number; url?: string } | null
@@ -100,10 +108,15 @@ type CellEditModalProps = {
         externalImageURL?: string | null
         h?: number | null
         image?: any
+        wordClass?: string | null
       }
     | null
   onSaveAction: (cellId: string, patch: CellImagePatch) => void
 }
+
+// Where the card's word class came from: saved on the card, suggested from its text in this dialog
+// (/next/word-class), or picked by the parent, after which the text no longer changes it.
+type WordClassSource = 'saved' | 'auto' | 'manual'
 
 // The picture the user chose in this dialog. It replaces the card's picture only on "Salvesta".
 type PendingImage =
@@ -114,6 +127,9 @@ type PendingImage =
 const SEARCH_DELAY_MS = 350
 
 const EMPTY_RESULTS: SearchResults = { banks: [], library: [], mine: [] }
+
+// The word class select's value for a card without a class (Radix Select has no empty value).
+const NO_WORD_CLASS = 'none'
 
 const SCOPE_LABELS: Record<SearchScope, string> = {
   all: 'Kõik allikad',
@@ -188,6 +204,12 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   const [saving, setSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Word class
+  const [wordClass, setWordClass] = useState<WordClass | null>(null)
+  const [wordClassSource, setWordClassSource] = useState<WordClassSource>('auto')
+  const [classLookedUpFor, setClassLookedUpFor] = useState<string | null>(null)
+  const wordClassSourceRef = useRef<WordClassSource>('auto')
+
   // Search
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<SearchScope>('all')
@@ -231,7 +253,12 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     initializedCellIdRef.current = cell.id
 
     const cellTitle = cell.title ?? ''
+    const savedClass = isWordClass(cell.wordClass) ? cell.wordClass : null
     setTitle(cellTitle)
+    setWordClass(savedClass)
+    setWordClassSource(savedClass ? 'saved' : 'auto')
+    // A saved class stands until the text changes; a card without one gets a suggestion at once.
+    setClassLookedUpFor(savedClass ? normalizeWord(cellTitle) : null)
     setPending(null)
     setQuery(cellTitle)
     setResults(EMPTY_RESULTS)
@@ -245,6 +272,50 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     setBankFolder(null)
     setBankError(null)
   }, [open, cell])
+
+  useEffect(() => {
+    wordClassSourceRef.current = wordClassSource
+  }, [wordClassSource])
+
+  // The word class follows the text until the parent picks one: a known word gets its class, an
+  // unknown one clears a suggestion but keeps a class saved on the card.
+  useEffect(() => {
+    if (!open || wordClassSource === 'manual') return
+    const word = normalizeWord(title)
+    if (word === classLookedUpFor) return
+
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      if (!word) {
+        setClassLookedUpFor(word)
+        if (wordClassSourceRef.current === 'auto') setWordClass(null)
+        return
+      }
+      try {
+        const res = await fetch(
+          `${getClientSideURL()}/next/word-class?${new URLSearchParams({ word }).toString()}`,
+          { credentials: 'include', signal: controller.signal },
+        )
+        const json = res.ok ? ((await res.json()) as { classes?: Record<string, unknown> }) : null
+        if (controller.signal.aborted || wordClassSourceRef.current === 'manual') return
+        setClassLookedUpFor(word)
+        const suggested = json?.classes?.[word]
+        if (isWordClass(suggested)) {
+          setWordClass(suggested)
+          setWordClassSource('auto')
+        } else if (wordClassSourceRef.current === 'auto') {
+          setWordClass(null)
+        }
+      } catch {
+        // No suggestion; the parent can still pick a class.
+      }
+    }, SEARCH_DELAY_MS)
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [open, title, classLookedUpFor, wordClassSource])
 
   // One search over the member's own pictures, the shared library and the symbol banks. It starts with
   // the card's text and runs while typing; an empty query lists the newest pictures.
@@ -419,7 +490,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
       return
     }
 
-    const patch: CellImagePatch = { title }
+    const patch: CellImagePatch = { title, wordClass }
 
     if (pending?.kind === 'external') {
       patch.externalImageURL = pending.url
@@ -525,9 +596,15 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
         </DialogHeader>
 
         <div className="mt-4 flex flex-col gap-5">
-          <div className="flex items-end gap-4">
+          <div className="flex items-start gap-4">
             {previewSrc && (
-              <div className="relative aspect-square w-28 shrink-0 rounded-lg border bg-white">
+              <div
+                className={cn(
+                  'relative aspect-square w-28 shrink-0 rounded-lg bg-white',
+                  wordClass ? 'border-4' : 'border',
+                )}
+                style={wordClass ? { borderColor: WORD_CLASS_INFO[wordClass].color } : undefined}
+              >
                 <Image
                   src={previewSrc}
                   alt={title || 'Eelvaade'}
@@ -564,6 +641,52 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
+
+              <Label htmlFor="cell-word-class" className="mt-2 text-lg">
+                Sõnaliik
+              </Label>
+              <Select
+                value={wordClass ?? NO_WORD_CLASS}
+                onValueChange={(value) => {
+                  setWordClass(isWordClass(value) ? value : null)
+                  setWordClassSource('manual')
+                }}
+              >
+                <SelectTrigger
+                  id="cell-word-class"
+                  className="rounded-xl text-sm"
+                  aria-describedby="cell-word-class-hint"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* Inline content, not flex: the trigger clamps its value to one line, and
+                      Safari cut a flex label short ("Tegev…") with room to spare. */}
+                  <SelectItem value={NO_WORD_CLASS}>
+                    <span
+                      aria-hidden="true"
+                      className="mr-2 inline-block h-3 w-3 rounded-full border border-dashed border-slate-400 align-[-1px]"
+                    />
+                    Määramata
+                  </SelectItem>
+                  {WORD_CLASSES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      <span
+                        aria-hidden="true"
+                        className="mr-2 inline-block h-3 w-3 rounded-full align-[-1px]"
+                        style={{ backgroundColor: WORD_CLASS_INFO[value].color }}
+                      />
+                      {WORD_CLASS_INFO[value].label}{' '}
+                      <span className="text-slate-500">({WORD_CLASS_INFO[value].examples})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p id="cell-word-class-hint" className="text-xs text-slate-500">
+                {wordClassSource === 'auto' && wordClass
+                  ? 'Pakutud sõna järgi. Värv on kaardi ümber, muuda vajadusel.'
+                  : 'Värv kaardi ümber aitab lapsel sõnu leida.'}
+              </p>
             </div>
           </div>
 

@@ -5,14 +5,17 @@ import { pageReady } from './ready'
 import { testAccountEmail } from './testAccounts'
 import {
   DOTS,
+  createOwnBoard,
   enterParentView,
   expect,
   expectOnScreen,
   expectTouchFriendly,
   orientations,
+  rgb,
   test,
   type Viewport,
 } from './touch'
+import { WORD_CLASS_INFO } from '../../src/utilities/wordClass'
 
 // The pages a parent uses on a phone or tablet: signing up and in, the profile, Koduhaldus, the home
 // in the parent view and the editors. Each page is checked upright and turned sideways with
@@ -227,6 +230,50 @@ test.describe('board editor', () => {
     await expect(page.getByPlaceholder('Nimetu tahvel')).toHaveValue(member.boardName)
     await page.getByRole('button', { name: 'Tühista' }).tap()
     await expect(page.getByRole('heading', { level: 1, name: member.boardName })).toBeVisible()
+  })
+
+  test('the card dialog suggests a word class, and the card keeps the one the parent picks', async ({
+    page,
+    member,
+    baseURL,
+  }) => {
+    await page.route('**/next/image-search**', (route) => route.fulfill({ json: { banks: [], library: [], mine: [] } }))
+    const boardId = await createOwnBoard(page.request, `Sõnaliigi valik ${member.boardName}`, [
+      { title: 'mina' },
+      { title: 'kass' },
+    ])
+    await enterParentView(page, baseURL)
+    await page.goto(`/boards/${boardId}/edit`)
+
+    const card = (word: string) => page.locator('.board-editor-grid > .react-grid-item').filter({ hasText: word })
+    await card('mina').getByRole('button', { name: 'Muuda kaarti' }).tap()
+    const dialog = page.getByRole('dialog', { name: 'Muuda' })
+    const wordClass = dialog.getByRole('combobox', { name: 'Sõnaliik' })
+    // A pronoun is known without the picture bank, and so is a ma-infinitive.
+    await expect(wordClass).toHaveText(new RegExp(WORD_CLASS_INFO.person.label))
+    await dialog.getByRole('textbox', { name: 'Tekst', exact: true }).fill('jooksma')
+    await expect(wordClass).toHaveText(new RegExp(WORD_CLASS_INFO.verb.label))
+
+    // Once the parent picks a class, the text no longer changes it.
+    await wordClass.tap()
+    await page.getByRole('option', { name: new RegExp(`^${WORD_CLASS_INFO.place.label}`) }).tap()
+    await dialog.getByRole('textbox', { name: 'Tekst', exact: true }).fill('mina')
+    await expect(wordClass).toHaveText(new RegExp(WORD_CLASS_INFO.place.label))
+    await dialog.getByRole('button', { name: 'Salvesta' }).tap()
+    await expect(dialog).toBeHidden()
+
+    await expect
+      .poll(() => card('mina').evaluate((cell) => getComputedStyle(cell).borderTopColor))
+      .toBe(rgb(WORD_CLASS_INFO.place.color))
+    await page.getByRole('button', { name: 'Salvesta', exact: true }).tap()
+    await expect(page.getByRole('button', { name: 'Salvestatud' })).toBeVisible()
+
+    const saved = await page.request.get(`/api/boards/${boardId}?depth=0`)
+    const cells = (await saved.json()).grid.cells as Array<{ title: string; wordClass: string | null }>
+    expect(cells.map(({ title, wordClass }) => ({ title, wordClass }))).toEqual([
+      { title: 'mina', wordClass: 'place' },
+      { title: 'kass', wordClass: null },
+    ])
   })
 
   test('compounds are made by tapping cards', async ({ page, member, baseURL, viewport }) => {

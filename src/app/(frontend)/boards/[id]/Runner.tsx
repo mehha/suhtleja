@@ -1,7 +1,7 @@
 // src/app/(frontend)/boards/[id]/Runner.tsx
 'use client'
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback, type CSSProperties } from 'react'
 import Image from 'next/image'
 import type { Board, Media } from '@/payload-types'
 import Link from 'next/link'
@@ -22,6 +22,7 @@ import { ChildModeBar } from '@/app/(frontend)/kodu/ChildModeBar'
 import { CellLabel } from './CellLabel'
 import { toast } from 'sonner'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
+import { wordClassColor } from '@/utilities/wordClass'
 
 const GRID_MARGIN: [number, number] = [16, 16]
 // The board keeps its own columns while a tile is at least this wide (the editor's minimum too), so
@@ -29,6 +30,11 @@ const GRID_MARGIN: [number, number] = [16, 16]
 const MIN_TILE_WIDTH = 96
 
 type RunnerProps = { board: Board; isParentMode: boolean; canEdit: boolean; hasPin: boolean }
+
+// A tile with a word class keeps its colour on the border; its pressed and hover rings are the same
+// colour, lighter (#rrggbbaa), since the orange ring of the other tiles is the colour of a thing.
+const wordClassTileStyle = (color: string) =>
+  ({ borderColor: color, '--tile-ring': `${color}73`, '--tile-ring-hover': `${color}59` }) as CSSProperties
 
 type SequenceItem = {
   cellId: string
@@ -69,6 +75,7 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
   // The board's own setting (saved in the editor); the runner plays the board the way the child gets it.
   const aiEnabled = board.extra?.ai ?? false
   const actionBarEnabled = board.actionBar?.enabled ?? false
+  const wordClassColors = board.extra?.wordClassColors !== false
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const gridContainerRef = useRef<HTMLDivElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -635,10 +642,15 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
                           (cell.image as Media).url) ||
                         ''
 
+                      const phraseColor = wordClassColors ? wordClassColor(cell?.wordClass) : null
+
                       return (
                         <div
                           key={`${cellId}-${index}`}
-                          className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200"
+                          className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white shadow-sm ${
+                            phraseColor ? 'border-[3px]' : 'ring-1 ring-slate-200'
+                          }`}
+                          style={phraseColor ? { borderColor: phraseColor } : undefined}
                         >
                           {src ? (
                             <>
@@ -779,17 +791,28 @@ export default function Runner({ board, isParentMode, canEdit, hasPin }: RunnerP
               const isOverridden = tempLabel?.id === cellIdString
               const isActiveCell = activeCellId === cellIdString
               const titleToShow = isOverridden && tempLabel ? tempLabel.text : cell.title
+              const classColor = wordClassColors ? wordClassColor(cell.wordClass) : null
 
               return (
                 <div
                   key={cellIdString}
                   // Hover styles only where a pointer hovers: a touch screen keeps :hover on the
                   // last tapped tile, which then stayed orange as if it were still speaking.
-                  className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl border-2 bg-white p-2 shadow-lg ring-2 transition-all duration-150 active:translate-y-0 active:scale-[0.96] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:scale-[1.025] ${
-                    isActiveCell
-                      ? 'cursor-pointer border-[#ff980d] ring-[#ff980d]/45 [@media(hover:hover)]:hover:ring-[#ff980d]/70'
-                      : 'cursor-pointer border-slate-200 ring-transparent [@media(hover:hover)]:hover:border-[#ff980d] [@media(hover:hover)]:hover:ring-[#ff980d]/35'
+                  className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white p-2 shadow-lg transition-all duration-150 active:translate-y-0 active:scale-[0.96] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:scale-[1.025] ${
+                    classColor
+                      ? `cursor-pointer border-4 ring-4 ${
+                          isActiveCell
+                            ? 'ring-[color:var(--tile-ring)]'
+                            : 'ring-transparent [@media(hover:hover)]:hover:ring-[color:var(--tile-ring-hover)]'
+                        }`
+                      : `border-2 ring-2 ${
+                          isActiveCell
+                            ? 'cursor-pointer border-[#ff980d] ring-[#ff980d]/45 [@media(hover:hover)]:hover:ring-[#ff980d]/70'
+                            : 'cursor-pointer border-slate-200 ring-transparent [@media(hover:hover)]:hover:border-[#ff980d] [@media(hover:hover)]:hover:ring-[#ff980d]/35'
+                        }`
                   }`}
+                  style={classColor ? wordClassTileStyle(classColor) : undefined}
+                  data-word-class={classColor ? cell.wordClass : undefined}
                 >
                   {renderCellImage(cell)}
 

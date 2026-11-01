@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { getClientSideURL } from '@/utilities/getURL'
 import { Grid2X2, Trash } from 'lucide-react'
 import { toast } from 'sonner'
+import { isWordClass, type WordClass } from '@/utilities/wordClass'
 
 type ToolbarProps = {
   onAddCellAction: () => void
@@ -24,6 +25,7 @@ type ToolbarProps = {
     items: Array<{
       externalImageURL?: string
       title: string
+      wordClass?: WordClass | null
     }>,
   ) => void
   onClearAction: () => void
@@ -158,6 +160,20 @@ async function fetchAiArasaacSearchTerms(base: string, label: string): Promise<A
   }
 }
 
+// The suggested word class of each card (/next/word-class), in one request. Without an answer the
+// cards just have no class yet.
+async function fetchWordClasses(base: string, words: string[]): Promise<Record<string, unknown>> {
+  try {
+    const params = new URLSearchParams(words.map((word) => ['word', word]))
+    const res = await fetch(`${base}/next/word-class?${params.toString()}`, { credentials: 'include' })
+    if (!res.ok) return {}
+    const json = (await res.json()) as { classes?: Record<string, unknown> }
+    return json.classes ?? {}
+  } catch {
+    return {}
+  }
+}
+
 async function findImageForTextCell(base: string, label: string): Promise<TextCellImageMatch | null> {
   const directPreview = await fetchFirstArasaacSymbol(base, label)
   if (directPreview) return { preview: directPreview }
@@ -243,7 +259,8 @@ export function BoardEditorToolbar({
     setAddingTexts(true)
     try {
       const base = getClientSideURL()
-      const results = await Promise.all(
+      const wordClassesPromise = fetchWordClasses(base, textItemsToAdd)
+      const matches = await Promise.all(
         textItemsToAdd.map(async (line) => {
           try {
             const imageMatch = await findImageForTextCell(base, line)
@@ -258,6 +275,11 @@ export function BoardEditorToolbar({
           }
         }),
       )
+      const wordClasses = await wordClassesPromise
+      const results = matches.map((match) => {
+        const wordClass = wordClasses[match.title]
+        return { ...match, wordClass: isWordClass(wordClass) ? wordClass : null }
+      })
 
       const groqMatches = results.filter(
         (result) => typeof result.foundWithGroqTerm === 'string' && !!result.externalImageURL,

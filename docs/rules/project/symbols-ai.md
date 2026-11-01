@@ -12,18 +12,19 @@ tags: [suhtleja, frontend, symbols, groq, api]
   - `symbol-image/route.ts` (`GET /next/symbol-image`)
   - `image-search/route.ts` (`GET /next/image-search`)
   - `picture-bank/route.ts` (`GET /next/picture-bank`)
+  - `word-class/route.ts` (`GET /next/word-class`)
   - `symbol-generate/route.ts` (`GET`/`POST /next/symbol-generate`), `symbol-generate/save/route.ts` (`POST /next/symbol-generate/save`)
   - `groq/route.ts` (`POST /next/groq`)
-- Helpers: `src/utilities/symbolProxy.ts`, `src/utilities/membershipStatus.ts`, `src/utilities/groq.ts` (Groq calls shared by the routes), `src/utilities/symbolSources.ts` (ARASAAC, Mulberry, OpenMoji searches and the Groq-term fallback), `src/utilities/findLibraryMedia.ts` (own and library pictures, the `AI-pildid` folder, the `Pildipank` categories), `src/utilities/symbolGeneration.ts` (limits, prompt, saving AI pictures), `src/utilities/workersAI.ts` (Workers AI binding)
+- Helpers: `src/utilities/symbolProxy.ts`, `src/utilities/membershipStatus.ts`, `src/utilities/groq.ts` (Groq calls shared by the routes), `src/utilities/symbolSources.ts` (ARASAAC, Mulberry, OpenMoji searches and the Groq-term fallback), `src/utilities/findLibraryMedia.ts` (own and library pictures, the `AI-pildid` folder, the `Pildipank` categories), `src/utilities/symbolGeneration.ts` (limits, prompt, saving AI pictures), `src/utilities/workersAI.ts` (Workers AI binding), `src/utilities/wordClass.ts` and `src/utilities/wordClassLookup.ts` (word classes)
 - Collection: `src/collections/SymbolGenerations.ts` (`symbol-generations`)
 - Consumers:
-  - `boards/[id]/edit/BoardEditor/Toolbar.tsx` (symbols with `preferLocal`, groq), `CellEditModal.tsx` (image-search, picture-bank, symbol-generate, symbol-generate/save)
+  - `boards/[id]/edit/BoardEditor/Toolbar.tsx` (symbols with `preferLocal`, groq, word-class), `CellEditModal.tsx` (image-search, picture-bank, symbol-generate, symbol-generate/save, word-class)
   - `boards/[id]/Runner.tsx` (groq surface-form correction)
   - `src/components/ConnectDots/ConnectDotsEditorField.tsx`, `ConnectDotsFrontendEditor.tsx` (symbols)
 
 ## Auth Gate
 - All routes call `payload.auth({ headers })` and return `401 { error: 'unauthorized' }` without a user.
-- `symbols`, `image-search`, `picture-bank`, `symbol-generate` (and `save`) and `groq` also require `hasActiveMembership(user)` and return `402 { error: 'membership_required' }` otherwise.
+- `symbols`, `image-search`, `picture-bank`, `word-class`, `symbol-generate` (and `save`) and `groq` also require `hasActiveMembership(user)` and return `402 { error: 'membership_required' }` otherwise.
 - `symbol-image` requires login only (no membership check), because already-saved board/puzzle images must keep rendering.
 
 ## `GET /next/symbols`
@@ -43,6 +44,12 @@ tags: [suhtleja, frontend, symbols, groq, api]
 - Without params returns `{ categories: [{ id, name, cover, count }] }`: the subfolders that hold images, in creation order (`sort: 'id'`), each with its oldest image as `cover`. The import creates the folders in the intended order and each category's cover picture first.
 - `?folder=<id>` returns `{ folder: { id, name }, pictures }` (`PictureItem`s with `mediaId`, oldest first, up to 400). `400 invalid_folder` for a non-numeric id, `404 not_found` when the folder is not a direct subfolder of `Pildipank`.
 - Bank pictures are ordinary library media, so the search (`library` group) and bulk add (`findLibraryMedia`, curated folders) find them by their alt text, which is the word.
+
+## `GET /next/word-class` (card editor, bulk add)
+- Params: `word`, repeated (`?word=koer&word=sööma`): trimmed, at most 80 characters each, duplicates dropped, at most 60 words.
+- Returns `{ classes: { <word>: <class> | null } }`, keyed by the words as sent. Classes are `person`, `verb`, `adjective`, `noun`, `place`, `question`, `social` and `other` (`WORD_CLASSES` in `src/utilities/wordClass.ts`); null means nothing is known and the card stays without a colour.
+- `guessWordClass` decides: pronouns in their cases, question words, imperatives and one-word ma-infinitives by rule (not `ema`, `tema` or the listed nouns in -ma), then the picture bank category of a bank picture whose alt text is exactly the word (`findPictureBankCategories`, one query for all words; a word in two categories keeps the first imported), then a few social words.
+- The category map (`CATEGORY_CLASSES`) must name every category in `CATEGORY_ORDER` (`scripts/pildipank/lib.ts`); `tests/int/word-class.int.spec.ts` fails when the bank gets a category the map doesn't know. It gives a category's usual class; the word rules come first because the bank files some verbs and pronouns elsewhere ("laulma" under Inimesed, "mina" under Suhtlemine).
 
 ## `GET /next/image-search` (card editor)
 - Params: `q` (trimmed, at most 80 characters; may be empty), `scope` (`all` default, `mine`, `library`, `arasaac`, `mulberry`, `openmoji`).

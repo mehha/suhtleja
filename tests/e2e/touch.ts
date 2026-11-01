@@ -97,6 +97,33 @@ export const test = base.extend<object, { member: Member }>({
 })
 
 
+// A board of the test's own, for a test that changes it, made through the API as the member. Cells
+// are one row, in the given order.
+export async function createOwnBoard(
+  request: APIRequestContext,
+  name: string,
+  cells: Array<{ title: string; wordClass?: string }>,
+) {
+  const response = await request.post('/api/boards', {
+    data: {
+      name,
+      pinned: false,
+      actionBar: { enabled: true },
+      grid: {
+        cols: cells.length,
+        rows: 1,
+        cells: cells.map((cell, index) => ({ id: randomUUID(), x: index, y: 0, w: 1, h: 1, ...cell })),
+      },
+    },
+  })
+  baseExpect(response.status(), await response.text()).toBe(201)
+  return (await response.json()).doc.id as number
+}
+
+// The colour a browser reports for a #rrggbb colour.
+export const rgb = (hex: string) =>
+  `rgb(${[1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16)).join(', ')})`
+
 // The dev server compiles each route on its first request, which takes more than the default 5s on
 // CI runners.
 export const expect = baseExpect.configure({ timeout: 30_000 })

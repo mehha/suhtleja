@@ -6,6 +6,7 @@ import type { Layout } from 'react-grid-layout'
 import type { Board } from '@/payload-types'
 import { getClientSideURL } from '@/utilities/getURL'
 import { toast } from 'sonner'
+import type { WordClass } from '@/utilities/wordClass'
 
 const SAVE_FAILED = 'Salvestamine ebaõnnestus. Muudatused on alles, proovi uuesti.'
 
@@ -20,6 +21,7 @@ type LocalCell = Cell & {
 type BulkTextCellInput = {
   externalImageURL?: string
   title: string
+  wordClass?: WordClass | null
 }
 
 type LayoutShape = Pick<Layout, 'i' | 'x' | 'y' | 'w' | 'h'>
@@ -76,6 +78,11 @@ export function useBoardGrid(board: Board) {
     return board.extra?.ai ?? false // vaikimisi false
   })
 
+  // Word class colours are on unless the parent turned them off (src/utilities/wordClass.ts).
+  const [wordClassColors, setWordClassColors] = useState<boolean>(
+    () => board.extra?.wordClassColors !== false,
+  )
+
   const [cells, setCells] = useState<LocalCell[]>(() => {
     const initial = board.grid?.cells ?? []
     return initial.map((c) => c as LocalCell)
@@ -102,6 +109,7 @@ export function useBoardGrid(board: Board) {
         externalImageURL: c.externalImageURL ?? undefined,
         audio: c.audio ?? undefined,
         image,
+        wordClass: c.wordClass ?? null,
       }
     })
 
@@ -119,6 +127,7 @@ export function useBoardGrid(board: Board) {
           extra: {
             ...(board.extra || {}),
             ai: aiEnabled,
+            wordClassColors,
           },
           grid: { ...(board.grid || {}), cols: baseCols, cells: cellsForServer },
         }),
@@ -144,7 +153,7 @@ export function useBoardGrid(board: Board) {
         setSaveProgress(0)
       }, 250)
     }
-  }, [board.id, board.grid, baseCols, cells, actionBar, aiEnabled, board.extra, saving])
+  }, [board.id, board.grid, baseCols, cells, actionBar, aiEnabled, wordClassColors, board.extra, saving])
 
   // ---- RGL change: mark dirty, no save ----
   const onLayoutChange = useCallback(
@@ -224,6 +233,7 @@ export function useBoardGrid(board: Board) {
         .map((item) => ({
           title: item.title.trim(),
           externalImageURL: item.externalImageURL?.trim() || '',
+          wordClass: item.wordClass ?? null,
         }))
         .filter((item) => item.title)
 
@@ -254,6 +264,7 @@ export function useBoardGrid(board: Board) {
           h: 1,
           title: item.title,
           externalImageURL: item.externalImageURL,
+          wordClass: item.wordClass,
         })
       })
 
@@ -296,6 +307,15 @@ export function useBoardGrid(board: Board) {
     [aiEnabled],
   )
 
+  const updateWordClassColors = useCallback(
+    (enabled: boolean) => {
+      if (wordClassColors === enabled) return
+      setWordClassColors(enabled)
+      setDirty(true)
+    },
+    [wordClassColors],
+  )
+
   return {
     saving,
     saveProgress,
@@ -305,6 +325,7 @@ export function useBoardGrid(board: Board) {
     layout,
     actionBar,
     aiEnabled,
+    wordClassColors,
     onLayoutChange,
     addCell,
     appendBlock,
@@ -315,5 +336,6 @@ export function useBoardGrid(board: Board) {
     updateActionBar,
     saveDraft,
     updateAi,
+    updateWordClassColors,
   }
 }

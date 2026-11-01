@@ -3,6 +3,7 @@ import { isAdminFieldLevel } from '@/access/isAdminFieldLevel'
 import type { User } from '@/payload-types'
 import { hasActiveMembership } from '@/utilities/membershipStatus'
 import { ensureBoardTTSManifest } from '@/utilities/boardTTSCache'
+import { WORD_CLASSES, WORD_CLASS_INFO } from '@/utilities/wordClass'
 
 const canManageBoard = ({ req }: AccessArgs<User>): boolean | Where => {
   if (!req.user) return false
@@ -117,6 +118,12 @@ export const Boards: CollectionConfig = {
           defaultValue: false,
           label: 'Use AI to generate text',
         },
+        {
+          name: 'wordClassColors',
+          type: 'checkbox',
+          defaultValue: true,
+          label: 'Sõnaliigi värvid kaartidel',
+        },
       ],
     },
     {
@@ -139,6 +146,13 @@ export const Boards: CollectionConfig = {
             { name: 'externalImageURL', type: 'text' },
             { name: 'audio', type: 'upload', relationTo: 'media' },
             { name: 'locked', type: 'checkbox', defaultValue: false },
+            {
+              // The card's border colour on the board (src/utilities/wordClass.ts).
+              name: 'wordClass',
+              type: 'select',
+              label: 'Sõnaliik',
+              options: WORD_CLASSES.map((value) => ({ label: WORD_CLASS_INFO[value].label, value })),
+            },
           ],
         },
       ],

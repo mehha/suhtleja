@@ -13,6 +13,7 @@ import * as migration_20261025_094741_homepage_sections from './20261025_094741_
 import * as migration_20261025_142826_how_it_works_and_contact_blocks from './20261025_142826_how_it_works_and_contact_blocks';
 import * as migration_20261031_181817_symbol_generations from './20261031_181817_symbol_generations';
 import * as migration_20261031_185001_shared_ai_pictures from './20261031_185001_shared_ai_pictures';
+import * as migration_20261101_123024_word_class from './20261101_123024_word_class';
 
 export const migrations = [
   {
@@ -88,6 +89,11 @@ export const migrations = [
   {
     up: migration_20261031_185001_shared_ai_pictures.up,
     down: migration_20261031_185001_shared_ai_pictures.down,
-    name: '20261031_185001_shared_ai_pictures'
+    name: '20261031_185001_shared_ai_pictures',
+  },
+  {
+    up: migration_20261101_123024_word_class.up,
+    down: migration_20261101_123024_word_class.down,
+    name: '20261101_123024_word_class'
   },
 ];

@@ -86,6 +86,10 @@ never deletes: a word renamed in a list gets a new picture, and the old one stay
 removes it. Importing to production needs the remote bindings (`NODE_ENV=production`) and explicit
 permission.
 
+A category is also a card's default word class: `CATEGORY_CLASSES` in `src/utilities/wordClass.ts`
+maps every category in `CATEGORY_ORDER`, and `tests/int/word-class.int.spec.ts` fails when a category
+is added or renamed without it.
+
 Clean-up: after a word's picture is replaced (a Mulberry symbol swapped for AI, a redone AI
 picture), the old one stays until the clean-up retires it. The clean-up also removes copies: run
 one import at a time, because two at once both create the missing pictures and Payload stores the

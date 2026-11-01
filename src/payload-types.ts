@@ -1205,6 +1205,7 @@ export interface Board {
    */
   extra?: {
     ai?: boolean | null;
+    wordClassColors?: boolean | null;
   };
   grid?: {
     cols?: number | null;
@@ -1221,6 +1222,7 @@ export interface Board {
           externalImageURL?: string | null;
           audio?: (number | null) | Media;
           locked?: boolean | null;
+          wordClass?: ('person' | 'verb' | 'adjective' | 'noun' | 'place' | 'question' | 'social' | 'other') | null;
         }[]
       | null;
   };
@@ -2245,6 +2247,7 @@ export interface BoardsSelect<T extends boolean = true> {
     | T
     | {
         ai?: T;
+        wordClassColors?: T;
       };
   grid?:
     | T
@@ -2264,6 +2267,7 @@ export interface BoardsSelect<T extends boolean = true> {
               externalImageURL?: T;
               audio?: T;
               locked?: T;
+              wordClass?: T;
             };
       };
   compounds?:

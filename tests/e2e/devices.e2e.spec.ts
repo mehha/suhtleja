@@ -7,6 +7,7 @@ import {
   DOTS,
   WIDE_BOARD,
   WORDS,
+  createOwnBoard,
   enterParentView,
   expect,
   expectFingerSized,
@@ -14,9 +15,11 @@ import {
   expectOnScreen,
   expectTouchFriendly,
   orientations,
+  rgb,
   test,
   type BoardShape,
 } from './touch'
+import { WORD_CLASS_INFO } from '../../src/utilities/wordClass'
 
 // The child's pages on the screens they are used on: tablets most of all, and phones, held upright
 // and turned sideways. Each touch project (see playwright.config.ts) gets its own member with a full
@@ -256,6 +259,38 @@ test.describe('board', () => {
     await expect.poll(played).toBe(1)
     // Once the word has played, the tile looks like the others again.
     await expect.poll(() => look('mina'), { timeout: 5_000 }).toEqual(untouched)
+  })
+
+  test("a word class colours the tile's border and the word in the phrase", async ({ page, member }) => {
+    await page.route('**/next/tts-ms', (route) => route.fulfill({ body: silentWav(), contentType: 'audio/wav' }))
+    const played = await countPlayedAudio(page)
+    const boardId = await createOwnBoard(page.request, `Sõnaliigid ${member.boardName}`, [
+      { title: 'mina', wordClass: 'person' },
+      { title: 'jooksma', wordClass: 'verb' },
+      { title: 'õue' },
+    ])
+    await page.goto(`/boards/${boardId}`)
+
+    const tile = (word: string) =>
+      page.locator('.layout > .react-grid-item').filter({ has: page.getByRole('button', { name: word, exact: true }) })
+    const border = (word: string) => tile(word).evaluate((cell) => getComputedStyle(cell).borderTopColor)
+    await expect.poll(() => border('mina')).toBe(rgb(WORD_CLASS_INFO.person.color))
+    expect(await border('jooksma')).toBe(rgb(WORD_CLASS_INFO.verb.color))
+    // A card without a class keeps the plain border.
+    expect(await border('õue')).toBe('rgb(226, 232, 240)')
+
+    await tile('jooksma').getByRole('button').tap()
+    await expect.poll(played).toBe(1)
+    const phraseWord = page.locator('.actionbar-container').getByText('jooksma', { exact: true }).locator('xpath=..')
+    expect(await phraseWord.evaluate((word) => getComputedStyle(word).borderTopColor)).toBe(
+      rgb(WORD_CLASS_INFO.verb.color),
+    )
+
+    // The parent can turn the colours off for the board.
+    const off = await page.request.patch(`/api/boards/${boardId}?depth=0`, { data: { extra: { wordClassColors: false } } })
+    expect(off.status(), await off.text()).toBe(200)
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect.poll(() => border('mina')).toBe('rgb(226, 232, 240)')
   })
 })
 
