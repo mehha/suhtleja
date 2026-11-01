@@ -64,6 +64,9 @@ export default defineConfig({
       testIgnore: /member-flow/,
     },
   ],
+  // The dev server compiles the API routes the tests use before they start (a route compiled during
+  // a test made it reload every open page).
+  globalSetup: testsLocalServer ? './tests/e2e/global-setup.ts' : undefined,
   globalTeardown: testsLocalServer ? './tests/e2e/global-teardown.ts' : undefined,
   webServer: testsLocalServer
     ? {
