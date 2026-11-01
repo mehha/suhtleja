@@ -21,9 +21,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  // Two workers on CI: each makes its own test accounts, so they don't get in each other's way, and
-  // the deploy waits about half as long for the browser tests.
-  workers: process.env.CI ? 2 : undefined,
+  // One worker on CI. Two halved the time locally, but on the runner the dev server, compiling each
+  // page on its first visit, answered two browsers too slowly and tests timed out.
+  workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI ? 'list' : [['list'], ['html', { open: 'never' }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
