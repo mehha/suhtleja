@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
+import { countPlayedAudio } from './audio'
+
 // Read-only smoke tests for the public site. They never submit forms or change data, so they are
 // safe to run against production after a deploy.
 
@@ -96,13 +98,15 @@ test('homepage speech route serves homepage words and nothing else', async ({ re
 })
 
 test('"Kuula ise" tile says its word and adds it to the sentence bar', async ({ page }) => {
+  const played = await countPlayedAudio(page)
   await page.goto('/')
   const tile = page.locator('#kuula').getByRole('button', { name: /^Ütle: / }).first()
   const word = ((await tile.getAttribute('aria-label')) ?? '').replace(/^Ütle: /, '')
 
-  const speech = page.waitForResponse((response) => response.url().includes('/next/homepage-tts/'))
+  // The word plays. The test above checks the speech route's answers: WebKit on Linux loads audio in
+  // two requests and reports the first with status 0, so a response's status says less than the sound.
   await tile.click()
-  expect((await speech).status()).toBe(200)
+  await expect.poll(played, { message: 'the word should play' }).toBe(1)
 
   await expect(page.locator('#kuula ol[aria-label="Lause"] li')).toHaveText([word])
   await expect(page.locator('#kuula').getByText('Heli ei käivitunud')).toHaveCount(0)
