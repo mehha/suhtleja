@@ -85,9 +85,12 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
     }
   }
 
-  useEffect(() => {
+  // A new user from the server (after a login or logout) replaces the one the browser has.
+  const [prevUser, setPrevUser] = useState(currentUser)
+  if (currentUser !== prevUser) {
+    setPrevUser(currentUser)
     setClientUser(currentUser)
-  }, [currentUser])
+  }
 
   // The header sticks to the top; once the page scrolls, a deeper shadow lifts it off the content
   // and the logo folds its wordmark away so the bar gets shorter.
@@ -121,10 +124,12 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])
 
-  useEffect(() => {
-    if (headerTheme && headerTheme !== theme) setTheme(headerTheme)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [headerTheme])
+  // The header takes the theme a page sets for it, and keeps it until a page sets another.
+  const [prevHeaderTheme, setPrevHeaderTheme] = useState(headerTheme)
+  if (headerTheme !== prevHeaderTheme) {
+    setPrevHeaderTheme(headerTheme)
+    if (headerTheme) setTheme(headerTheme)
+  }
 
   const name = clientUser?.name && true ? clientUser.name : (clientUser?.email ?? '')
   const effectiveHasPin = hasPin || clientHasPin

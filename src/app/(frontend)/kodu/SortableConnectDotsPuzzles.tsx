@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useOptimistic, useState, useTransition } from 'react'
+import React, { useOptimistic, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
@@ -22,6 +22,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { ConnectDotsPuzzle } from '@/utilities/connectDots'
+import { useHydrated } from '@/hooks/useHydrated'
 
 export type HomeConnectDotsPuzzle = ConnectDotsPuzzle & {
   canEdit?: boolean
@@ -259,15 +260,15 @@ export function SortableConnectDotsPuzzles({
   }
 
   const [isPending, startTransition] = useTransition()
-  const [mounted, setMounted] = useState(false)
+  // Drag and drop only once the page runs in the browser.
+  const mounted = useHydrated()
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
+  // New puzzles from the server (after a save) replace the list.
+  const [prevPuzzles, setPrevPuzzles] = useState(puzzles)
+  if (puzzles !== prevPuzzles) {
+    setPrevPuzzles(puzzles)
     setItems(puzzles)
-  }, [puzzles])
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
     if (!canManage) return

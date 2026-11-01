@@ -86,23 +86,14 @@ export function ConnectDotsGame({
     return puzzles.find((entry) => entry.id === selectedPuzzleId) ?? puzzles[0] ?? null
   }, [puzzles, selectedPuzzleId])
 
-  useEffect(() => {
-    if (!puzzle || selectedPuzzleId === puzzle.id) {
-      return
-    }
-
-    setSelectedPuzzleId(puzzle.id)
-  }, [puzzle, selectedPuzzleId])
-
-  useEffect(() => {
-    if (!puzzle) {
-      return
-    }
-
+  // Another puzzle starts from its first dot.
+  const [prevPuzzleId, setPrevPuzzleId] = useState(puzzle?.id)
+  if (puzzle && puzzle.id !== prevPuzzleId) {
+    setPrevPuzzleId(puzzle.id)
     setVisitedIndexes([0])
     setTraceActive(false)
     setPointerPosition(null)
-  }, [puzzle])
+  }
 
   useEffect(() => {
     if (!boardRef.current) {
@@ -133,8 +124,10 @@ export function ConnectDotsGame({
       return
     }
 
+    // The muted music is a browser setting, read once the page runs there (the server renders it on).
     const storedValue = window.localStorage.getItem(CONNECT_DOTS_MUSIC_MUTED_KEY)
     if (storedValue === 'true') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMusicMuted(true)
     }
   }, [])
@@ -197,9 +190,15 @@ export function ConnectDotsGame({
   const svgWidth = Math.max(renderRect.width, 1)
   const svgHeight = Math.max(renderRect.height, 1)
 
+  // The success burst shows when the puzzle is finished (and hides after a while, below).
+  const [prevFinished, setPrevFinished] = useState(finished)
+  if (finished !== prevFinished) {
+    setPrevFinished(finished)
+    setSuccessBurstVisible(finished)
+  }
+
   useEffect(() => {
     if (!finished) {
-      setSuccessBurstVisible(false)
       if (successAudioRef.current) {
         successAudioRef.current.pause()
         successAudioRef.current.currentTime = 0
@@ -207,7 +206,6 @@ export function ConnectDotsGame({
       return
     }
 
-    setSuccessBurstVisible(true)
     void (async () => {
       if (audioRef.current) {
         audioRef.current.pause()

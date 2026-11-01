@@ -27,6 +27,9 @@ type StripeRedirectResponse = {
 
 const STRIPE_REQUEST_TIMEOUT_MS = 20_000
 
+// Outside the component: the time is read once per render and isn't part of what React compares.
+const isInFuture = (date: Date) => date.getTime() > Date.now()
+
 type Props = {
   hasPin: boolean
   isParentMode: boolean
@@ -86,7 +89,7 @@ export function ProfilePageClient({
   const periodEndsAtDate = parseDate(currentPeriodEndsAt)
   const isPendingCancellation =
     Boolean(membershipCancelAtPeriodEnd) &&
-    Boolean(periodEndsAtDate && periodEndsAtDate.getTime() > Date.now())
+    Boolean(periodEndsAtDate && isInFuture(periodEndsAtDate))
   const hasMembershipAccess = isMembershipActive || isPendingCancellation
   const canManageMembership = membership !== 'none'
   // Checkout only offers the trial to customers without a previous subscription.

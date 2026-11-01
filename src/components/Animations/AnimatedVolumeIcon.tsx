@@ -13,10 +13,7 @@ export function AnimatedVolumeIcon({ busy, className }: AnimatedVolumeIconProps)
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
-    if (!busy) {
-      setIndex(0)
-      return
-    }
+    if (!busy) return
 
     const interval = setInterval(() => {
       setIndex((prev) => (prev + 1) % frames.length)
@@ -25,6 +22,7 @@ export function AnimatedVolumeIcon({ busy, className }: AnimatedVolumeIconProps)
     return () => clearInterval(interval)
   }, [busy, frames.length])
 
-  const Icon = frames[index]
+  // At rest it shows the first frame.
+  const Icon = frames[busy ? index : 0]
   return <Icon className={className} />
 }

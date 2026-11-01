@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { unlockParentModeAction, type UnlockState } from './modeActions'
 import { Button } from '@/components/ui/button'
@@ -41,17 +41,6 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
   // ref esimesele OTP slotile
   const firstSlotRef = useRef<HTMLInputElement | null>(null)
 
-  // edu korral: sulge dialog ja refres-hi koduvaade
-  useEffect(() => {
-    if (state.success) {
-      setOpen(false)
-      setPin('')
-      submittedPinRef.current = null
-      router.replace('/kodu')
-      router.refresh()
-    }
-  }, [state.success, router])
-
   const submitPin = useCallback(
     async (nextPin: string) => {
       if (nextPin.length !== 4 || isSubmitting || submittedPinRef.current === nextPin) return
@@ -62,41 +51,43 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
       const formData = new FormData()
       formData.set('pin', nextPin)
 
+      // A wrong PIN empties the slots and puts the cursor back in the first one (after the DOM has
+      // the empty slots).
+      const tryAgain = (next: UnlockState) => {
+        submittedPinRef.current = null
+        setState(next)
+        setPin('')
+        setTimeout(() => firstSlotRef.current?.focus(), 0)
+      }
+
       try {
         const result = await unlockParentModeAction(initialState, formData)
-        setState(result)
-
-        if (!result.success) {
+        if (result.success) {
+          // Unlocked: close the dialog and show the home in the parent view.
+          setState(result)
+          setOpen(false)
+          setPin('')
           submittedPinRef.current = null
+          router.replace('/kodu')
+          router.refresh()
+        } else {
+          tryAgain(result)
         }
       } catch (error) {
         console.error(error)
-        submittedPinRef.current = null
-        setState({ success: false, error: 'Midagi läks valesti. Palun proovi uuesti.' })
+        tryAgain({ success: false, error: 'Midagi läks valesti. Palun proovi uuesti.' })
       } finally {
         setIsSubmitting(false)
       }
     },
-    [isSubmitting],
+    [isSubmitting, router],
   )
 
-  // kui sisestatud 4 numbrit → automaatne submit
-  useEffect(() => {
-    if (open && pin.length === 4) {
-      void submitPin(pin)
-    }
-  }, [pin, open, submitPin])
-
-  // VALE PIN: tühjenda ja liiguta fookus algusesse
-  useEffect(() => {
-    if (!state.success && state.error) {
-      setPin('')
-      // väike viivitus, et DOM jõuaks uuenduda
-      setTimeout(() => {
-        firstSlotRef.current?.focus()
-      }, 0)
-    }
-  }, [state])
+  // The fourth digit sends the PIN.
+  const handlePinChange = (next: string) => {
+    setPin(next)
+    if (open && next.length === 4) void submitPin(next)
+  }
 
   const handleOpen = () => {
     if (!hasPin) return
@@ -154,7 +145,7 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
                 id="parent-unlock-pin"
                 maxLength={4}
                 value={pin}
-                onChange={setPin}
+                onChange={handlePinChange}
                 containerClassName="justify-start"
               >
                 <InputOTPGroup>

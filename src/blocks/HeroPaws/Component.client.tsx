@@ -140,12 +140,12 @@ export const HeroPawsClient: React.FC<HeroPawsClientProps> = ({
       </div>
 
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 sm:px-6 pb-16 sm:grid-cols-3">
-        {cards.map((c) => {
+        {cards.map((c, index) => {
           const Icon = ICONS[c.icon] || MessageCircle
 
           return (
             <div
-              key={`${c.title}-${Math.random()}`}
+              key={`${c.title}-${index}`}
               className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-900/5"
             >
               <div

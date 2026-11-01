@@ -126,7 +126,7 @@ export function ConnectDotsFrontendEditor({
   })
   const [mode, setMode] = useState<Mode>('edit')
   const [boardSize, setBoardSize] = useState({ width: 0, height: 0 })
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [pickedIndex, setSelectedIndex] = useState<number | null>(null)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [symbolQuery, setSymbolQuery] = useState('')
   const [symbolSource, setSymbolSource] = useState<'arasaac' | 'openmoji'>('arasaac')
@@ -150,14 +150,16 @@ export function ConnectDotsFrontendEditor({
 
   useEffect(() => {
     dotsRef.current = dots
+  }, [dots])
 
-    if (selectedIndex === null) return
-    if (selectedIndex >= dots.length) {
-      setSelectedIndex(dots.length > 0 ? dots.length - 1 : null)
-    }
-  }, [dots, selectedIndex])
+  // The picked dot, or the last one when the dots got fewer than that.
+  const selectedIndex =
+    pickedIndex === null ? null : pickedIndex < dots.length ? pickedIndex : dots.length > 0 ? dots.length - 1 : null
 
   useEffect(() => {
+    // The picture follows the form's fields: an uploaded picture or a symbol shows at once, a media
+    // id is fetched. One effect keeps both in step with the fields, so it sets the state directly.
+    /* eslint-disable react-hooks/set-state-in-effect */
     let cancelled = false
 
     if (imageState.url) {
@@ -205,6 +207,7 @@ export function ConnectDotsFrontendEditor({
     return () => {
       cancelled = true
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [externalImageURL, imageState, symbolSource])
 
   useEffect(() => {

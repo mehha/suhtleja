@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useOptimistic, useState, useTransition } from 'react'
+import React, { useOptimistic, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Board } from '@/payload-types'
@@ -30,6 +30,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Media } from '@/components/Media'
+import { useHydrated } from '@/hooks/useHydrated'
 
 export type HomeBoard = Board & {
   canEdit?: boolean
@@ -279,15 +280,15 @@ export function SortableBoards({
   }
 
   const [isPending, startTransition] = useTransition()
-  const [mounted, setMounted] = useState(false)
+  // Drag and drop only once the page runs in the browser.
+  const mounted = useHydrated()
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
+  // New boards from the server (after a save) replace the list.
+  const [prevBoards, setPrevBoards] = useState(boards)
+  if (boards !== prevBoards) {
+    setPrevBoards(boards)
     setItems(boards)
-  }, [boards])
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
     if (!canManage) return

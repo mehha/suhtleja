@@ -23,7 +23,6 @@ export const ThemeSelector: React.FC = () => {
   }
 
   React.useEffect(() => {
-    setValue('light')
     setTheme('light')
   }, [setTheme])
 

@@ -4,7 +4,6 @@ import React, { createContext, useCallback, use, useEffect, useState } from 'rea
 
 import type { Theme, ThemeContextType } from './types'
 
-import canUseDOM from '@/utilities/canUseDOM'
 import { defaultTheme, themeLocalStorageKey } from './shared'
 
 const initialContext: ThemeContextType = {
@@ -15,9 +14,8 @@ const initialContext: ThemeContextType = {
 const ThemeContext = createContext(initialContext)
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setThemeState] = useState<Theme | undefined>(
-    canUseDOM ? (document.documentElement.getAttribute('data-theme') as Theme) : undefined,
-  )
+  // The site is always light (the effect below puts it on the page), on the server and in the browser.
+  const [theme, setThemeState] = useState<Theme | undefined>(defaultTheme)
 
   const setTheme = useCallback((themeToSet: Theme | null) => {
     const nextTheme = themeToSet === 'dark' || themeToSet === null ? 'light' : themeToSet
@@ -27,10 +25,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   }, [])
 
   useEffect(() => {
-    const themeToSet: Theme = defaultTheme
     window.localStorage.removeItem(themeLocalStorageKey)
-    document.documentElement.setAttribute('data-theme', themeToSet)
-    setThemeState(themeToSet)
+    document.documentElement.setAttribute('data-theme', defaultTheme)
   }, [])
 
   return <ThemeContext value={{ setTheme, theme }}>{children}</ThemeContext>
