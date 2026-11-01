@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import { expect as baseExpect, test as base, type APIRequestContext, type Locator, type Page } from '@playwright/test'
 
 import { createMember } from './member'
+import { pageReady } from './ready'
 
 // Shared by the device tests (devices*.e2e.spec.ts): one member per worker with boards and a game,
 // made through the API, and checks for pages on touch screens.
@@ -94,6 +95,18 @@ export const test = base.extend<object, { member: Member }>({
   ],
   // The member is logged in on every page the test opens.
   storageState: async ({ member }, provide) => provide({ cookies: member.cookies, origins: [] }),
+  // Every page a test opens is used once React has taken it over (see ready.ts): on CI's WebKit a
+  // tap right after the page shows found the server's markup without its handlers, and did nothing.
+  // A test that wants the page before that passes `waitUntil: 'commit'`.
+  page: async ({ page }, provide) => {
+    const goto = page.goto.bind(page)
+    page.goto = async (url, options) => {
+      const response = await goto(url, options)
+      if (options?.waitUntil !== 'commit') await pageReady(page)
+      return response
+    }
+    await provide(page)
+  },
 })
 
 
