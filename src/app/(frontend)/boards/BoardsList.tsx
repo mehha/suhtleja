@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { CopyBoardButton } from './CopyBoardButton'
 import type { Board } from '@/payload-types'
 
 import { Button } from '@/components/ui/button'
@@ -192,6 +193,8 @@ export function BoardsList({
                               </Link>
                             </>
                           ) : null}
+                          <span aria-hidden="true">·</span>
+                          <CopyBoardButton boardId={board.id} boardName={boardName} returnTo="/koduhaldus" />
                         </div>
                       </div>
                     </TableCell>

@@ -131,6 +131,11 @@ tags: [suhtleja, frontend, boards, payload]
     - A compound with a card that was removed from the board is marked `Kaart on kustutatud` (it can never match). A board with AI on, or without cards, says so above the list.
     - The save action returns an `ActionResult`, so its messages reach the page in production, and updates with `overrideAccess: false`. Tested in `tests/int/compounds-editor.int.spec.tsx` and the member flow e2e test.
   - The board editor's `Sõnaühendid` button shows how many compounds the board has.
+- Copying a board (`Tee endale koopia`, `src/app/(frontend)/boards/actions.ts` `copyBoard`, `src/utilities/copyBoard.ts`, tested in `tests/int/copy-board.int.spec.ts`):
+  - A shared board's parent view has `Tee endale koopia` next to `Jagatud tahvel · muuta saab ainult tahvli looja`, and every row of the Koduhalduse boards table has `Tee koopia` (an owner makes a variant of their own board).
+  - The action needs parent mode and an active membership, and reads the board with `overrideAccess: false`, so only a board the member can read is copied. It creates the member's own board (the owner defaults to them; the copy is private and not on the home) named `<name> (koopia)`, and opens it in the editor with the `board-copied` toast; a failure returns with the error toast.
+  - The cards and compounds get new ids (their tables key on them), and the compounds follow their cards. Pictures (the same media), word classes, the cards' links to boards, the settings, the action bar and the speech cache come along: the cached audio is in R2 by the words, and the URLs follow the new board's id.
+  - The button is disabled while the copy is made, so a second tap doesn't make two.
 - Boards management rules:
   - `/koduhaldus` must include a separate connect-dots puzzles table.
   - Non-admin users must see their own rows plus rows shared via `visibleToAllUsers`.

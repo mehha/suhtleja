@@ -4,6 +4,7 @@ import { DEFAULT_PIN } from './member'
 import { pageReady } from './ready'
 import { testAccountEmail } from './testAccounts'
 import {
+  BOARD,
   DOTS,
   createOwnBoard,
   enterParentView,
@@ -329,6 +330,24 @@ test.describe('board editor', () => {
     const entries = saved.ttsCache.entries as Array<{ source: string; text: string }>
     expect(entries.filter((entry) => entry.source === 'grammar').map((entry) => entry.text)).toEqual(['jooksen.'])
     expect(saved.extra.grammar).toBe(true)
+  })
+
+  test('Koduhaldus makes a copy of a board and opens it in the editor', async ({ page, member, baseURL }) => {
+    await enterParentView(page, baseURL)
+    await page.goto('/koduhaldus')
+    await page.getByRole('button', { name: `Tee koopia: ${member.boardName}` }).tap()
+    await expect(page).toHaveURL(/\/boards\/\d+\/edit/)
+    await expect(page.getByText('Tahvlist tehti sulle koopia. Nüüd saad seda muuta.')).toBeVisible()
+
+    const copyId = Number(new URL(page.url()).pathname.split('/')[2])
+    expect(copyId).not.toBe(member.boardId)
+    const response = await page.request.get(`/api/boards/${copyId}?depth=0`)
+    const copy = (await response.json()) as { name: string; pinned: boolean; grid: { cells: Array<{ title: string }> } }
+    expect(copy.name).toBe(`${member.boardName} (koopia)`)
+    expect(copy.pinned).toBe(false)
+    expect(copy.grid.cells.map((cell) => cell.title)).toEqual(BOARD.words)
+    // The other tests count the member's boards.
+    expect((await page.request.delete(`/api/boards/${copyId}`)).status()).toBe(200)
   })
 
   test('a card is set to open another board', async ({ page, member, baseURL }) => {

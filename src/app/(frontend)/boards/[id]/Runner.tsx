@@ -21,6 +21,7 @@ import { getBoardTTSCacheManifest } from '@/utilities/boardTTSCacheManifest'
 import { prepareTextForTTS } from '@/utilities/azureTTS'
 import { ChildModeBar } from '@/app/(frontend)/kodu/ChildModeBar'
 import { CellLabel } from './CellLabel'
+import { CopyBoardButton } from '../CopyBoardButton'
 import { toast } from 'sonner'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
 import { wordClassColor } from '@/utilities/wordClass'
@@ -772,9 +773,12 @@ export default function Runner({ board, isParentMode, canEdit, hasPin, linkedBoa
               </Link>
             </Button>
           ) : (
-            <p className="text-sm text-slate-500">
-              Jagatud tahvel · muuta saab ainult tahvli looja
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-slate-500">
+                Jagatud tahvel · muuta saab ainult tahvli looja
+              </p>
+              <CopyBoardButton boardId={board.id} returnTo={`/boards/${board.id}`} variant="button" />
+            </div>
           )}
         </header>
       )}

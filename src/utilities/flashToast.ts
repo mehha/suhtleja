@@ -9,6 +9,7 @@ export const FLASH_TOASTS = {
   'board-shared': { type: 'success', message: 'Tahvel on nüüd kõigile nähtav.' },
   'board-unshared': { type: 'success', message: 'Tahvel pole enam kõigile nähtav.' },
   'board-deleted': { type: 'success', message: 'Tahvel kustutati.' },
+  'board-copied': { type: 'success', message: 'Tahvlist tehti sulle koopia. Nüüd saad seda muuta.' },
   'game-pinned': { type: 'success', message: 'Mäng lisati koduvaatesse.' },
   'game-unpinned': { type: 'success', message: 'Mäng eemaldati koduvaatest.' },
   'game-deleted': { type: 'success', message: 'Mäng kustutati.' },
