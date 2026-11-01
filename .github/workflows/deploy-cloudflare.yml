@@ -18,7 +18,7 @@ concurrency:
 # order they were pushed, and an older commit never lands after a newer one.
 jobs:
   checks:
-    name: Type-check and integration tests
+    name: Type-check, lint and integration tests
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -46,6 +46,10 @@ jobs:
 
       - name: Type-check
         run: pnpm exec tsc --noEmit
+
+      # Errors stop the deploy (the React hooks rules among them); warnings don't.
+      - name: Lint
+        run: pnpm lint
 
       # The Payload-backed tests use a throwaway local D1 on the runner (no Cloudflare credentials in
       # this job), so migrate it first. The secret only has to exist; it never touches production.
