@@ -248,6 +248,31 @@ export function describesGroup(description: string): boolean {
   return /\b(three|group|family|children|people|circle|everyone)\b/i.test(description)
 }
 
+/**
+ * Pictures stored twice. Payload gives a second file with an existing name a counter: `<name>-1.<ext>`,
+ * or, when the name already ends in `-<digits>` (emoji codes like 2705), that number counted up
+ * (`…-2706.png`). Returns each such copy with the expected name it copies, when that one exists with
+ * the same alt text (the word).
+ */
+export function findDuplicateFiles(
+  expected: Set<string>,
+  stored: Array<{ alt: string; name: string }>,
+): Array<{ duplicate: string; original: string }> {
+  const altOf = new Map(stored.map(({ alt, name }) => [name, alt]))
+  return stored.flatMap(({ alt, name }) => {
+    if (expected.has(name)) return []
+    const match = name.match(/^(.+)-(\d+)(\.[a-z0-9]+)$/i)
+    if (!match) return []
+    const [, stem, digits, ext] = match
+    const candidates = [`${stem}${ext}`]
+    for (let back = 1; back <= 9 && Number(digits) - back >= 0; back++) {
+      candidates.push(`${stem}-${String(Number(digits) - back).padStart(digits.length, '0')}${ext}`)
+    }
+    const original = candidates.find((candidate) => expected.has(candidate) && altOf.get(candidate) === alt)
+    return original ? [{ duplicate: name, original }] : []
+  })
+}
+
 /** jsDelivr URL of a Fluent picture at the pinned commit. */
 export function fluentURL(path: string): string {
   return `https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@${FLUENT_SHA}/${path.split('/').map(encodeURIComponent).join('/')}`

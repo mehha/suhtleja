@@ -13,6 +13,7 @@ import {
   aiPictureKey,
   buildBankItems,
   describesGroup,
+  findDuplicateFiles,
   parseCsv,
   toCsv,
   renderShape,
@@ -120,6 +121,34 @@ describe('picture bank lists', () => {
     expect(describesGroup('three children standing next to a pile of toys')).toBe(true)
     expect(describesGroup('a family of a mother, a father and two children')).toBe(true)
     expect(describesGroup('a child drinking from a cup')).toBe(false)
+  })
+
+  it('finds the second copies Payload stored under a counted-up name', () => {
+    const expected = new Set([
+      'pildipank-lill-1f33c.png',
+      'pildipank-mis-mulberry.svg',
+      'pildipank-jah-2705.png',
+      'pildipank-uks-0031-20e3.png',
+    ])
+    const file = (name: string, alt: string) => ({ alt, name })
+    expect(
+      findDuplicateFiles(expected, [
+        file('pildipank-lill-1f33c.png', 'lill'),
+        file('pildipank-lill-1f33c-1.png', 'lill'),
+        file('pildipank-mis-mulberry.svg', 'mis'),
+        file('pildipank-mis-mulberry-2.svg', 'mis'),
+        file('pildipank-jah-2705.png', 'jah'),
+        file('pildipank-jah-2706.png', 'jah'), // the name ended in digits, so Payload counted up
+        file('pildipank-jah-2707.png', 'kass'), // another word: not a copy
+        file('pildipank-uks-0031-20e3.png', 'üks'), // ends in digits, but is an expected name
+        file('pildipank-kass-1f408-1.png', 'kass'), // no original to fall back to: kept
+        file('oma-pilt-1.png', 'pilt'),
+      ]),
+    ).toEqual([
+      { duplicate: 'pildipank-lill-1f33c-1.png', original: 'pildipank-lill-1f33c.png' },
+      { duplicate: 'pildipank-mis-mulberry-2.svg', original: 'pildipank-mis-mulberry.svg' },
+      { duplicate: 'pildipank-jah-2706.png', original: 'pildipank-jah-2705.png' },
+    ])
   })
 
   it('rejects an unknown category', () => {

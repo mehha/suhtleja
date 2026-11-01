@@ -81,3 +81,15 @@ a file in `ai-pildid/` are skipped, so the import also runs on a machine without
 never deletes: a word renamed in a list gets a new picture, and the old one stays until an admin
 removes it. Importing to production needs the remote bindings (`NODE_ENV=production`) and explicit
 permission.
+
+Run one import at a time. Two at once both create the missing pictures, and Payload stores the
+second copy as `<name>-1.<ext>` (or, for a name ending in digits like an emoji code, counts the
+number up: `…-2705.png` becomes `…-2706.png`). To remove such copies:
+
+```sh
+PILDIPANK_REMOVE_DUPLICATES=1 PILDIPANK_DRY_RUN=1 pnpm payload run scripts/pildipank/import.ts   # list them
+PILDIPANK_REMOVE_DUPLICATES=1 pnpm payload run scripts/pildipank/import.ts                      # remove them
+```
+
+It first points any board card, board thumbnail or connect-dots puzzle that uses a copy at the
+original picture, then deletes the copies.

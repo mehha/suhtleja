@@ -10,6 +10,12 @@
 // Reruns are safe: each picture's file name is derived from its word and source, so an existing
 // picture is updated (alt text, category, caption) instead of added again. Nothing is deleted.
 // AI pictures come from ai-pildid/ (not in git); a word whose file is missing there is skipped.
+// Run one import at a time: two at once store the same pictures twice.
+//
+// Remove such copies: PILDIPANK_REMOVE_DUPLICATES=1 pnpm payload run scripts/pildipank/import.ts
+// It deletes the copies (Payload names a second file `<name>-1.<ext>`, or counts up a name that ends in
+// digits: `…-2705.png` becomes `…-2706.png`) after pointing any board card or puzzle that uses one at
+// the original.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -22,6 +28,7 @@ import {
   buildBankItems,
   captionDocument,
   CATEGORY_ORDER,
+  findDuplicateFiles,
   fluentURL,
   parseCsv,
   renderShape,
@@ -93,12 +100,97 @@ async function folderId(payload: Payload, name: string, parent: number | null): 
   return folder.id
 }
 
+async function removeDuplicates(payload: Payload, items: BankItem[]) {
+  const { docs } = await payload.find({
+    collection: 'media',
+    depth: 0,
+    limit: 5000,
+    overrideAccess: true,
+    pagination: false,
+    where: { filename: { contains: 'pildipank-' } },
+  })
+  const byName = new Map(docs.map((media) => [media.filename ?? '', media]))
+  const expected = new Set(items.map((item) => `${item.key}.${extensionOf(item)}`))
+  const stored = docs.map((media) => ({ alt: media.alt ?? '', name: media.filename ?? '' }))
+  const pairs = findDuplicateFiles(expected, stored).map(({ duplicate, original }) => ({
+    duplicate: byName.get(duplicate)!,
+    original: byName.get(original)!,
+  }))
+  console.log(`${pairs.length} duplicate pictures${dryRun ? ' (dry run)' : ''}`)
+  if (!pairs.length) return
+
+  const replacement = new Map(pairs.map(({ duplicate, original }) => [duplicate.id, original.id]))
+  const duplicateIds = [...replacement.keys()]
+  const swap = (value: unknown) => {
+    const id = relationId(value)
+    return id !== null && replacement.has(id) ? replacement.get(id)! : value
+  }
+
+  // Anything that started using a copy keeps its picture: point it at the original first. D1 takes
+  // at most 100 bound values per query (and Payload binds each `in` value twice), so ask in chunks.
+  const idsUsing = async (collection: 'boards' | 'connect-dots-puzzles', field: string) => {
+    const ids = new Set<number>()
+    for (let start = 0; start < duplicateIds.length; start += 20) {
+      const { docs } = await payload.find({
+        collection,
+        depth: 0,
+        limit: 1000,
+        overrideAccess: true,
+        pagination: false,
+        where: { [field]: { in: duplicateIds.slice(start, start + 20) } },
+      })
+      for (const doc of docs) ids.add(doc.id)
+    }
+    return [...ids]
+  }
+
+  const boardIds = new Set([...(await idsUsing('boards', 'grid.cells.image')), ...(await idsUsing('boards', 'thumbnail'))])
+  for (const id of boardIds) {
+    const board = await payload.findByID({ collection: 'boards', depth: 0, id, overrideAccess: true })
+    const cells = (board.grid?.cells ?? []).map((cell) => ({ ...cell, image: swap(cell.image) as number | null }))
+    if (!dryRun) {
+      await payload.update({
+        collection: 'boards',
+        data: { grid: { ...board.grid, cells }, thumbnail: swap(board.thumbnail) as number | null },
+        id,
+        overrideAccess: true,
+      })
+    }
+    console.log(`Board ${id}: now uses the original pictures`)
+  }
+
+  for (const id of await idsUsing('connect-dots-puzzles', 'image')) {
+    const puzzle = await payload.findByID({ collection: 'connect-dots-puzzles', depth: 0, id, overrideAccess: true })
+    if (!dryRun) {
+      await payload.update({
+        collection: 'connect-dots-puzzles',
+        data: { image: swap(puzzle.image) as number | null },
+        id,
+        overrideAccess: true,
+      })
+    }
+    console.log(`Puzzle ${id}: now uses the original picture`)
+  }
+
+  let removed = 0
+  for (const { duplicate } of pairs) {
+    if (!dryRun) await payload.delete({ collection: 'media', id: duplicate.id, overrideAccess: true })
+    removed++
+  }
+  console.log(`Done${dryRun ? ' (dry run, nothing written)' : ''}: ${removed} duplicate pictures removed.`)
+}
+
 async function main() {
   const read = (name: string) => parseCsv(fs.readFileSync(path.join(DIR, name), 'utf8'))
   const { items, waitingForAI } = buildBankItems(read('emoji.csv'), read('sonavara.csv'))
   console.log(`${items.length} pictures to import, ${waitingForAI.length} words wait for AI pictures${dryRun ? ' (dry run)' : ''}`)
 
   const payload = await getPayload({ config })
+
+  if (process.env.PILDIPANK_REMOVE_DUPLICATES === '1') {
+    await removeDuplicates(payload, items)
+    process.exit(0)
+  }
 
   const rootId = await folderId(payload, PICTURE_BANK_FOLDER_NAME, null)
   const categoryIds = new Map<string, number | null>()
