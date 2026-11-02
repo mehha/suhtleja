@@ -3,15 +3,16 @@ import { NextResponse } from 'next/server'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import type { User } from '@/payload-types'
-import { createGroqJsonCompletion, getSymbolSearchTerms } from '@/utilities/groq'
+import { createGroqJsonCompletion, getSentenceForms, getSymbolSearchTerms, sentenceWords } from '@/utilities/groq'
 import { hasActiveMembership } from '@/utilities/membershipStatus'
 
 export const runtime = 'nodejs'
 
 type GroqBody = {
   contextTail?: string[]
-  task?: 'symbol-search-terms'
+  task?: 'symbol-search-terms' | 'sentence'
   token?: string
+  words?: unknown
 }
 
 export async function POST(req: Request) {
@@ -31,6 +32,15 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json().catch(() => ({}))) as GroqBody
+
+  // The board's AI: the whole sentence at once (Runner.tsx), the same words back in their forms.
+  if (body.task === 'sentence') {
+    const words = sentenceWords(body.words)
+    if (!words) return NextResponse.json({ error: 'invalid words' }, { status: 400 })
+    const { error, words: forms } = await getSentenceForms(words)
+    return NextResponse.json(error ? { error, words: forms } : { words: forms })
+  }
+
   const raw = (body.token ?? '').trim()
   if (!raw) return NextResponse.json({ error: 'missing token' }, { status: 400 })
 

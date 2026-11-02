@@ -183,3 +183,61 @@ export async function getPictogramSubject(
     return { personal: true, subject: label }
   }
 }
+
+// The longest sentence the board's AI corrects at once, and a word's longest form.
+export const SENTENCE_MAX_WORDS = 12
+const SENTENCE_WORD_MAX_LENGTH = 40
+
+const SENTENCE_PROMPT = [
+  'Sa parandad lapse suhtluslehelt koostatud lause eesti keele vorme.',
+  'Sulle antakse sõnad lause järjekorras, JSON-massiivina.',
+  '',
+  'Reeglid:',
+  '1) Pane iga sõna lauses õigesse vormi (kääne, arv, pööre), et lause oleks grammatiliselt õige.',
+  '2) Ära lisa, kustuta ega järjesta sõnu ümber: tagasta täpselt sama arv sõnu samas järjekorras.',
+  '3) Kui sõna on juba õige, jäta see täpselt samaks.',
+  '4) Mitmesõnaline üksus (nt "hambaid pesema") on üks sõna: muuda selle vormi, mitte sõnade arvu.',
+  '5) Kohakäänded: olek → seesütlev või alalütlev ("koolis", "laual"), liikumine → sisseütlev või alaleütlev ("kooli", "lauale").',
+  '',
+  'Tagasta AINULT JSON kujul: {"words":["...","..."]}',
+].join('\n')
+
+/**
+ * The AI's forms for a sentence, accepted only when they are the same number of words, none empty
+ * or much longer than the word it stands for. Anything else is the sentence as it was.
+ */
+export function acceptSentenceForms(input: string[], output: unknown): string[] {
+  if (!Array.isArray(output) || output.length !== input.length) return input
+  return input.map((word, index) => {
+    const form = output[index]
+    if (typeof form !== 'string') return word
+    const trimmed = form.trim()
+    return trimmed && trimmed.length <= word.length + 12 ? trimmed : word
+  })
+}
+
+/** The board's AI: one request for a whole sentence, the words in the forms it gives them. */
+export async function getSentenceForms(words: string[]): Promise<{ error?: string; words: string[] }> {
+  try {
+    const txt = await createGroqJsonCompletion({
+      messages: [
+        { role: 'system', content: SENTENCE_PROMPT },
+        { role: 'user', content: JSON.stringify(words) },
+      ],
+      reasoningEffort: 'low',
+      temperature: 0,
+    })
+    const parsed = JSON.parse(txt) as { words?: unknown }
+    return { words: acceptSentenceForms(words, parsed?.words) }
+  } catch (error) {
+    console.error('Groq sentence forms failed', error)
+    return { error: error instanceof Error ? error.message : 'groq_request_failed', words }
+  }
+}
+
+/** The words of a sentence request: 2 to SENTENCE_MAX_WORDS, each a short non-empty string. */
+export function sentenceWords(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length < 2 || value.length > SENTENCE_MAX_WORDS) return null
+  const words = value.map((word) => (typeof word === 'string' ? word.trim() : ''))
+  return words.every((word) => word && word.length <= SENTENCE_WORD_MAX_LENGTH) ? words : null
+}

@@ -19,7 +19,7 @@ tags: [suhtleja, frontend, symbols, groq, api]
 - Collection: `src/collections/SymbolGenerations.ts` (`symbol-generations`)
 - Consumers:
   - `boards/[id]/edit/BoardEditor/Toolbar.tsx` (symbols with `preferLocal`, groq, word-class), `CellEditModal.tsx` (image-search, picture-bank, symbol-generate, symbol-generate/save, word-class)
-  - `boards/[id]/Runner.tsx` (groq surface-form correction, for words the board's word forms leave alone)
+  - `boards/[id]/Runner.tsx` (groq sentence forms, for words the board's word forms leave alone)
   - `src/components/ConnectDots/ConnectDotsEditorField.tsx`, `ConnectDotsFrontendEditor.tsx` (symbols)
 
 ## Auth Gate
@@ -84,9 +84,10 @@ tags: [suhtleja, frontend, symbols, groq, api]
 ## `POST /next/groq`
 - Env: `GROQ_API_KEY` (missing returns 500), `GROQ_MODEL` (default `openai/gpt-oss-120b`, also set in `wrangler.jsonc` vars).
 - Groq retires models. Both uses fail soft (the word stays as typed, no search terms), so a retired model turns the features off without an error in the UI; the route logs `Groq word form failed` / `Groq symbol search terms failed` with `model_not_found`. `qwen/qwen3-32b` was retired in 2026. On 2026-10-26, `openai/gpt-oss-120b` gave correct forms for test sentences ("koer joob vett", "ema loeb raamatut", "mina lähen kooli") at about 0.7 s per word; `qwen/qwen3.8-27b` left verbs unconjugated and `openai/gpt-oss-20b` often returned invalid JSON.
-- Two modes, body `{ token, contextTail?, task? }`:
+- `task: 'sentence'`, body `{ task, words }` (the board's AI, `Runner.tsx`): 2 to `SENTENCE_MAX_WORDS` (12) words, each at most 40 characters (`sentenceWords`, else 400). Returns `{ words }`, the same number in the same order in their forms (`getSentenceForms`, gpt-oss with low, hidden reasoning). `acceptSentenceForms` keeps the sentence when the AI changes the number of words, and a word whose form is empty, not text or far longer; a Groq error answers 200 with the words as sent and an `error`.
+- Two older modes, body `{ token, contextTail?, task? }`:
   - `task: 'symbol-search-terms'`: returns `{ terms: string[] }` (up to 8 lowercase English ARASAAC search terms).
-  - Default: Estonian morphology fix for one token using the last 2 context words, returns `{ surface }`. Without context the token is returned unchanged and Groq is not called. The runner sends the context as the sentence says it and doesn't ask for a word the board's word forms already change (see `boards.md`, "Word form rules"). It doesn't wait for the answer either: the tap speaks at once and the form follows into the phrase.
+  - Default: Estonian morphology fix for one token using the last 2 context words, returns `{ surface }`. Without context the token is returned unchanged and Groq is not called. The runner no longer uses it (it sends the whole sentence, above).
   - The word form asks gpt-oss models for `reasoning_effort: 'low'` with hidden reasoning (`reasoningEffort` of `createGroqJsonCompletion`; other models get neither). On 2026-11-01 the test sentences stayed right and the median answer fell from about 0.6 s to 0.45 s. The symbol search terms keep the default.
 - Soft-fail rule: on Groq errors respond `200` with the original `surface` (or empty `terms`) plus an `error` string, so board playback is never blocked by the LLM.
 - Do not send user PII to the prompt; only the card label and up to 2 preceding words.

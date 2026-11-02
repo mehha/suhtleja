@@ -79,9 +79,6 @@ type SequenceItem = {
   image?: string
 }
 
-type MorphResponse = {
-  surface?: string
-}
 
 // A card's picture: an external symbol or an uploaded picture.
 function cellImageSrc(cell: any): string {
@@ -107,6 +104,11 @@ const SENTENCE_PREFETCH_DELAY_MS = 300
 const SENTENCE_PREFETCH_MAX_WORDS = 10
 // Word forms the next tap can need, loaded after each tap (a board's nouns after "tahan").
 const NEXT_FORMS_PRELOAD_MAX = 24
+// With AI on: the sentence goes to the AI once the child pauses this long, it waits this long for an
+// answer, and sentences up to this many words go (the route's SENTENCE_MAX_WORDS).
+const AI_SENTENCE_DELAY_MS = 400
+const AI_SENTENCE_TIMEOUT_MS = 5000
+const AI_SENTENCE_MAX_WORDS = 12
 
 // The child view shows no other toasts: only this one, so a tap that made no sound isn't silent.
 // The id keeps repeated taps from stacking toasts.
@@ -152,8 +154,9 @@ export default function Runner({
     }, 0)
     return () => window.clearTimeout(timer)
   }, [board.id])
-  // AI forms on their way (AI setting): the sentence is fetched for "play all" once they are in.
-  const [pendingAIForms, setPendingAIForms] = useState(0)
+  // With AI on, the AI's forms for the whole sentence (/next/groq, one request once the child pauses),
+  // with the words they were for.
+  const [aiSentence, setAiSentence] = useState<{ input: string; words: string[] } | null>(null)
 
   // The board's own setting (saved in the editor); the runner plays the board the way the child gets it.
   const aiEnabled = board.extra?.ai ?? false
@@ -292,7 +295,73 @@ export default function Runner({
     [grammar, grammarInput],
   )
 
-  const tokens: SelectedToken[] = useMemo(() => sentenceTokens(sequence), [sequence, sentenceTokens])
+  const ruleTokens: SelectedToken[] = useMemo(() => sentenceTokens(sequence), [sequence, sentenceTokens])
+  const ruleKey = ruleTokens.map((token) => token.text).join('\u0001')
+  // The AI corrects sentences of two words and more (up to the route's limit).
+  const aiApplies = aiEnabled && sequence.length >= 2 && sequence.length <= AI_SENTENCE_MAX_WORDS
+  const aiReady = aiApplies && aiSentence?.input === ruleKey
+  // "Play all" is fetched ahead once the AI's forms for this sentence are in.
+  const aiPending = aiApplies && !aiReady
+
+  // The words as the sentence says them, with the AI's forms where the board's word forms left a
+  // word as tapped.
+  const tokens: SelectedToken[] = useMemo(
+    () =>
+      aiReady && aiSentence
+        ? ruleTokens.map((token, index) =>
+            token.text !== sequence[index]?.text ? token : { ...token, text: aiSentence.words[index] ?? token.text },
+          )
+        : ruleTokens,
+    [aiReady, aiSentence, ruleTokens, sequence],
+  )
+
+  // The AI's forms, asked for once the child pauses. A failed or slow answer leaves the sentence as
+  // the word forms give it.
+  useEffect(() => {
+    if (!aiApplies || aiSentence?.input === ruleKey) return
+    const words = ruleTokens.map((token) => token.text)
+    const last = sequence.length - 1
+    const lastCellId = sequence[last]?.cellId
+    const lastLeftAsTapped = ruleTokens[last]?.text === sequence[last]?.text
+    let cancelled = false
+    const controller = new AbortController()
+
+    const timer = window.setTimeout(async () => {
+      const giveUp = window.setTimeout(() => controller.abort(), AI_SENTENCE_TIMEOUT_MS)
+      let forms = words
+      try {
+        const response = await fetch('/next/groq', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task: 'sentence', words }),
+          signal: controller.signal,
+        })
+        const json = response.ok ? ((await response.json().catch(() => null)) as { words?: unknown } | null) : null
+        if (Array.isArray(json?.words) && json.words.length === words.length) {
+          forms = json.words.map((form, index) => (typeof form === 'string' && form.trim() ? form.trim() : words[index]!))
+        }
+      } catch {
+        // Cut off or failed: the words stay as the word forms give them.
+      } finally {
+        window.clearTimeout(giveUp)
+      }
+      if (cancelled) return
+      setAiSentence({ input: words.join('\u0001'), words: forms })
+      // The last tapped tile shows the AI's form of its word, while it still shows the word.
+      const lastForm = forms[last]
+      if (lastLeftAsTapped && lastCellId && lastForm && lastForm !== words[last]) {
+        setTempLabel((current) =>
+          current && current.id === lastCellId && current.text === words[last] ? { id: lastCellId, text: lastForm } : current,
+        )
+      }
+    }, AI_SENTENCE_DELAY_MS)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [aiApplies, aiSentence, ruleKey, ruleTokens, sequence])
 
   // AI sees: sõnaühendeid ei kasutata, jada jääb nagu on. AI väljas: rakenda sõnaühendid.
   const compoundsResult = useMemo(
@@ -421,11 +490,11 @@ export default function Runner({
   useEffect(() => {
     const preparedText = prepareTextForTTS(ttsAll)
     if (!preparedText || cachedAudioUrlByText.has(preparedText)) return
-    if (sequence.length > SENTENCE_PREFETCH_MAX_WORDS || pendingAIForms > 0) return
+    if (sequence.length > SENTENCE_PREFETCH_MAX_WORDS || aiPending) return
 
     const timer = window.setTimeout(() => void loadSpokenAudio(preparedText), SENTENCE_PREFETCH_DELAY_MS)
     return () => window.clearTimeout(timer)
-  }, [ttsAll, sequence.length, pendingAIForms, cachedAudioUrlByText, loadSpokenAudio])
+  }, [ttsAll, sequence.length, aiPending, cachedAudioUrlByText, loadSpokenAudio])
 
   // Resolves to false when no sound came out (speech failed to load or play).
   const playSpeech = async (text: string): Promise<boolean> => {
@@ -516,54 +585,10 @@ export default function Runner({
 
       setTempLabel({ id: cellId, text: shown })
 
-      // With AI on, the word is said at once and the AI's form follows into the phrase and "play
-      // all". A word the board's word forms change ("jooksen") is right already and isn't sent.
-      if (aiEnabled && sequence.length > 0 && form === raw) {
-        void fetchAIForm({ key, cellId, raw, contextTail: tokens.slice(-2).map((t) => t.text) })
-      }
-
       if (!(await playSpeech(spoken))) notifySpeechFailed()
     } finally {
       // A later tap keeps its tile lit.
       if (key === tapKeyRef.current) setActiveCellId(null)
-    }
-  }
-
-  // The AI's form of a tapped word (/next/groq), from the two words before it as the sentence says
-  // them. It replaces the word in the phrase, and on its tile while that still shows the word; an
-  // undone or cleared word is left alone.
-  const fetchAIForm = async ({
-    key,
-    cellId,
-    raw,
-    contextTail,
-  }: {
-    key: number
-    cellId: string
-    raw: string
-    contextTail: string[]
-  }) => {
-    setPendingAIForms((count) => count + 1)
-    try {
-      const response = await fetch('/next/groq', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contextTail, token: raw }),
-        signal: AbortSignal.timeout(5000),
-      })
-      if (!response.ok) return
-      const json = (await response.json().catch(() => null)) as MorphResponse | null
-      const surface = typeof json?.surface === 'string' ? json.surface.trim() : ''
-      if (!surface || surface === raw) return
-
-      setSequence((prev) => prev.map((item) => (item.key === key ? { ...item, text: surface } : item)))
-      setTempLabel((current) =>
-        current && current.id === cellId && current.text === raw ? { id: cellId, text: surface } : current,
-      )
-    } catch {
-      // The word stays as tapped.
-    } finally {
-      setPendingAIForms((count) => count - 1)
     }
   }
 

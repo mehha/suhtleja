@@ -516,26 +516,28 @@ test.describe('board', () => {
     await expect.poll(() => spoken).toContain('mina mängin suure autoga.')
   })
 
-  test("with AI on, a tap speaks at once and the AI's form follows into the phrase", async ({ page, member }) => {
+  test("with AI on, a tap speaks at once and the AI's forms for the sentence follow", async ({ page, member }) => {
     const spoken: string[] = []
     await page.route('**/next/tts-ms', async (route) => {
       spoken.push(JSON.parse(route.request().postData() ?? '{}').text)
       await route.fulfill({ body: silentWav(), contentType: 'audio/wav' })
     })
-    // The AI answers when the test lets it.
+    // The AI answers when the test lets it: "lamp" (which the word forms leave, a lamp being no place)
+    // becomes "lambi", and it also tries to change "magan", which the board's word forms gave.
     let answer = () => {}
     const answered = new Promise<void>((resolve) => (answer = resolve))
-    const asked: unknown[] = []
+    const asked: Array<{ task: string; words: string[] }> = []
     await page.route('**/next/groq', async (route) => {
-      asked.push(route.request().postDataJSON())
+      const body = route.request().postDataJSON() as { task: string; words: string[] }
+      asked.push(body)
       await answered
-      await route.fulfill({ json: { surface: 'voodis' } })
+      const forms: Record<string, string> = { lamp: 'lambi', magan: 'magas' }
+      await route.fulfill({ json: { words: body.words.map((word) => forms[word] ?? word) } })
     })
-    // The word forms leave "magan voodi" alone (a bed is a thing, not a place); the AI gives "voodis".
     const boardId = await createOwnBoard(
       page.request,
       `AI ${member.boardName}`,
-      [{ title: 'mina' }, { title: 'magama', wordClass: 'verb' }, { title: 'voodi', wordClass: 'noun' }],
+      [{ title: 'mina' }, { title: 'magama', wordClass: 'verb' }, { title: 'lamp', wordClass: 'noun' }],
       { ai: true },
     )
     await page.goto(`/boards/${boardId}`)
@@ -544,21 +546,22 @@ test.describe('board', () => {
 
     await tile(0).tap()
     await expect.poll(() => spoken).toContain('mina.')
-    // A word the board's word forms change isn't sent to the AI.
     await tile(1).tap()
     await expect.poll(() => spoken).toContain('magan.')
     await tile(2).tap()
-    // Said while the AI is still answering.
-    await expect.poll(() => spoken).toContain('voodi.')
-    expect(asked).toEqual([{ contextTail: ['mina', 'magan'], token: 'voodi' }])
-    await expect(phrase.getByText('voodi', { exact: true })).toBeVisible()
+    // Said while the AI is still answering; the sentence goes to it in one request.
+    await expect.poll(() => spoken).toContain('lamp.')
+    await expect.poll(() => asked.at(-1)).toEqual({ task: 'sentence', words: ['mina', 'magan', 'lamp'] })
+    await expect(phrase.getByText('lamp', { exact: true })).toBeVisible()
 
     answer()
-    await expect(phrase.getByText('voodis', { exact: true })).toBeVisible()
-    await expect(tile(2)).toHaveAccessibleName('voodis')
-    // "Play all" is fetched ahead once the AI's form is in, not before.
-    await expect.poll(() => spoken).toContain('mina magan voodis.')
-    expect(spoken).not.toContain('mina magan voodi.')
+    await expect(phrase.getByText('lambi', { exact: true })).toBeVisible()
+    await expect(tile(2)).toHaveAccessibleName('lambi')
+    // The board's word forms keep theirs.
+    await expect(phrase.getByText('magan', { exact: true })).toBeVisible()
+    // "Play all" is fetched ahead once the AI's forms are in, not before.
+    await expect.poll(() => spoken).toContain('mina magan lambi.')
+    expect(spoken).not.toContain('mina magan lamp.')
   })
 })
 
