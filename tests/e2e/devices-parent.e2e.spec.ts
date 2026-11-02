@@ -1,7 +1,7 @@
 import { type Page } from '@playwright/test'
 
 import { silentWav } from './audio'
-import { DEFAULT_PIN } from './member'
+import { DEFAULT_PIN, startTrial } from './member'
 import { pageReady } from './ready'
 import { testAccountEmail } from './testAccounts'
 import {
@@ -65,9 +65,14 @@ async function holdScripts(page: Page) {
 test.describe('logged out', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
 
-  test('a sign-up filled before the page is ready still goes through', async ({ page }) => {
+  test("a sign-up filled before the page is ready still goes through, and the profile's offer starts the trial", async ({
+    page,
+  }) => {
     const run = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
     const password = `e2e-${run}-Passw0rd`
+    // The trial doesn't start (its Stripe call fails here): the home sends the new member to the
+    // profile's trial offer.
+    await page.route('**/next/stripe/trial', (route) => route.fulfill({ status: 500, json: { error: 'trial_failed' } }))
     const ready = await holdScripts(page)
     await page.goto('/register', { waitUntil: 'commit' })
     await page.getByLabel('Nimi').fill('Testija')
@@ -78,6 +83,19 @@ test.describe('logged out', () => {
 
     await page.getByRole('button', { name: 'Loo konto' }).tap()
     await expect(page).toHaveURL(/\/profile\?membership=required$/, { timeout: 60_000 })
+
+    // The offer starts it without the Stripe page. Stripe is a stand-in again: the test answers for
+    // it and sends the signed webhook event a new trial brings.
+    await page.unroute('**/next/stripe/trial')
+    await page.route('**/next/stripe/trial', async (route) => {
+      const { user } = await (await page.request.get('/api/users/me')).json()
+      await startTrial(page.request, user.id, run)
+      await route.fulfill({ json: { ok: true } })
+    })
+    await page.getByRole('button', { name: /^Alusta tasuta prooviperioodi/ }).tap()
+    await expect(page.getByText('Prooviperiood algas.', { exact: false })).toBeVisible()
+    await expect(page.getByText(/^Prooviperiood lõpeb:/)).toBeVisible()
+    await expect(page).toHaveURL(/\/profile$/)
   })
 
   test('a login filled before the page is ready still goes through', async ({ page, member }) => {

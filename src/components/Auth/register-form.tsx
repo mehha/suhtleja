@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/utilities/ui'
 import { getClientSideURL } from '@/utilities/getURL'
+import { startMembershipTrial } from '@/utilities/startMembershipTrial'
 
 type RegisterFormProps = React.ComponentPropsWithoutRef<'div'>
 
@@ -138,6 +139,10 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
           'samesite=lax',
         ].join('; ')
       }
+
+      // 4) The trial starts at once, without the Stripe page. If it doesn't, the home sends the new
+      // member to the profile's trial offer.
+      await startMembershipTrial()
 
       router.push('/kodu')
       router.refresh()

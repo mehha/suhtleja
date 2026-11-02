@@ -6,7 +6,7 @@ import { startTrial } from './member'
 import { pageReady } from './ready'
 import { testAccountEmail } from './testAccounts'
 
-// A new customer's main path: register, start a trial, unlock the parent view with a PIN, put a
+// A new customer's main path: register (the trial starts at once), unlock the parent view with a PIN, put a
 // board on the child home, give it a compound and hear it speak. It creates an account and a board, so it runs only
 // against a local server; Playwright's global teardown deletes the account afterwards.
 
@@ -41,7 +41,14 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     if (pathname.startsWith('/next/tts-')) speech.push({ path: pathname, status: response.status() })
   })
 
-  await test.step('register', async () => {
+  await test.step('register, and the trial starts at once', async () => {
+    // The trial route's call to Stripe is a stand-in: the test answers for it, and sends the signed
+    // webhook event a new trial brings.
+    await page.route('**/next/stripe/trial', async (route) => {
+      const { user } = await (await page.request.get('/api/users/me')).json()
+      await startTrial(page.request, user.id, run)
+      await route.fulfill({ json: { ok: true } })
+    })
     await open('/register')
     await page.getByLabel('Nimi').fill('Testija')
     await page.getByLabel('E-post').fill(testAccountEmail(run))
@@ -49,14 +56,9 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
     await page.getByLabel('Korda parooli').fill(password)
     await page.getByRole('button', { name: 'Loo konto' }).click()
 
-    // Without a membership, the child home sends a new customer to the trial offer.
-    await expect(page).toHaveURL(/\/profile\?membership=required$/, { timeout: 60_000 })
-    await expect(page.getByText('Alusta tasuta prooviperioodi', { exact: true })).toBeVisible()
-  })
-
-  await test.step('start a trial', async () => {
-    const { user } = await (await page.request.get('/api/users/me')).json()
-    await startTrial(page.request, user.id, run)
+    // No Stripe page: the new member goes straight to the home.
+    await expect(page).toHaveURL(/\/kodu$/, { timeout: 60_000 })
+    await expect(page.getByRole('heading', { level: 1, name: 'Kodu' })).toBeVisible()
 
     await open('/profile')
     await expect(page.getByText(/^Prooviperiood lõpeb:/)).toBeVisible()

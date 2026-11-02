@@ -2,53 +2,13 @@ import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Stripe from 'stripe'
+import { getStripeCustomerId, membershipFromSubscription } from '@/utilities/membershipSubscription'
 import { createStripeClient } from '@/utilities/stripe'
 
 export const runtime = 'nodejs'
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
-
-type MembershipStatus = 'none' | 'trialing' | 'active' | 'past_due' | 'canceled'
-
-const toMembershipStatus = (status: Stripe.Subscription.Status): MembershipStatus => {
-  switch (status) {
-    case 'trialing':
-      return 'trialing'
-    case 'active':
-      return 'active'
-    case 'past_due':
-    case 'incomplete':
-    case 'incomplete_expired':
-    case 'unpaid':
-      return 'past_due'
-    case 'canceled':
-    case 'paused':
-      return 'canceled'
-    default:
-      return 'none'
-  }
-}
-
-const toISO = (unixTime?: number | null): string | null => {
-  if (!unixTime) return null
-  return new Date(unixTime * 1000).toISOString()
-}
-
-const hasScheduledCancellation = (subscription: Stripe.Subscription): boolean => {
-  if (subscription.cancel_at_period_end) return true
-
-  return typeof subscription.cancel_at === 'number' && subscription.cancel_at * 1000 > Date.now()
-}
-
-const getCurrentPeriodEnd = (subscription: Stripe.Subscription): number | null => {
-  const periodEnds = subscription.items?.data
-    ?.map((item) => item.current_period_end)
-    .filter((value): value is number => typeof value === 'number')
-
-  if (!periodEnds || periodEnds.length === 0) return null
-  return Math.max(...periodEnds)
-}
 
 const findUserIdByCustomer = async (customerId: string): Promise<string | null> => {
   const payload = await getPayload({ config: configPromise })
@@ -69,10 +29,7 @@ const findUserIdByCustomer = async (customerId: string): Promise<string | null> 
 
 const updateMembershipFromSubscription = async (subscription: Stripe.Subscription) => {
   const payload = await getPayload({ config: configPromise })
-  const customerId =
-    typeof subscription.customer === 'string'
-      ? subscription.customer
-      : subscription.customer.id
+  const customerId = getStripeCustomerId(subscription)
 
   let userId = await findUserIdByCustomer(customerId)
   const metadataUserId = subscription.metadata?.payloadUserId
@@ -86,14 +43,7 @@ const updateMembershipFromSubscription = async (subscription: Stripe.Subscriptio
   await payload.update({
     collection: 'users',
     id: userId,
-    data: {
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscription.id,
-      membershipStatus: toMembershipStatus(subscription.status),
-      trialEndsAt: toISO(subscription.trial_end),
-      currentPeriodEndsAt: toISO(getCurrentPeriodEnd(subscription)),
-      membershipCancelAtPeriodEnd: hasScheduledCancellation(subscription),
-    },
+    data: membershipFromSubscription(subscription),
   })
 }
 

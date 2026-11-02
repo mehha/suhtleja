@@ -19,6 +19,7 @@ export const FLASH_TOASTS = {
   'game-deleted': { type: 'success', message: 'Mäng kustutati.' },
   'game-saved': { type: 'success', message: 'Mäng salvestatud.' },
   'pin-removed': { type: 'success', message: 'PIN eemaldati. Vaade lülitus lapse vaatesse.' },
+  'trial-started': { type: 'success', message: 'Prooviperiood algas. Makseviisi pole vaja lisada.' },
   error: { type: 'error', message: 'Midagi läks valesti. Proovi uuesti.' },
 } as const satisfies Record<string, { type: 'success' | 'error' | 'info'; message: string }>
 

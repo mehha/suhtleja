@@ -9,7 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/utilities/ui'
+import { withToast } from '@/utilities/flashToast'
 import { MEMBERSHIP_TRIAL_DAYS } from '@/utilities/membershipCheckout'
+import { startMembershipTrial } from '@/utilities/startMembershipTrial'
 import { Loader2, ShieldCheck, CircleSlash } from 'lucide-react'
 
 const initialState = {
@@ -74,7 +76,8 @@ export function ProfilePageClient({
 }: Props) {
   const [pin, setPin] = useState('')
   const [state, formAction] = useActionState(updatePinAction, initialState)
-  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  // What the membership button is doing: starting the trial, or opening Checkout.
+  const [checkoutLoading, setCheckoutLoading] = useState<false | 'trial' | 'checkout'>(false)
   const [portalLoading, setPortalLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
@@ -100,10 +103,34 @@ export function ProfilePageClient({
   // During a trial the billing period ends with the trial, so the trial line is enough.
   const showPeriodEnd = Boolean(periodEndsLabel) && !(membership === 'trialing' && trialEndsLabel)
 
-  const startMembershipCheckout = async () => {
+  // A first-time member's trial starts here, without the Stripe page; a customer who had a
+  // subscription goes on to Checkout.
+  const startTrial = async () => {
     if (checkoutLoading || hasMembershipAccess) return
 
-    setCheckoutLoading(true)
+    setCheckoutLoading('trial')
+    setCheckoutError(null)
+    const result = await startMembershipTrial()
+
+    if (result === 'started') {
+      window.location.assign(withToast('/profile', 'trial-started'))
+      return
+    }
+    if (result === 'trial_used') {
+      await openCheckout()
+      return
+    }
+    setCheckoutError('Prooviperioodi alustamine ebaõnnestus. Proovi uuesti.')
+    setCheckoutLoading(false)
+  }
+
+  const startMembershipCheckout = async () => {
+    if (checkoutLoading || hasMembershipAccess) return
+    await openCheckout()
+  }
+
+  const openCheckout = async () => {
+    setCheckoutLoading('checkout')
     setCheckoutError(null)
 
     try {
@@ -220,14 +247,14 @@ export function ProfilePageClient({
           {checkoutError && <p className="text-sm text-red-500">{checkoutError}</p>}
           <Button
             type="button"
-            onClick={startMembershipCheckout}
-            disabled={checkoutLoading || hasMembershipAccess}
+            onClick={isTrialEligible ? startTrial : startMembershipCheckout}
+            disabled={Boolean(checkoutLoading) || hasMembershipAccess}
             className="gap-2"
           >
             {checkoutLoading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Suunan checkouti...
+                {checkoutLoading === 'trial' ? 'Alustan prooviperioodi…' : 'Suunan checkouti...'}
               </>
             ) : isPendingCancellation ? (
               <>

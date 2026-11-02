@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest'
 import {
   MEMBERSHIP_TRIAL_DAYS,
   getMembershipCheckoutOptions,
+  getMembershipTrialParams,
   getSavedCardBillingDetailsUpdate,
 } from '@/utilities/membershipCheckout'
+import { membershipFromSubscription } from '@/utilities/membershipSubscription'
 
 const billingDetails = (
   overrides: Partial<Stripe.PaymentMethod.BillingDetails> = {},
@@ -51,6 +53,48 @@ describe('membership checkout options', () => {
 
     expect(options.saved_payment_method_options).toEqual({
       allow_redisplay_filters: ['always', 'limited', 'unspecified'],
+    })
+  })
+})
+
+describe('the trial at sign-up', () => {
+  it("makes Checkout's trial through the API, without a card", () => {
+    const params = getMembershipTrialParams({ customerId: 'cus_1', priceId: 'price_1', userId: '42' })
+
+    expect(params).toEqual({
+      customer: 'cus_1',
+      items: [{ price: 'price_1' }],
+      metadata: { payloadUserId: '42' },
+      trial_period_days: MEMBERSHIP_TRIAL_DAYS,
+      trial_settings: {
+        end_behavior: { missing_payment_method: 'cancel' },
+      },
+    })
+    // The same trial as a first-time member's Checkout.
+    const { subscription_data } = getMembershipCheckoutOptions({ hadSubscription: false, userId: '42' })
+    expect(params.trial_period_days).toBe(subscription_data?.trial_period_days)
+    expect(params.trial_settings).toEqual(subscription_data?.trial_settings)
+  })
+
+  it("gives the member the trial's membership fields at once", () => {
+    const trialEnd = Date.UTC(2026, 10, 16) / 1000
+    const subscription = {
+      id: 'sub_1',
+      customer: 'cus_1',
+      status: 'trialing',
+      trial_end: trialEnd,
+      cancel_at: null,
+      cancel_at_period_end: false,
+      items: { data: [{ current_period_end: trialEnd }] },
+    } as unknown as Stripe.Subscription
+
+    expect(membershipFromSubscription(subscription)).toEqual({
+      stripeCustomerId: 'cus_1',
+      stripeSubscriptionId: 'sub_1',
+      membershipStatus: 'trialing',
+      trialEndsAt: '2026-11-16T00:00:00.000Z',
+      currentPeriodEndsAt: '2026-11-16T00:00:00.000Z',
+      membershipCancelAtPeriodEnd: false,
     })
   })
 })

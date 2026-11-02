@@ -7,6 +7,7 @@ import {
   getMembershipCheckoutOptions,
   getSavedCardBillingDetailsUpdate,
 } from '@/utilities/membershipCheckout'
+import { hasAnySubscription, resolveStripeCustomer } from '@/utilities/stripeCustomer'
 
 export const runtime = 'nodejs'
 
@@ -16,26 +17,6 @@ const STRIPE_PRICE_ID_MEMBERSHIP = process.env.STRIPE_PRICE_ID_MEMBERSHIP
 const getBaseURL = (req: Request): string => {
   if (process.env.NEXT_PUBLIC_SERVER_URL) return process.env.NEXT_PUBLIC_SERVER_URL
   return new URL(req.url).origin
-}
-
-const isMissingStripeResource = (err: unknown): boolean => {
-  const stripeErr = err as Stripe.errors.StripeError
-
-  return (
-    stripeErr?.type === 'StripeInvalidRequestError' &&
-    (stripeErr?.code === 'resource_missing' ||
-      stripeErr?.message?.toLowerCase().includes('no such customer'))
-  )
-}
-
-const hasAnySubscription = async (stripe: Stripe, customerId: string): Promise<boolean> => {
-  const subscriptions = await stripe.subscriptions.list({
-    customer: customerId,
-    status: 'all',
-    limit: 1,
-  })
-
-  return subscriptions.data.length > 0
 }
 
 const completeSavedCardBillingDetails = async (
@@ -82,79 +63,17 @@ export async function POST(req: Request) {
   const stripe = createStripeClient(STRIPE_SECRET_KEY)
 
   try {
-    let customerId = (user as { stripeCustomerId?: string | null }).stripeCustomerId || undefined
-    let isNewCustomer = false
+    const resolved = await resolveStripeCustomer(payload, stripe, {
+      id: user.id,
+      email: user.email,
+      stripeCustomerId: user.stripeCustomerId,
+    })
 
-    if (customerId) {
-      try {
-        const customer = await stripe.customers.retrieve(customerId)
-
-        if ('deleted' in customer && customer.deleted) {
-          customerId = undefined
-        }
-      } catch (err) {
-        if (isMissingStripeResource(err)) {
-          customerId = undefined
-        } else {
-          throw err
-        }
-      }
+    if ('error' in resolved) {
+      return NextResponse.json({ error: resolved.error }, { status: 409 })
     }
 
-    if (!customerId) {
-      const existing = await stripe.customers.list({
-        email: user.email,
-        limit: 10,
-      })
-
-      const customersWithSameEmail = existing.data.filter((customer) => customer.email === user.email)
-      const metadataMatchedCustomer = customersWithSameEmail.find(
-        (customer) => customer.metadata?.payloadUserId === String(user.id),
-      )
-
-      if (metadataMatchedCustomer) {
-        customerId = metadataMatchedCustomer.id
-      } else if (customersWithSameEmail.length === 1) {
-        customerId = customersWithSameEmail[0]?.id
-      } else if (customersWithSameEmail.length > 1) {
-        console.warn('Stripe checkout blocked due to duplicate customers for email', {
-          email: user.email,
-          userId: String(user.id),
-          customerIds: customersWithSameEmail.map((customer) => customer.id),
-        })
-
-        return NextResponse.json(
-          { error: 'multiple_matching_customers' },
-          { status: 409 },
-        )
-      }
-    }
-
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          payloadUserId: String(user.id),
-        },
-      })
-      customerId = customer.id
-      isNewCustomer = true
-    }
-
-    if (customerId !== (user as { stripeCustomerId?: string | null }).stripeCustomerId) {
-      await payload.update({
-        collection: 'users',
-        id: user.id,
-        data: {
-          stripeCustomerId: customerId,
-          stripeSubscriptionId: null,
-          membershipStatus: 'none',
-          trialEndsAt: null,
-          currentPeriodEndsAt: null,
-          membershipCancelAtPeriodEnd: false,
-        },
-      })
-    }
+    const { customerId, isNewCustomer } = resolved
 
     const baseURL = getBaseURL(req)
     const hadSubscription = isNewCustomer ? false : await hasAnySubscription(stripe, customerId)

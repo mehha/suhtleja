@@ -46,6 +46,29 @@ export const getMembershipCheckoutOptions = ({
 // and a country. Cards added in the Billing Portal have only the country, so fill in
 // the email and name from the account. Without a name on the account the card can't
 // be completed, so it is left as is.
+/**
+ * A first-time member's trial, made through the API at sign-up (next/stripe/trial): the subscription
+ * Checkout makes for them, without the Stripe page. No card; without one by the trial's end, Stripe
+ * cancels it.
+ */
+export const getMembershipTrialParams = ({
+  customerId,
+  priceId,
+  userId,
+}: {
+  customerId: string
+  priceId: string
+  userId: string
+}): Stripe.SubscriptionCreateParams => ({
+  customer: customerId,
+  items: [{ price: priceId }],
+  metadata: { payloadUserId: userId },
+  trial_period_days: MEMBERSHIP_TRIAL_DAYS,
+  trial_settings: {
+    end_behavior: { missing_payment_method: 'cancel' },
+  },
+})
+
 export const getSavedCardBillingDetailsUpdate = ({
   billingDetails,
   email,

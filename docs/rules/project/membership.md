@@ -7,6 +7,7 @@ tags: [suhtleja, stripe, membership, profile]
 # Membership (Stripe)
 
 ## Scope
+- Trial route: `src/app/(frontend)/next/stripe/trial/route.ts`
 - Checkout route: `src/app/(frontend)/next/stripe/checkout/route.ts`
 - Billing portal route: `src/app/(frontend)/next/stripe/portal/route.ts`
 - Webhook route: `src/app/(frontend)/next/stripe/webhook/route.ts`
@@ -16,12 +17,16 @@ tags: [suhtleja, stripe, membership, profile]
 ## Core Rules
 - Membership state source of truth is Stripe webhooks, not redirect query params.
   - `?membership=success` / `?membership=cancel` only show a toast (`src/components/FlashToast.tsx`). The success text says the membership activates shortly, because the webhook may not have arrived yet.
-- Checkout options come from `src/utilities/membershipCheckout.ts`.
-- A customer's first subscription gets a 14-day trial without a card:
-  - `payment_method_collection: 'if_required'`
-  - `trial_settings.end_behavior.missing_payment_method: 'cancel'`, so Stripe cancels the subscription if no payment method is added before the trial ends. The webhook then sets `membershipStatus` to `canceled`.
-  - Trial users add a payment method through the Billing Portal ("Halda liikmelisust"); the profile page tells them so.
-- Customers with any previous Stripe subscription (checked with `subscriptions.list`, `status: 'all'`) get no new trial, and Checkout collects a card up front. This stops repeated free trials.
+- Checkout and trial options come from `src/utilities/membershipCheckout.ts`.
+- A customer's first subscription is a 14-day trial without a card, and it starts without the Stripe page (`POST /next/stripe/trial`):
+  - The register form calls it right after the login (`startMembershipTrial`, `src/utilities/startMembershipTrial.ts`), then goes to `/kodu`. The profile's offer (`Alusta tasuta prooviperioodi`, for `membershipStatus: 'none'`) calls it too and returns to `/profile` with the `trial-started` toast. If the trial doesn't start, the home sends the new member to that offer (`/profile?membership=required`).
+  - The route acts only for `membershipStatus: 'none'` (else `409 membership_exists`). It finds or creates the Stripe customer the way Checkout does (`resolveStripeCustomer`, `src/utilities/stripeCustomer.ts`), and answers `409 trial_used` for a customer with any previous subscription; the profile then opens Checkout.
+  - It creates the subscription through the API (`getMembershipTrialParams`): `trial_period_days: 14`, no payment method, `metadata.payloadUserId`, and `trial_settings.end_behavior.missing_payment_method: 'cancel'`, so Stripe cancels it if no payment method is added before the trial ends. The webhook then sets `membershipStatus` to `canceled`. An idempotency key per user and customer makes a repeated call return the same subscription.
+  - It sets the membership fields from the subscription at once (`membershipFromSubscription`, `src/utilities/membershipSubscription.ts`, which the webhook uses too), so the member doesn't wait for the webhook; `customer.subscription.created` brings the same.
+  - Checked against the sandbox on 2026-11-02: `trialing`, 14 days, `missing_payment_method: 'cancel'`, about 3 s; a second call answers `membership_exists`.
+  - Trial users add a payment method through the Billing Portal ("Halda liikmelisust"); the profile page tells them so. Stripe's trial reminder emails (below) still go out.
+  - The e2e tests answer the browser's call to the route themselves and send the signed webhook event a trial brings (`tests/e2e/member.ts` `startTrial`), so they never reach Stripe.
+- Customers with any previous Stripe subscription (checked with `subscriptions.list`, `status: 'all'`) get no new trial, and Checkout collects a card up front. This stops repeated free trials. Checkout's first-time options (`payment_method_collection: 'if_required'` and the same trial) stay for a call that reaches it without one.
 - Checkout offers these returning customers their saved card again: `saved_payment_method_options.allow_redisplay_filters` is `['always', 'limited', 'unspecified']`.
   - Stripe's default shows only cards with `allow_redisplay: 'always'`. Cards saved by a subscription Checkout get `limited`, and cards saved without a redisplay setting (for example through the API) are `unspecified`, so by default none of them would be shown.
   - Checkout shows a saved card only if its `billing_details` include email, name and `address.country` (with `billing_address_collection: auto`). Cards saved by Checkout have them. A card without them stays hidden whatever the filter.
@@ -37,7 +42,7 @@ tags: [suhtleja, stripe, membership, profile]
   - reuse a single unique email match
   - fail clearly instead of guessing when multiple unrelated Stripe customers share the same email
 - Membership cancel/manage flow should use Stripe Billing Portal.
-- The portal route requires parent mode (`403 parent_mode_required` otherwise), because the portal can cancel the membership. Starting a trial or membership in Checkout stays open in child mode: new customers start their trial before they have opened the parent view.
+- The portal route requires parent mode (`403 parent_mode_required` otherwise), because the portal can cancel the membership. Starting a trial (the trial route) or a membership (Checkout) stays open in child mode: new customers start their trial before they have opened the parent view.
 - Hide membership-management UI when `membershipStatus` is `none`; show only checkout/upgrade in that state.
 - The frontend header must refresh client-side auth state after route changes so Stripe redirects and login/logout transitions do not require a manual browser refresh.
 - Pending-cancellation profile UI should be driven by `membershipCancelAtPeriodEnd` plus a future `currentPeriodEndsAt`, not only by the current status label.
@@ -64,7 +69,7 @@ tags: [suhtleja, stripe, membership, profile]
   - `/profile` (upgrade/manage when membership exists, otherwise upgrade only)
   - `/login` and `/register`
 - Require active membership (`trialing` or `active`) on:
-  - `/kodu`: a new customer lands here after registering and is sent on to the trial offer (`/profile?membership=required`). `tests/e2e/member-flow.e2e.spec.ts` checks this.
+  - `/kodu`: a new customer lands here after registering, on the trial (`tests/e2e/member-flow.e2e.spec.ts`). One whose trial didn't start is sent on to the trial offer (`/profile?membership=required`, `tests/e2e/devices-parent.e2e.spec.ts`).
   - `/connect-dots`
   - `/koduhaldus`
   - `/boards/[id]`
