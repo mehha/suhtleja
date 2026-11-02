@@ -63,6 +63,7 @@ tags: [suhtleja, tts, audio, frontend, nextjs]
 - When R2 lacks a manifest word's audio (the save couldn't store it, or the database came from another environment), `/next/tts-cache` synthesizes the manifest's text, stores it under the entry's key and serves it; Azure failing too is a 502. It only ever speaks the board's own words, never free text.
 - Revoke `URL.createObjectURL` URLs when they're no longer kept (after playback, or when the runner drops them from its memory or unmounts) to avoid leaks.
 - Azure synthesis sends `SPEECH_KEY` with the request itself (`Ocp-Apim-Subscription-Key`). Don't go back to exchanging it for a token first: that was a second round trip to Azure (0.1-0.5s) on every request.
+- Azure answers 429 when the subscription's rate is used up for the moment (Free F0 allows about 20 requests a minute; Standard S0 200 a second) and 503 when it is busy. `synthesizeAzureSpeech` tries such an answer again after the wait Azure asks for (`Retry-After`, else 0.4 s, then 0.8 s), at most `TTS_MAX_RETRIES` (2) times and never more than 1.5 s per wait, so a tap's word still comes quickly. Other errors aren't tried again. Every speech path (the tap, the cache, a board's save, the homepage) goes through it. Tested in `tests/int/azure-tts-retry.int.spec.ts`. On 2026-11-02 the local key answered 429 "Quota Exceeded" several times in a day, once failing the member flow test, and then 200 again a moment later.
 
 ## Homepage Speech
 - `GET /next/homepage-tts/<hash>` needs no login, because visitors try the tiles before they register.

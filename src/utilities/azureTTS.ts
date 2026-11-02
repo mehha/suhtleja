@@ -70,6 +70,20 @@ export function buildSSML(text: string, speaker: string, rate: SpeechRate = 'nor
 `.trim()
 }
 
+// Azure answers 429 when the subscription's rate is used up for the moment (the free tier allows
+// about 20 requests a minute) and 503 when it is busy. Such an answer is tried again after the wait
+// Azure asks for (Retry-After), twice at most and never longer than 1.5 s each, so a tap's word
+// still comes quickly; without one, a word went unsaid and a test before a deploy failed.
+const RETRY_STATUSES = new Set([429, 503])
+export const TTS_MAX_RETRIES = 2
+const TTS_MAX_RETRY_WAIT_MS = 1500
+
+function retryWaitMs(response: Response, attempt: number): number {
+  const seconds = Number(response.headers.get('retry-after'))
+  const asked = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 400 * 2 ** attempt
+  return Math.min(asked, TTS_MAX_RETRY_WAIT_MS)
+}
+
 export async function synthesizeAzureSpeech({
   text,
   speaker = DEFAULT_TTS_VOICE,
@@ -96,9 +110,8 @@ export async function synthesizeAzureSpeech({
 
   const ssml = buildSSML(normalizedText, speaker, rate)
 
-  const ttsRes = await fetch(
-    `https://${SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/v1`,
-    {
+  const synthesize = () =>
+    fetch(`https://${SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/v1`, {
       method: 'POST',
       headers: {
         // The key goes straight to the synthesis: exchanging it for a token first cost a second
@@ -109,8 +122,14 @@ export async function synthesizeAzureSpeech({
         'User-Agent': 'suhtleja-aac-nextjs',
       },
       body: ssml,
-    },
-  )
+    })
+
+  let ttsRes = await synthesize()
+  for (let attempt = 0; RETRY_STATUSES.has(ttsRes.status) && attempt < TTS_MAX_RETRIES; attempt++) {
+    await ttsRes.body?.cancel().catch(() => undefined)
+    await new Promise((resolve) => setTimeout(resolve, retryWaitMs(ttsRes, attempt)))
+    ttsRes = await synthesize()
+  }
 
   if (!ttsRes.ok) {
     const detail = await ttsRes.text().catch(() => '')
