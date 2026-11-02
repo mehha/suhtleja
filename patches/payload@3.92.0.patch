@@ -1,72 +1,144 @@
+diff --git a/dist/auth/operations/login.js b/dist/auth/operations/login.js
+index 06ab038d727070cb619e5504b6af016c40d866ec..f61e0e7c580881205b062852a1cfab0f19118e20 100644
+--- a/dist/auth/operations/login.js
++++ b/dist/auth/operations/login.js
+@@ -164,7 +164,8 @@ export const loginOperation = async (incomingArgs)=>{
+     const authenticatedSalt = user.salt;
+     const authResult = await authenticateLocalStrategy({
+         doc: user,
+-        password
++        password,
++        passwordHashIterations: payload.config.auth.passwordHashIterations
+     });
+     user = sanitizeInternalFields(user);
+     const maxLoginAttemptsEnabled = args.collection.config.auth.maxLoginAttempts > 0;
+diff --git a/dist/auth/operations/resetPassword.js b/dist/auth/operations/resetPassword.js
+index d7b96cd77caeded981fb451c826295b822637e47..eb401ba8ab22cdc5726170b2c4bc3b1ecf64eaea 100644
+--- a/dist/auth/operations/resetPassword.js
++++ b/dist/auth/operations/resetPassword.js
+@@ -99,7 +99,8 @@ export const resetPasswordOperation = async (args)=>{
+         });
+         await authenticateLocalStrategy({
+             doc,
+-            password: data.password
++            password: data.password,
++            passwordHashIterations: payload.config.auth.passwordHashIterations
+         });
+         user = doc;
+         user.collection = collectionConfig.slug;
 diff --git a/dist/auth/strategies/local/authenticate.js b/dist/auth/strategies/local/authenticate.js
-index 86ac1733797fdbd53debdcb1c12ffd20ee847d1f..2f328116d64aa9dcd3b7218fee725ccf64c26759 100644
+index 86ac1733797fdbd53debdcb1c12ffd20ee847d1f..86cdfc8f857094c9e42de149e8d80eaa1e59f4ea 100644
 --- a/dist/auth/strategies/local/authenticate.js
 +++ b/dist/auth/strategies/local/authenticate.js
-@@ -1,6 +1,6 @@
+@@ -1,31 +1,35 @@
  // @ts-strict-ignore
  import crypto from 'crypto';
 -import { getPasswordHashParameters, isCurrentPasswordHash } from './generatePasswordSaltHash.js';
-+import { getPasswordHashParameters, shouldUpdatePasswordHash } from './generatePasswordSaltHash.js';
- export const authenticateLocalStrategy = async ({ doc, password })=>{
+-export const authenticateLocalStrategy = async ({ doc, password })=>{
++import { InvalidConfiguration } from '../../../errors/index.js';
++import { getPasswordHashParameters, isCurrentPasswordHash, isUnsupportedIterationsError, pbkdf2Promisified } from './generatePasswordSaltHash.js';
++export const authenticateLocalStrategy = async ({ doc, password, passwordHashIterations })=>{
      try {
          const { hash, salt } = doc;
-@@ -15,7 +15,7 @@ export const authenticateLocalStrategy = async ({ doc, password })=>{
-                     if (hashBuffer.length === storedHashBuffer.length && crypto.timingSafeEqual(hashBuffer, storedHashBuffer)) {
-                         resolve({
-                             doc,
+         if (typeof salt === 'string' && typeof hash === 'string') {
+             const { hash: storedHash, iterations, keyLength } = getPasswordHashParameters(hash);
+-            const res = await new Promise((resolve, reject)=>{
+-                crypto.pbkdf2(password, salt, iterations, keyLength, 'sha256', (e, hashBuffer)=>{
+-                    if (e) {
+-                        reject(e);
+-                    }
+-                    const storedHashBuffer = Buffer.from(storedHash, 'hex');
+-                    if (hashBuffer.length === storedHashBuffer.length && crypto.timingSafeEqual(hashBuffer, storedHashBuffer)) {
+-                        resolve({
+-                            doc,
 -                            shouldUpdatePasswordHash: !isCurrentPasswordHash(hash)
-+                            shouldUpdatePasswordHash: shouldUpdatePasswordHash({ hash })
-                         });
-                     } else {
-                         reject(new Error('Invalid password'));
+-                        });
+-                    } else {
+-                        reject(new Error('Invalid password'));
+-                    }
+-                });
++            const hashBuffer = await pbkdf2Promisified({
++                iterations,
++                keyLength,
++                password,
++                salt
+             });
+-            return res;
++            const storedHashBuffer = Buffer.from(storedHash, 'hex');
++            if (hashBuffer.length === storedHashBuffer.length && crypto.timingSafeEqual(hashBuffer, storedHashBuffer)) {
++                return {
++                    doc,
++                    shouldUpdatePasswordHash: !isCurrentPasswordHash({
++                        hash,
++                        passwordHashIterations
++                    })
++                };
++            }
+         }
+         return null;
+-    } catch (ignore) {
++    } catch (err) {
++        // Without this error, the failed login would count against the user's login attempts
++        if (isUnsupportedIterationsError(err)) {
++            throw new InvalidConfiguration("This environment does not support the PBKDF2 iterations of this user's stored password hash. The user must reset their password.");
++        }
+         return null;
+     }
+ };
 diff --git a/dist/auth/strategies/local/generatePasswordSaltHash.js b/dist/auth/strategies/local/generatePasswordSaltHash.js
-index 7eb8b1c2e274e5c58736c7b29a77424ed91de0fc..66c46d5be8bd3f1c9834ba4358eaeae4af2667ee 100644
+index 7eb8b1c2e274e5c58736c7b29a77424ed91de0fc..706488fd665abc41acfe3d812c3d9f3b8b2054a8 100644
 --- a/dist/auth/strategies/local/generatePasswordSaltHash.js
 +++ b/dist/auth/strategies/local/generatePasswordSaltHash.js
-@@ -1,11 +1,25 @@
+@@ -1,11 +1,22 @@
  import crypto from 'crypto';
- import { ValidationError } from '../../../errors/index.js';
+-import { ValidationError } from '../../../errors/index.js';
++import { InvalidConfiguration, ValidationError } from '../../../errors/index.js';
  import { password } from '../../../fields/validations.js';
 -const currentPasswordHashPrefix = 'pbkdf2-sha256-v1:';
 -const currentPasswordHashIterations = 600000;
-+// Backport of https://github.com/payloadcms/payload/pull/18461 (without the
-+// auth.passwordHashing.iterations option). Remove when Payload ships it.
-+const defaultPasswordHashIterations = 600000;
- const currentPasswordHashKeyLength = 32;
-+// Hashes created before the parameters were embedded in the hash itself. They
-+// were always generated with these parameters, so verification keeps using them.
-+const legacyV1PasswordHashPrefix = 'pbkdf2-sha256-v1:';
-+const legacyV1PasswordHashIterations = 600000;
-+const legacyV1PasswordHashKeyLength = 32;
+-const currentPasswordHashKeyLength = 32;
++// Backport of https://github.com/payloadcms/payload/pull/19074 (auth.passwordHashIterations).
++// Remove the patch when upgrading to a Payload release that includes it.
++// Each supported iteration count has its own fixed prefix, so a stored hash
++// can be verified whichever count is configured
++const passwordHashPrefixes = {
++    100000: 'pbkdf2-sha256-100k-v1:',
++    600000: 'pbkdf2-sha256-v1:'
++};
++export const supportedPasswordHashIterations = Object.keys(passwordHashPrefixes).map(Number);
++const passwordHashKeyLength = 32;
  const legacyPasswordHashIterations = 25000;
  const legacyPasswordHashKeyLength = 512;
-+// Cloudflare Workers rejects PBKDF2 iteration counts above 100,000.
-+const cloudflareWorkersMaxPBKDF2Iterations = 100000;
-+const isCloudflareWorkersRuntime = ()=>typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers';
-+export const getTargetPasswordHashIterations = ()=>isCloudflareWorkersRuntime() ? Math.min(defaultPasswordHashIterations, cloudflareWorkersMaxPBKDF2Iterations) : defaultPasswordHashIterations;
-+// The parameters a hash was created with are embedded in the hash itself so
-+// verification does not depend on which runtime created it:
-+// pbkdf2-sha256-v2-i<iterations>-l<keyLength>:<hex>
-+const currentPasswordHashRegex = /^pbkdf2-sha256-v2-i(\d+)-l(\d+):([0-9a-f]+)$/;
++// Not upstream: hashes created by this project's earlier patch (a backport of the
++// unmerged payloadcms/payload#18461) embed their parameters. They are verified with
++// them and, as they never match a current prefix, rehashed on the next login.
++const embeddedParametersHashRegex = /^pbkdf2-sha256-v2-i(\d+)-l(\d+):([0-9a-f]+)$/;
  export const generatePasswordSaltHash = async ({ collection, isPasswordAuthenticated, password: passwordToSet, req })=>{
      if (!isPasswordAuthenticated) {
          const validationResult = password(passwordToSet, {
-@@ -36,26 +50,35 @@ export const generatePasswordSaltHash = async ({ collection, isPasswordAuthentic
+@@ -36,26 +47,43 @@ export const generatePasswordSaltHash = async ({ collection, isPasswordAuthentic
              });
          }
      }
-+    const iterations = getTargetPasswordHashIterations();
++    const { passwordHashIterations } = req.payload.config.auth;
      const saltBuffer = await randomBytes();
      const salt = saltBuffer.toString('hex');
      const hashRaw = await pbkdf2Promisified({
 -        iterations: currentPasswordHashIterations,
-+        iterations,
-         keyLength: currentPasswordHashKeyLength,
+-        keyLength: currentPasswordHashKeyLength,
++        iterations: passwordHashIterations,
++        keyLength: passwordHashKeyLength,
          password: passwordToSet,
          salt
++    }).catch((err)=>{
++        if (isUnsupportedIterationsError(err)) {
++            const configHint = passwordHashIterations === 100000 ? '' : ' Set `auth.passwordHashIterations` to 100000 in your Payload Config.';
++            throw new InvalidConfiguration(`This environment does not support ${passwordHashIterations} PBKDF2 iterations for password hashing.${configHint}`);
++        }
++        throw err;
      });
 -    const hash = `${currentPasswordHashPrefix}${hashRaw.toString('hex')}`;
-+    const hash = `pbkdf2-sha256-v2-i${iterations}-l${currentPasswordHashKeyLength}:${hashRaw.toString('hex')}`;
++    const hash = `${passwordHashPrefixes[passwordHashIterations]}${hashRaw.toString('hex')}`;
      return {
          hash,
          salt
@@ -74,35 +146,104 @@ index 7eb8b1c2e274e5c58736c7b29a77424ed91de0fc..66c46d5be8bd3f1c9834ba4358eaeae4
  };
  export const getPasswordHashParameters = (hash)=>{
 -    if (isCurrentPasswordHash(hash)) {
-+    const [, iterations, keyLength, storedHash] = currentPasswordHashRegex.exec(hash) ?? [];
-+    if (iterations && keyLength && storedHash) {
++    for (const [iterations, prefix] of Object.entries(passwordHashPrefixes)){
++        if (hash.startsWith(prefix)) {
++            return {
++                hash: hash.slice(prefix.length),
++                iterations: Number(iterations),
++                keyLength: passwordHashKeyLength
++            };
++        }
++    }
++    const [, embeddedIterations, embeddedKeyLength, embeddedHash] = embeddedParametersHashRegex.exec(hash) ?? [];
++    if (embeddedIterations && embeddedKeyLength && embeddedHash) {
          return {
 -            hash: hash.slice(currentPasswordHashPrefix.length),
 -            iterations: currentPasswordHashIterations,
 -            keyLength: currentPasswordHashKeyLength
-+            hash: storedHash,
-+            iterations: Number(iterations),
-+            keyLength: Number(keyLength)
-+        };
-+    }
-+    if (hash.startsWith(legacyV1PasswordHashPrefix)) {
-+        return {
-+            hash: hash.slice(legacyV1PasswordHashPrefix.length),
-+            iterations: legacyV1PasswordHashIterations,
-+            keyLength: legacyV1PasswordHashKeyLength
++            hash: embeddedHash,
++            iterations: Number(embeddedIterations),
++            keyLength: Number(embeddedKeyLength)
          };
      }
      return {
-@@ -64,7 +87,11 @@ export const getPasswordHashParameters = (hash)=>{
+@@ -64,11 +92,13 @@ export const getPasswordHashParameters = (hash)=>{
          keyLength: legacyPasswordHashKeyLength
      };
  };
 -export const isCurrentPasswordHash = (hash)=>typeof hash === 'string' && hash.startsWith(currentPasswordHashPrefix);
-+export const isCurrentPasswordHash = (hash)=>typeof hash === 'string' && currentPasswordHashRegex.test(hash);
-+// Legacy and v1 hashes are rehashed after a successful login. A v2 hash is not:
-+// the default differs between Node.js and Workers, so following it would rehash
-+// a Workers-created hash on a Node.js login and lock that user out of Workers.
-+export const shouldUpdatePasswordHash = ({ hash })=>!isCurrentPasswordHash(hash);
++export const isCurrentPasswordHash = ({ hash, passwordHashIterations })=>hash.startsWith(passwordHashPrefixes[passwordHashIterations]);
  function randomBytes() {
      return new Promise((resolve, reject)=>crypto.randomBytes(32, (err, saltBuffer)=>err ? reject(err) : resolve(saltBuffer)));
  }
+-function pbkdf2Promisified({ iterations, keyLength, password, salt }) {
++// Environments such as Cloudflare Workers reject iteration counts above their limit
++export const isUnsupportedIterationsError = (err)=>err instanceof Error && err.name === 'NotSupportedError';
++export function pbkdf2Promisified({ iterations, keyLength, password, salt }) {
+     return new Promise((resolve, reject)=>crypto.pbkdf2(password, salt, iterations, keyLength, 'sha256', (err, hashRaw)=>err ? reject(err) : resolve(hashRaw)));
+ }
+ 
+diff --git a/dist/config/defaults.js b/dist/config/defaults.js
+index b54f5c17d44eaa436afda35485a0df76107ec81c..1da84e8c017369149de1e32860cf412cc64421fa 100644
+--- a/dist/config/defaults.js
++++ b/dist/config/defaults.js
+@@ -160,12 +160,13 @@ export const addDefaultsToConfig = (config)=>{
+     };
+     config.upload = config.upload ?? {};
+     config.auth = {
+-        jwtOrder: [
++        ...config.auth || {},
++        jwtOrder: config.auth?.jwtOrder ?? [
+             'JWT',
+             'Bearer',
+             'cookie'
+         ],
+-        ...config.auth || {}
++        passwordHashIterations: config.auth?.passwordHashIterations ?? 600000
+     };
+     config.kv = config.kv ?? databaseKVAdapter();
+     if (config.kv?.kvCollection) {
+diff --git a/dist/config/sanitize.js b/dist/config/sanitize.js
+index e7c0842c2d876b6ac2d9406c01d184f9838e0625..60f77e6c58d26f8b6caaa8627082add6c490b1ec 100644
+--- a/dist/config/sanitize.js
++++ b/dist/config/sanitize.js
+@@ -2,6 +2,7 @@ import { en } from '@payloadcms/translations/languages/en';
+ import { deepMergeSimple } from '@payloadcms/translations/utilities';
+ import { defaultUserCollection } from '../auth/defaultUser.js';
+ import { authRootEndpoints } from '../auth/endpoints/index.js';
++import { supportedPasswordHashIterations } from '../auth/strategies/local/generatePasswordSaltHash.js';
+ import { sanitizeCollection } from '../collections/config/sanitize.js';
+ import { migrationsCollection } from '../database/migrations/migrationsCollection.js';
+ import { DuplicateCollection, InvalidConfiguration } from '../errors/index.js';
+@@ -86,6 +87,9 @@ const sanitizeAdminConfig = (configToSanitize)=>{
+ };
+ export const sanitizeConfig = async (incomingConfig)=>{
+     const configWithDefaults = addDefaultsToConfig(incomingConfig);
++    if (!supportedPasswordHashIterations.includes(configWithDefaults.auth.passwordHashIterations)) {
++        throw new InvalidConfiguration(`\`auth.passwordHashIterations\` must be one of ${supportedPasswordHashIterations.join(', ')}.`);
++    }
+     const config = sanitizeAdminConfig(configWithDefaults);
+     if (!config.endpoints) {
+         config.endpoints = [];
+diff --git a/dist/config/types.d.ts b/dist/config/types.d.ts
+index 75a989da34a0fac2167a12e5cbd223ad134a4565..6cd2cfdc9b8860c6be846614039244bfffc9ab40 100644
+--- a/dist/config/types.d.ts
++++ b/dist/config/types.d.ts
+@@ -925,7 +925,16 @@ export type Config = {
+          * Define which JWT identification methods you'd like to support for Payload's local auth strategy, as well as the order that they're retrieved in.
+          * Defaults to ['JWT', 'Bearer', 'cookie]
+          */
+-        jwtOrder: ('Bearer' | 'cookie' | 'JWT')[];
++        jwtOrder?: ('Bearer' | 'cookie' | 'JWT')[];
++        /**
++         * PBKDF2-SHA256 iterations used when hashing new passwords for the local auth strategy.
++         *
++         * Use `100000` in environments that do not support 600,000 iterations, such as Cloudflare
++         * Workers. Stored hashes that use a different count are rehashed on the next successful login.
++         *
++         * @default 600000
++         */
++        passwordHashIterations?: 100000 | 600000;
+     };
+     /** Custom Payload bin scripts can be injected via the config. */
+     bin?: BinScriptConfig[];

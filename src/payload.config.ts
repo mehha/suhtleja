@@ -61,6 +61,11 @@ export default buildConfig({
       ],
     },
   },
+  auth: {
+    // Cloudflare Workers rejects more than 100,000 PBKDF2 iterations (Payload's default is
+    // 600,000). Needs patches/payload@3.92.0.patch until Payload releases this option.
+    passwordHashIterations: 100000,
+  },
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
   db: sqliteD1Adapter({

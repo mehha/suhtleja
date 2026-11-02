@@ -101,13 +101,26 @@ Payload 3.90+ hashes new passwords with 600,000 PBKDF2 iterations, but Cloudflar
 Workers rejects more than 100,000, so registration and password changes failed in
 production ([payload#18274](https://github.com/payloadcms/payload/issues/18274)).
 `patches/payload@3.92.0.patch` backports the upstream fix
-([payload#18461](https://github.com/payloadcms/payload/pull/18461)): on Workers new
-hashes use 100,000 iterations and store their parameters
-(`pbkdf2-sha256-v2-i100000-l32:…`), and older hashes are upgraded on login.
-`tests/int/password-hashing.int.spec.ts` covers it. When upgrading Payload, drop the
-patch if the release includes #18461 with the same hash format; otherwise recreate it
-with `pnpm patch payload@<version>`. pnpm fails the install while the patch targets an
-old version.
+([payload#19074](https://github.com/payloadcms/payload/pull/19074), merged to 3.x after
+3.92.1): the `auth.passwordHashIterations` option, which `src/payload.config.ts` sets to
+`100000` so Node.js and Workers both create `pbkdf2-sha256-100k-v1:…` hashes. Older
+hashes are rehashed on the next login. A 600,000-iteration hash can't be verified on
+Workers, so login reports that the user must reset their password.
+`tests/int/password-hashing.int.spec.ts` covers it.
+
+The patch also verifies `pbkdf2-sha256-v2-i100000-l32:…` hashes, created between
+2026-10-24 and 2026-11-02 by an earlier version of this patch (a backport of the unmerged
+[payload#18461](https://github.com/payloadcms/payload/pull/18461)), and rehashes them on
+login. Upstream Payload does not read that format. When upgrading Payload to a release
+that includes #19074, keep the config option and check how many remain:
+
+```bash
+pnpm wrangler d1 execute D1 --remote --command "SELECT count(*) FROM users WHERE hash LIKE 'pbkdf2-sha256-v2-%'"
+```
+
+If none remain, drop the patch. Otherwise keep only the v2 part of the patch
+(`pnpm patch payload@<version>`), or accept that those users must reset their password.
+pnpm fails the install while the patch targets an old version.
 
 Next 16 cache invalidation hooks use `revalidateTag(tag, 'max')`, matching the
 Payload website template's stale-while-revalidate behavior. Its ESLint preset also
