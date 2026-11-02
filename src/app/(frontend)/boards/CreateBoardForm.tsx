@@ -1,6 +1,8 @@
 'use client'
 
+import { usePathname } from 'next/navigation'
 import { useMemo, useState } from 'react'
+import { useFormStatus } from 'react-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,13 +16,27 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { PlusCircle } from 'lucide-react'
+import { LayoutGrid, PlusCircle } from 'lucide-react'
+
+import { createStarterBoards } from './actions'
 
 type CreateBoardFormProps = {
   createBoard: (formData: FormData) => Promise<void>
 }
 
+function StarterSubmitButton() {
+  // Disabled while the boards are made, so a second tap doesn't make another set.
+  const { pending } = useFormStatus()
+  return (
+    <Button type="submit" variant="outline" className="w-full gap-2" disabled={pending}>
+      <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+      {pending ? 'Loon tahvleid…' : 'Loo alustuskomplekt'}
+    </Button>
+  )
+}
+
 export function CreateBoardForm({ createBoard }: CreateBoardFormProps) {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
 
@@ -41,7 +57,7 @@ export function CreateBoardForm({ createBoard }: CreateBoardFormProps) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Lisa tahvel</DialogTitle>
           <DialogDescription>
@@ -74,6 +90,19 @@ export function CreateBoardForm({ createBoard }: CreateBoardFormProps) {
               Lisa tahvel
             </Button>
           </DialogFooter>
+        </form>
+
+        {/* The starter set (docs/rules/project/boards.md, "Starter set"). */}
+        <form action={createStarterBoards} className="space-y-3 border-t pt-4">
+          <input type="hidden" name="returnTo" value={pathname} />
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold">Või alusta valmis tahvlitega</h3>
+            <p className="text-sm text-muted-foreground">
+              Põhisõnad tulevad koduvaatesse ja avavad tahvlid Söök ja jook, Mängimine, Tunded ning
+              Kohad. Kaartidel on pildipanga pildid ja kõiki tahvleid saad hiljem muuta.
+            </p>
+          </div>
+          <StarterSubmitButton />
         </form>
       </DialogContent>
     </Dialog>

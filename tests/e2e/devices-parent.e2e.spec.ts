@@ -177,6 +177,52 @@ test.describe('Koduhaldus', () => {
   })
 })
 
+test.describe('the starter set', () => {
+  test('makes the boards, and the core words open the topic boards', async ({ page, baseURL }, testInfo) => {
+    // Its speech is made as the boards are (Azure in CI, about 200 words and forms): one device does.
+    test.skip(testInfo.project.name !== 'ipad', 'Runs on the iPad only.')
+    test.setTimeout(240_000)
+    // The boards load their cards' speech at once: a stand-in, so the browser makes no Azure calls.
+    for (const speech of ['**/next/tts-ms', '**/next/tts-cache/**']) {
+      await page.route(speech, (route) => route.fulfill({ body: silentWav(), contentType: 'audio/wav' }))
+    }
+    await enterParentView(page, baseURL)
+    await page.goto('/koduhaldus')
+
+    await page.getByRole('button', { name: 'Lisa tahvel' }).tap()
+    const dialog = page.getByRole('dialog', { name: 'Lisa tahvel' })
+    await dialog.getByRole('button', { name: 'Loo alustuskomplekt' }).tap()
+
+    // The core words board opens, which is on the home.
+    await expect(page).toHaveURL(/\/boards\/\d+(\?toast=starter-created)?$/, { timeout: 200_000 })
+    await expect(page.getByText('Alustuskomplekt loodud.', { exact: false })).toBeVisible()
+    const coreId = Number(new URL(page.url()).pathname.split('/').pop())
+    const phrase = page.locator('.actionbar-container')
+
+    await page.getByRole('button', { name: 'mina', exact: true }).tap()
+    await page.getByRole('button', { name: 'tahtma', exact: true }).tap()
+    await expect(phrase.getByText('tahan', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Söök, avab tahvli Söök ja jook' }).tap()
+    await expect(page).toHaveURL(new RegExp(`/boards/\\d+\\?from=${coreId}$`))
+    await page.getByRole('button', { name: 'õun', exact: true }).tap()
+    for (const word of ['mina', 'tahan', 'õuna']) {
+      await expect(phrase.getByText(word, { exact: true })).toBeVisible()
+    }
+
+    // The five boards are the member's own (the worker's other tests share the member: they go).
+    const me = await (await page.request.get('/api/users/me')).json()
+    const names = ['Põhisõnad', 'Söök ja jook', 'Mängimine', 'Tunded', 'Kohad']
+    const query = new URLSearchParams({ depth: '0', limit: '50', 'where[owner][equals]': String(me.user.id) })
+    names.forEach((name, index) => query.set(`where[name][in][${index}]`, name))
+    const { docs } = await (await page.request.get(`/api/boards?${query}`)).json()
+    expect(docs.map((board: { name: string }) => board.name).sort()).toEqual([...names].sort())
+    expect(docs.filter((board: { pinned: boolean }) => board.pinned).map((board: { id: number }) => board.id)).toEqual([coreId])
+    for (const board of docs as Array<{ id: number }>) {
+      expect((await page.request.delete(`/api/boards/${board.id}`)).ok()).toBe(true)
+    }
+  })
+})
+
 test.describe('home in the parent view', () => {
   test('fits the screen, and the card buttons take taps', async ({ page, member, baseURL, viewport }) => {
     await enterParentView(page, baseURL)

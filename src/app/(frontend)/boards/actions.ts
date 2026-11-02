@@ -7,6 +7,7 @@ import { copyBoardForUser } from '@/utilities/copyBoard'
 import { withToast } from '@/utilities/flashToast'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
 import { requireActiveMembership } from '@/utilities/membership'
+import { createStarterBoardsForUser } from '@/utilities/starterBoards'
 import { requireParentMode } from '@/utilities/uiMode'
 
 // "Tee endale koopia" (Koduhaldus, and a shared board's parent view): the member's own private copy
@@ -33,4 +34,27 @@ export async function copyBoard(formData: FormData) {
 
   revalidatePath('/koduhaldus')
   redirect(withToast(`/boards/${copyId}/edit`, 'board-copied'))
+}
+
+// "Loo alustuskomplekt" (the "Lisa tahvel" dialog on Kodu and Koduhaldus): the starter set as the
+// member's own boards, with their speech made. Opens the core words board, which is on the home.
+export async function createStarterBoards(formData: FormData) {
+  await requireParentMode()
+  const { payload, user } = await getCurrentUser()
+  if (!user) redirect('/admin')
+  requireActiveMembership(user)
+
+  const rawReturnTo = String(formData.get('returnTo') ?? '')
+  const returnTo = rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//') ? rawReturnTo : '/koduhaldus'
+
+  let coreId: number | null = null
+  try {
+    coreId = (await createStarterBoardsForUser(payload, user)).coreId
+  } catch (error) {
+    console.error('createStarterBoards failed', error)
+  }
+
+  revalidatePath('/kodu')
+  revalidatePath('/koduhaldus')
+  redirect(coreId === null ? withToast(returnTo, 'error') : withToast(`/boards/${coreId}`, 'starter-created'))
 }
