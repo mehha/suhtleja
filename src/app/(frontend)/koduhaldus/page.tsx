@@ -9,6 +9,7 @@ import { ConnectDotsBoardsList, type ConnectDotsBoardsPuzzle } from '../boards/C
 import { CreateBoardForm } from '../boards/CreateBoardForm'
 import { Settings2 } from 'lucide-react'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
+import { KODUHALDUS_OTHERS_PARAM, othersPrivateWhere, ownOrSharedWhere } from '@/utilities/koduhaldusQuery'
 import { requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
 import {
@@ -26,7 +27,11 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-export default async function ActivitiesPage() {
+export default async function ActivitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const { payload, user } = await getCurrentUser()
 
   await requireParentMode()
@@ -36,21 +41,12 @@ export default async function ActivitiesPage() {
 
   const isAdmin = user.role === 'admin'
   const preferences = getUserSharedHomePreferences(user)
+  // An admin gets the other users' private boards and games only when they open them.
+  const showOthers = isAdmin && (await searchParams)[KODUHALDUS_OTHERS_PARAM] === '1'
 
   const boardsRes = await payload.find({
     collection: 'boards',
-    where: isAdmin
-      ? {}
-      : {
-          or: [
-            {
-              owner: { equals: user.id },
-            },
-            {
-              visibleToAllUsers: { equals: true },
-            },
-          ],
-        },
+    where: showOthers ? {} : ownOrSharedWhere(user.id),
     sort: 'createdAt',
     depth: 1,
     pagination: false,
@@ -93,23 +89,24 @@ export default async function ActivitiesPage() {
       visibleToAllUsers: true,
     },
     populate: { users: { email: true, name: true, role: true } },
-    where: isAdmin
-      ? {}
-      : {
-          or: [
-            {
-              owner: {
-                equals: user.id,
-              },
-            },
-            {
-              visibleToAllUsers: {
-                equals: true,
-              },
-            },
-          ],
-        },
+    where: showOthers ? {} : ownOrSharedWhere(user.id),
   })
+
+  // How many the admin's "Teiste kasutajate …" would show, with the same access as the lists.
+  const others = isAdmin
+    ? {
+        shown: showOthers,
+        boards: (await payload.count({ collection: 'boards', where: othersPrivateWhere(user.id) })).totalDocs,
+        puzzles: (
+          await payload.count({
+            collection: 'connect-dots-puzzles',
+            overrideAccess: false,
+            user,
+            where: othersPrivateWhere(user.id),
+          })
+        ).totalDocs,
+      }
+    : null
 
   const puzzles = puzzlesRes.docs.map((doc) => {
     const puzzle = doc as unknown as ConnectDotsBoardsPuzzle
@@ -404,6 +401,7 @@ export default async function ActivitiesPage() {
         <BoardsList
           boards={boards}
           isAdmin={isAdmin}
+          others={others ? { count: others.boards, shown: others.shown } : null}
           toggleVisibility={toggleVisibility}
           togglePinned={togglePinned}
           deleteBoard={deleteBoard}
@@ -413,6 +411,7 @@ export default async function ActivitiesPage() {
       <ConnectDotsBoardsList
         deletePuzzle={deletePuzzle}
         isAdmin={isAdmin}
+        others={others ? { count: others.puzzles, shown: others.shown } : null}
         puzzles={puzzles}
         togglePinned={togglePuzzlePinned}
       />

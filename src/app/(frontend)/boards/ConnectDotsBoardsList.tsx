@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import { ActionSwitch } from './ActionSwitch'
-import { EditButton, ListGroup, ListRow, ListSearch, RowMenu } from './KoduhaldusList'
+import { EditButton, ListGroup, ListRow, ListSearch, OthersToggle, RowMenu } from './KoduhaldusList'
 
 export type ConnectDotsBoardsPuzzle = {
   enabled?: boolean | null
@@ -32,6 +32,8 @@ type Props = {
   isAdmin: boolean
   puzzles: ConnectDotsBoardsPuzzle[]
   togglePinned: (formData: FormData) => Promise<ActionResult>
+  // The admin's other users' private games: how many, and whether they were loaded (null for members).
+  others: { count: number; shown: boolean } | null
 }
 
 // Who made it, for the admin.
@@ -41,7 +43,7 @@ function creatorLabel(owner: ConnectDotsBoardsPuzzle['owner']) {
   return [owner.name, owner.email].filter(Boolean).join(' · ') || '-'
 }
 
-export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePinned }: Props) {
+export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, others, puzzles, togglePinned }: Props) {
   const [query, setQuery] = useState('')
 
   const filteredPuzzles = useMemo(() => {
@@ -111,7 +113,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
   const mine = filteredPuzzles.filter((puzzle) => puzzle.isOwnedByCurrentUser)
   const shared = filteredPuzzles.filter((puzzle) => !puzzle.isOwnedByCurrentUser && puzzle.visibleToAllUsers)
   // Only an admin gets other users' private games.
-  const others = filteredPuzzles.filter((puzzle) => !puzzle.isOwnedByCurrentUser && !puzzle.visibleToAllUsers)
+  const othersRows = filteredPuzzles.filter((puzzle) => !puzzle.isOwnedByCurrentUser && !puzzle.visibleToAllUsers)
   const searching = query.trim().length > 0
 
   return (
@@ -148,9 +150,18 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
           {shared.map(row)}
         </ListGroup>
 
-        <ListGroup title="Teiste kasutajate mängud" description="Privaatsed mängud.">
-          {others.map(row)}
-        </ListGroup>
+        {others && others.count > 0 ? (
+          <ListGroup
+            title={`Teiste kasutajate mängud (${others.count})`}
+            description={
+              others.shown ? 'Privaatsed mängud.' : 'Privaatsed mängud. Need laaditakse alles siis, kui avad need.'
+            }
+            action={<OthersToggle label="teiste kasutajate mängud" shown={others.shown} />}
+            collapsed={!others.shown}
+          >
+            {othersRows.map(row)}
+          </ListGroup>
+        ) : null}
       </div>
     </section>
   )

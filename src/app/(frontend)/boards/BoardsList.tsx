@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import { ActionSwitch } from './ActionSwitch'
 import { CopyBoardButton } from './CopyBoardButton'
-import { EditButton, ListGroup, ListRow, ListSearch, RowMenu } from './KoduhaldusList'
+import { EditButton, ListGroup, ListRow, ListSearch, OthersToggle, RowMenu } from './KoduhaldusList'
 
 type BoardsListOwner = { email?: string | null; name?: string | null; role?: string | null }
 
@@ -24,6 +24,8 @@ type BoardsListProps = {
   toggleVisibility: (formData: FormData) => Promise<ActionResult>
   togglePinned: (formData: FormData) => Promise<ActionResult> // server action (/koduhaldus/page.tsx)
   deleteBoard: (formData: FormData) => Promise<void> // server action (/koduhaldus/page.tsx)
+  // The admin's other users' private boards: how many, and whether they were loaded (null for members).
+  others: { count: number; shown: boolean } | null
 }
 
 const ownerOf = (board: BoardsListBoard) => (typeof board.owner === 'object' && board.owner ? board.owner : null)
@@ -35,7 +37,7 @@ function creatorLabel(owner: BoardsListOwner | null) {
   return [owner.name, owner.email].filter(Boolean).join(' · ') || '-'
 }
 
-export function BoardsList({ boards, isAdmin, toggleVisibility, togglePinned, deleteBoard }: BoardsListProps) {
+export function BoardsList({ boards, isAdmin, toggleVisibility, togglePinned, deleteBoard, others }: BoardsListProps) {
   const [query, setQuery] = useState('')
 
   const filteredBoards = useMemo(() => {
@@ -129,7 +131,7 @@ export function BoardsList({ boards, isAdmin, toggleVisibility, togglePinned, de
   const mine = filteredBoards.filter((board) => board.isOwnedByCurrentUser)
   const shared = filteredBoards.filter((board) => !board.isOwnedByCurrentUser && board.visibleToAllUsers)
   // Only an admin gets other users' private boards.
-  const others = filteredBoards.filter((board) => !board.isOwnedByCurrentUser && !board.visibleToAllUsers)
+  const othersRows = filteredBoards.filter((board) => !board.isOwnedByCurrentUser && !board.visibleToAllUsers)
   const searching = query.trim().length > 0
 
   return (
@@ -158,9 +160,20 @@ export function BoardsList({ boards, isAdmin, toggleVisibility, togglePinned, de
         {shared.map(row)}
       </ListGroup>
 
-      <ListGroup title="Teiste kasutajate tahvlid" description="Privaatsed tahvlid. Nende koduvaade on omaniku valik.">
-        {others.map(row)}
-      </ListGroup>
+      {others && others.count > 0 ? (
+        <ListGroup
+          title={`Teiste kasutajate tahvlid (${others.count})`}
+          description={
+            others.shown
+              ? 'Privaatsed tahvlid. Nende koduvaade on omaniku valik.'
+              : 'Privaatsed tahvlid. Need laaditakse alles siis, kui avad need.'
+          }
+          action={<OthersToggle label="teiste kasutajate tahvlid" shown={others.shown} />}
+          collapsed={!others.shown}
+        >
+          {othersRows.map(row)}
+        </ListGroup>
+      ) : null}
     </div>
   )
 }

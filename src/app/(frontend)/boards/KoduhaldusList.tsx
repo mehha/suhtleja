@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { KODUHALDUS_OTHERS_PARAM } from '@/utilities/koduhaldusQuery'
 import { cn } from '@/utilities/ui'
 import { copyBoard } from './actions'
 import { ConfirmDeleteDialog, type DeleteTarget } from './ConfirmDeleteDialog'
@@ -50,25 +51,34 @@ export function ListSearch({
 
 /** "Minu tahvlid", "Jagatud tahvlid" …: a heading, what the group is, and its rows. */
 export function ListGroup({
+  action,
   children,
+  collapsed,
   description,
   empty,
   title,
 }: {
+  // Next to the heading (the admin's "Näita" / "Peida").
+  action?: ReactNode
   children: ReactNode[]
+  // Only the heading: the rows aren't loaded.
+  collapsed?: boolean
   description?: string
   // Shown instead of the list when the group has no rows; without it an empty group isn't shown.
   empty?: string
   title: string
 }) {
-  if (!children.length && !empty) return null
+  if (!collapsed && !children.length && !empty) return null
   return (
     <div className="space-y-2">
-      <div className="space-y-0.5">
-        <h3 className="text-base font-semibold">{title}</h3>
-        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="space-y-0.5">
+          <h3 className="text-base font-semibold">{title}</h3>
+          {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+        </div>
+        {action}
       </div>
-      {children.length ? (
+      {collapsed ? null : children.length ? (
         <ul className="divide-y rounded-xl border bg-background">{children}</ul>
       ) : (
         <p className="rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground">{empty}</p>
@@ -113,6 +123,24 @@ export function ListRow({
         </div>
       </div>
     </li>
+  )
+}
+
+/**
+ * The admin's "Teiste kasutajate …" opens and closes with the page's address (`?teised=1`), so the
+ * server loads those rows only when asked, and a reload or the back button keeps the choice.
+ */
+export function OthersToggle({ label, shown }: { label: string; shown: boolean }) {
+  return (
+    <Button asChild size="sm" variant="outline">
+      <Link
+        aria-label={`${shown ? 'Peida' : 'Näita'} ${label}`}
+        href={shown ? '/koduhaldus' : `/koduhaldus?${KODUHALDUS_OTHERS_PARAM}=1`}
+        scroll={false}
+      >
+        {shown ? 'Peida' : 'Näita'}
+      </Link>
+    </Button>
   )
 }
 
