@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SPEECH_RATES, TTS_VOICES, speechRate, type SpeechRate, type TTSVoice } from '@/utilities/speechSettings'
 import { updateSpeechAction } from './actions'
+import { InfoRow } from './InfoRow'
 
 const initialState = {
   success: false,
@@ -35,15 +36,9 @@ export function ProfileSpeechForm({ voice, rate, isParentMode }: Props) {
 
   if (!isParentMode) {
     return (
-      <div className="space-y-1 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Hääl</span>
-          <span>{TTS_VOICES[voiceOf(voice)]}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Kõnekiirus</span>
-          <span>{SPEECH_RATES[speechRate(rate)].label}</span>
-        </div>
+      <div className="space-y-3 text-sm">
+        <InfoRow label="Hääl">{TTS_VOICES[voiceOf(voice)]}</InfoRow>
+        <InfoRow label="Kõnekiirus">{SPEECH_RATES[speechRate(rate)].label}</InfoRow>
         <p className="text-muted-foreground">Hääle muutmiseks ava vanema vaade (ülal paremal).</p>
       </div>
     )

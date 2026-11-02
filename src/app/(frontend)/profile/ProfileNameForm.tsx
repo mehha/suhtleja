@@ -5,6 +5,7 @@ import { updateNameAction } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { InfoRow } from './InfoRow'
 
 const initialState = {
   success: false,
@@ -22,10 +23,7 @@ export function ProfileNameForm({ name, isParentMode }: Props) {
   if (!isParentMode) {
     return (
       <div className="space-y-1 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Nimi</span>
-          <span>{name || '—'}</span>
-        </div>
+        <InfoRow label="Nimi">{name || '—'}</InfoRow>
         <p className="text-muted-foreground">Nime muutmiseks ava vanema vaade (ülal paremal).</p>
       </div>
     )

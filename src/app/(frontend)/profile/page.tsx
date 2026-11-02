@@ -9,6 +9,7 @@ import { ProfilePageClient } from '@/app/(frontend)/profile/ProfilePageClient'
 import { ProfileSpeechForm } from '@/app/(frontend)/profile/ProfileSpeechForm'
 import { ProfileLabelCaseForm } from '@/app/(frontend)/profile/ProfileLabelCaseForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { InfoRow } from './InfoRow'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,12 +57,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
         </CardHeader>
         <CardContent className="space-y-4">
           <ProfileNameForm name={u.name} isParentMode={isParentMode} />
-          <dl className="flex flex-col gap-1 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">E-post</dt>
-              <dd>{u.email}</dd>
-            </div>
-          </dl>
+          <div className="text-sm">
+            <InfoRow label="E-post">{u.email}</InfoRow>
+          </div>
         </CardContent>
       </Card>
 

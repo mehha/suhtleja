@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { LABEL_CASES, LABEL_CASE_CLASS, labelCase, type LabelCase } from '@/utilities/labelCase'
 import { cn } from '@/utilities/ui'
 import { updateLabelCaseAction } from './actions'
+import { InfoRow } from './InfoRow'
 
 const initialState = {
   success: false,
@@ -43,10 +44,7 @@ export function ProfileLabelCaseForm({ value, isParentMode }: Props) {
   if (!isParentMode) {
     return (
       <div className="space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Kaartide tekst</span>
-          <span>{LABEL_CASES[labelCase(value)]}</span>
-        </div>
+        <InfoRow label="Kaartide tekst">{LABEL_CASES[labelCase(value)]}</InfoRow>
         <p className="text-muted-foreground">Muutmiseks ava vanema vaade (ülal paremal).</p>
       </div>
     )
