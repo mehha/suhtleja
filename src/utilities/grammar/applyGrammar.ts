@@ -12,6 +12,8 @@ import {
   ON_PLACES,
   PLACE_FORMS,
   PLURAL_PARTITIVE,
+  ROOM_PLACES,
+  THING_PLACES,
   VEHICLES,
 } from './wordForms'
 
@@ -386,12 +388,15 @@ function phraseWord(text: string, wordClass?: string | null): PhraseWord | null 
 // A place card's local cases (kooli, koolis, koolist): a card classed as a place, or without a class
 // one the list of places has. A card classed as a thing is not a place ("voodi", "köök" from the
 // picture bank's Kodu).
+// Rooms (ROOM_PLACES: "söön köögis") and things that are also places (THING_PLACES: "magan voodis")
+// are places though the picture bank files them as things.
 function placeForms(text: string, wordClass?: string | null) {
   const cardClass = wordClass ?? guessWordClass(text)
-  if (cardClass && cardClass !== 'place') return null
   const word = normalizeWord(text)
+  const filedAsThing = ROOM_PLACES.has(word) || THING_PLACES.has(word)
+  if (cardClass && cardClass !== 'place' && !(cardClass === 'noun' && filedAsThing)) return null
   const forms = PLACE_FORMS[word]
-  return forms ? { forms, on: ON_PLACES.has(word) } : null
+  return forms ? { forms, on: ON_PLACES.has(word), thing: THING_PLACES.has(word) } : null
 }
 
 /** A place card's forms where to and where ("kooli", "koolis"), for the card dialog; null for others. */
@@ -446,6 +451,10 @@ type Clause = {
   // ("otsin kassi ja koera", "lähen kooli ja poodi"), until a verb or a subject comes. After a
   // pronoun object, a pronoun is an object ("mind ja sind").
   carried: (Governor & { pronoun: boolean }) | null
+  // The last verb is a da-infinitive ("tahan süüa"): a verb after "ja" takes it too ("ja juua").
+  infinitive: boolean
+  // A "ja" after a da-infinitive: the next verb is one too.
+  daNext: boolean
 }
 
 // What decides a noun's form: the verb before it and the clause around it.
@@ -461,6 +470,8 @@ type Governor = {
 }
 
 const newClause = (subjects: Subject[] = []): Clause => ({
+  infinitive: false,
+  daNext: false,
   subjects,
   joining: false,
   experiencer: false,
@@ -609,6 +620,25 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
     }
     return false
   }
+  // "ja" and a noun or a pronoun after this word ("ema ja isa").
+  const joinedNext = (index: number) => {
+    if (normalizeWord(tokens[index + 1]?.text ?? '') !== 'ja' || !tokens[index + 2]) return false
+    const { text: next, wordClass: nextClass } = tokens[index + 2]!
+    return Boolean(subjectOf(next, nextClass) || phraseWord(next, nextClass))
+  }
+
+  // Another place later in the clause ("tulen koolist koju"), before a verb or a "ja".
+  const placeLater = (index: number) => {
+    for (let at = index + 1; at < tokens.length; at++) {
+      const { text: later, wordClass: laterClass } = tokens[at]!
+      const laterWord = normalizeWord(later)
+      if (NEW_CLAUSE.has(laterWord) || JOINING.has(laterWord) || KEEPS_SUBJECT.has(laterWord)) return false
+      if (verbCard(later, laterClass) || verbOfForm(later, laterClass)) return false
+      if (placeForms(later, laterClass)) return true
+    }
+    return false
+  }
+
   // A person or an animal that owns the noun after it ("kassi toit", "ema auto"), and a personal
   // pronoun after the verb ("see on minu auto"; at the start "mina pall" is "mina tahan palli").
   const isOwner = (index: number) => {
@@ -628,6 +658,12 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
     const said: Said = { index, phrase, pronoun: null }
     // "palju" makes the phrase a partitive (below), whatever the verb: "mul on palju autosid".
     const many = phrase.some(({ word: before }) => before.plural)
+    // "koos ema ja isaga": with two, only the last takes -ga, the first the genitive.
+    if (!many && withNext && joinedNext(index)) {
+      genitive(said)
+      phrase = []
+      return
+    }
     if (!many && (withNext || (!place && takesComitative(governor, word)))) {
       comitative(said)
       withNext = false
@@ -637,7 +673,11 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
     }
     if (governor) lastSaid = said
 
-    const where = place && !many ? placeCase(governor) : null
+    // A thing that is also a place is the object of a verb that takes one ("ostan voodit").
+    const asPlace = place && !many && !(place.thing && takesObject(governor))
+    const placed = asPlace ? placeCase(governor) : null
+    // Two places after a verb of motion: from the first to the second ("tulen koolist koju").
+    const where = placed === 0 && placeLater(index) ? 2 : placed
     if (place && typeof where === 'number') {
       // The adjectives before it take the place's case ("lähen suurde parki"); numerals stay.
       for (const { index: at, word } of phrase) {
@@ -716,8 +756,10 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
       if (clause.finite || clause.carried) {
         const person = personOf(clause)
         const carried = objectBefore && JOINS_OBJECTS.has(word) ? carry(objectBefore === 'pronoun') : null
+        const daNext = clause.finite && clause.infinitive && JOINING.has(word)
         clause = newClause(person ? [{ person, rank: 'kept' }] : [])
         clause.carried = carried
+        clause.daNext = daNext
       } else if (JOINING.has(word) && clause.subjects.length > 0) {
         clause.joining = true
       }
@@ -748,6 +790,11 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
         const pronoun = COMITATIVE_PRONOUNS[word]
         const person = phraseWord(text, wordClass)
         if (pronoun) {
+          // "koos minu ja sinuga": with two, only the last takes -ga.
+          if (withNext && joinedNext(index)) {
+            genitive({ index, phrase: phraseBefore, pronoun: GENITIVE_PRONOUNS[word] ?? null })
+            return
+          }
           comitative({ index, phrase: phraseBefore, pronoun })
           withNext = false
           lastObject = 'pronoun'
@@ -760,8 +807,11 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
         }
       }
       const objectPronoun = OBJECT_PRONOUNS[word]
+      // After an object and "ja", a person with a verb of their own is its subject ("söön leiba ja
+      // ema joob"), not another object ("kallistan isa ja ema").
+      const ownVerb = Boolean(clause.carried) && !clause.finite && !objectPronoun && verbLater(index)
       const asObject =
-        clause.finite || clause.carried
+        (clause.finite || clause.carried) && !ownVerb
           ? takesObject(governorOf(clause)) && (clause.finite || clause.carried?.pronoun || !objectPronoun)
           : false
       if (asObject) {
@@ -800,7 +850,17 @@ export function applyGrammar(tokens: GrammarToken[]): string[] {
       if (clause.finite) {
         const form = clause.lastVerb && DA_VERBS.has(clause.lastVerb) ? verbForm(card, 'da') : null
         clause.lastVerb = card.verb
+        clause.infinitive = Boolean(form)
         if (form) out[index] = withCase(text, form)
+        return
+      }
+      // "tahan süüa ja juua": after "ja" the infinitive goes on.
+      if (clause.daNext) {
+        clause.finite = true
+        clause.lastVerb = card.verb
+        clause.infinitive = true
+        clause.daNext = false
+        out[index] = withCase(text, verbForm(card, 'da'))
         return
       }
       const kind = clause.negated ? 'neg' : personOf(clause)

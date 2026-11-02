@@ -70,6 +70,9 @@ PREFERRED: dict[tuple[str, str], str] = {
     ('kool', 'adt'): 'kooli',
     ('kool', 'sg in'): 'koolis',
     ('kool', 'sg el'): 'koolist',
+    ('kapp', 'adt'): 'kappi',
+    ('kapp', 'sg in'): 'kapis',
+    ('kapp', 'sg el'): 'kapist',
     ('kott', 'S'): 'kotti',
     ('kruus', 'S'): 'kruusi',
     ('kurk', 'S'): 'kurki',
@@ -192,18 +195,27 @@ def illative(word: str, part: str, problems: list[str], short: bool = True) -> s
     return one(word, 'sg ill', part, problems)
 
 
-def places(problems: list[str]) -> tuple[dict[str, tuple[str, str, str]], set[str]]:
-    """The local cases of every place in places.txt, and the places whose cases are "on" (peale)."""
+PLACE_KINDS = {'ruum', 'ese'}
+
+
+def places(problems: list[str]) -> tuple[dict[str, tuple[str, str, str]], set[str], dict[str, str]]:
+    """The local cases of every place in places.txt, the places whose cases are "on" (peale), and the
+    rooms and things the bank files as things, by their kind (ruum, ese)."""
     listed: dict[str, tuple[str, str]] = {}
+    kinds: dict[str, str] = {}
     for line in PLACES.read_text(encoding='utf-8').splitlines():
         line = line.strip()
         if not line or line.startswith('#'):
             continue
-        word, cases, *lemma = line.split()
+        word, cases, *rest = line.split()
         if cases not in (*PLACE_CASES, '-'):
             problems.append(f'places.txt: {word}: {cases!r} is not sisse, peale or -')
             continue
-        listed[word] = (cases, lemma[0] if lemma else word)
+        kind = next((token for token in rest if token in PLACE_KINDS), None)
+        lemma = next((token for token in rest if token not in PLACE_KINDS), word)
+        if kind:
+            kinds[word] = kind
+        listed[word] = (cases, lemma)
 
     bank_places = {
         row['sõna'].strip().lower()
@@ -223,7 +235,7 @@ def places(problems: list[str]) -> tuple[dict[str, tuple[str, str, str]], set[st
         forms[word] = (to, one(lemma, where, 'S', problems), one(lemma, where_from, 'S', problems))
         if cases == 'peale':
             on.add(word)
-    return forms, on
+    return forms, on, kinds
 
 
 def adjective_place_forms(adjectives: list[str]) -> dict[str, tuple[str, ...]]:
@@ -376,7 +388,7 @@ def main() -> None:
     problems: list[str] = []
     verb_rows, bank_verbs, skipped = verbs(problems)
     word_lists, unknown = words(problems)
-    place_forms, on_places = places(problems)
+    place_forms, on_places, place_kinds = places(problems)
     adjective_forms = adjective_place_forms(sorted(word_lists['A']))
 
     if problems:
@@ -426,6 +438,12 @@ def main() -> None:
     for word, (to, at, from_) in place_forms.items():
         lines.append(f"  {key(word)}: ['{to}', '{at}', '{from_}'],")
     lines += ['}', '']
+    lines.append('// Rooms the bank files as things: places all the same ("söön köögis").')
+    lines.append('export const ROOM_PLACES = new Set([' + ', '.join(f"'{w}'" for w, k in sorted(place_kinds.items()) if k == 'ruum') + '])')
+    lines.append('')
+    lines.append('// Things that are also places: after a verb that takes no object ("magan voodis"), not after one that does.')
+    lines.append('export const THING_PLACES = new Set([' + ', '.join(f"'{w}'" for w, k in sorted(place_kinds.items()) if k == 'ese') + '])')
+    lines.append('')
     lines.append("// Places whose cases are \"on\" (turule, turul, turult), for the adjectives before them.")
     lines.append('export const ON_PLACES = new Set([' + ', '.join(f"'{word}'" for word in sorted(on_places)) + '])')
     lines.append('')

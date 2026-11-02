@@ -889,12 +889,17 @@ export const NUMERAL_PARTITIVE: Record<string, string> = {
 export const PLACE_FORMS: Record<string, readonly [to: string, at: string, from: string]> = {
   aed: ['aeda', 'aias', 'aiast'],
   apteek: ['apteeki', 'apteegis', 'apteegist'],
+  batuut: ['batuudile', 'batuudil', 'batuudilt'],
   bussipeatus: ['bussipeatusesse', 'bussipeatuses', 'bussipeatusest'],
+  diivan: ['diivanile', 'diivanil', 'diivanilt'],
+  elutuba: ['elutuppa', 'elutoas', 'elutoast'],
   haigla: ['haiglasse', 'haiglas', 'haiglast'],
   hoov: ['hoovi', 'hoovis', 'hoovist'],
   järv: ['järve', 'järves', 'järvest'],
   jõgi: ['jõkke', 'jões', 'jõest'],
+  kapp: ['kappi', 'kapis', 'kapist'],
   karussell: ['karussellile', 'karussellil', 'karussellilt'],
+  kiik: ['kiigele', 'kiigel', 'kiigelt'],
   kino: ['kinno', 'kinos', 'kinost'],
   kirik: ['kirikusse', 'kirikus', 'kirikust'],
   kodu: ['koju', 'kodus', 'kodust'],
@@ -902,11 +907,14 @@ export const PLACE_FORMS: Record<string, readonly [to: string, at: string, from:
   kool: ['kooli', 'koolis', 'koolist'],
   köök: ['kööki', 'köögis', 'köögist'],
   lasteaed: ['lasteaeda', 'lasteaias', 'lasteaiast'],
+  laud: ['lauale', 'laual', 'laualt'],
   lennujaam: ['lennujaama', 'lennujaamas', 'lennujaamast'],
+  liivakast: ['liivakasti', 'liivakastis', 'liivakastist'],
   linn: ['linna', 'linnas', 'linnast'],
   liumägi: ['liumäele', 'liumäel', 'liumäelt'],
   loomaaed: ['loomaaeda', 'loomaaias', 'loomaaiast'],
   loss: ['lossi', 'lossis', 'lossist'],
+  magamistuba: ['magamistuppa', 'magamistoas', 'magamistoast'],
   maja: ['majja', 'majas', 'majast'],
   meri: ['merre', 'meres', 'merest'],
   mets: ['metsa', 'metsas', 'metsast'],
@@ -921,7 +929,9 @@ export const PLACE_FORMS: Record<string, readonly [to: string, at: string, from:
   saun: ['sauna', 'saunas', 'saunast'],
   sild: ['sillale', 'sillal', 'sillalt'],
   staadion: ['staadionile', 'staadionil', 'staadionilt'],
+  tool: ['toolile', 'toolil', 'toolilt'],
   trenn: ['trenni', 'trennis', 'trennist'],
+  trepp: ['trepile', 'trepil', 'trepilt'],
   tsirkus: ['tsirkusesse', 'tsirkuses', 'tsirkusest'],
   tualett: ['tualetti', 'tualetis', 'tualetist'],
   tuba: ['tuppa', 'toas', 'toast'],
@@ -930,15 +940,24 @@ export const PLACE_FORMS: Record<string, readonly [to: string, at: string, from:
   töö: ['tööle', 'tööl', 'töölt'],
   ujula: ['ujulasse', 'ujulas', 'ujulast'],
   vaateratas: ['vaaterattale', 'vaaterattal', 'vaaterattalt'],
+  vann: ['vanni', 'vannis', 'vannist'],
   vannituba: ['vannituppa', 'vannitoas', 'vannitoast'],
+  vets: ['vetsu', 'vetsus', 'vetsust'],
+  voodi: ['voodisse', 'voodis', 'voodist'],
   väljak: ['väljakule', 'väljakul', 'väljakult'],
   võimla: ['võimlasse', 'võimlas', 'võimlast'],
   õu: ['õue', 'õues', 'õuest'],
   ülekäigurada: ['ülekäigurajale', 'ülekäigurajal', 'ülekäigurajalt'],
 }
 
+// Rooms the bank files as things: places all the same ("söön köögis").
+export const ROOM_PLACES = new Set(['elutuba', 'köök', 'magamistuba', 'tuba', 'vannituba', 'vets'])
+
+// Things that are also places: after a verb that takes no object ("magan voodis"), not after one that does.
+export const THING_PLACES = new Set(['batuut', 'diivan', 'kapp', 'kiik', 'laud', 'liivakast', 'tool', 'trepp', 'vann', 'voodi'])
+
 // Places whose cases are "on" (turule, turul, turult), for the adjectives before them.
-export const ON_PLACES = new Set(['karussell', 'liumägi', 'mänguväljak', 'sild', 'staadion', 'turg', 'tänav', 'töö', 'vaateratas', 'väljak', 'ülekäigurada'])
+export const ON_PLACES = new Set(['batuut', 'diivan', 'karussell', 'kiik', 'laud', 'liumägi', 'mänguväljak', 'sild', 'staadion', 'tool', 'trepp', 'turg', 'tänav', 'töö', 'vaateratas', 'väljak', 'ülekäigurada'])
 
 // The comitative of nouns: autoga, nukuga, klotsidega.
 export const NOUN_COMITATIVE: Record<string, string> = {
@@ -1902,7 +1921,7 @@ export const PLURAL_PARTITIVE: Record<string, string> = {
   helkur: 'helkureid',
   helkurvest: 'helkurveste',
   herned: 'herneid',
-  hiir: 'hiire',
+  hiir: 'hiiri',
   hirmus: 'hirmsaid',
   hirv: 'hirvi',
   hobune: 'hobuseid',
@@ -1999,7 +2018,7 @@ export const PLURAL_PARTITIVE: Record<string, string> = {
   kelk: 'kelke',
   kell: 'kelli',
   kelluke: 'kellukesi',
-  kerge: 'kergeid',
+  kerge: 'kerkeid',
   ketšup: 'ketšupeid',
   kevad: 'kevadeid',
   kiik: 'kiiki',

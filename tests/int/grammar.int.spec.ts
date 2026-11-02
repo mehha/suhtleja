@@ -159,8 +159,28 @@ describe('word forms', () => {
     [['mul', 'olema', 'kodu'], 'mul on kodu'],
     [['see', 'olema', 'kool'], 'see on kool'],
     [['mul', 'ei', 'olema', 'haigla'], 'mul ei ole haiglat'],
-    [['mina', 'minema', 'köök:noun'], 'mina lähen köök'],
+    [['mina', 'minema', 'lamp:noun'], 'mina lähen lamp'],
     [['mina', 'minema', 'köök:place'], 'mina lähen kööki'],
+    // Rooms the bank files as things are places; things that are also places, where no object is
+    [['mina', 'sööma', 'köök:noun'], 'mina söön köögis'],
+    [['mina', 'magama', 'voodi:noun'], 'mina magan voodis'],
+    [['mina', 'istuma', 'tool:noun'], 'mina istun toolil'],
+    [['mina', 'mängima', 'liivakast:noun'], 'mina mängin liivakastis'],
+    [['mina', 'minema', 'voodi'], 'mina lähen voodisse'],
+    [['mina', 'ostma', 'voodi:noun'], 'mina ostan voodit'],
+    // From one place to the other
+    [['mina', 'tulema', 'kool', 'kodu'], 'mina tulen koolist koju'],
+    [['isa', 'sõitma', 'linn', 'mets'], 'isa sõidab linnast metsa'],
+    [['mina', 'minema', 'kool', 'ja', 'pood'], 'mina lähen kooli ja poodi'],
+    // "koos" with two
+    [['mina', 'minema', 'koos', 'ema', 'ja', 'isa'], 'mina lähen koos ema ja isaga'],
+    [['koos', 'mina', 'ja', 'sina'], 'koos minu ja sinuga'],
+    // The infinitive goes on after "ja"
+    [['mina', 'tahtma', 'minema', 'kool', 'ja', 'sööma'], 'mina tahan minna kooli ja süüa'],
+    [['mina', 'tahtma', 'sööma', 'ja', 'jooma'], 'mina tahan süüa ja juua'],
+    // A person after "ja" with a verb of their own is its subject
+    [['mina', 'sööma', 'leib', 'ja', 'ema', 'jooma', 'piim'], 'mina söön leiba ja ema joob piima'],
+    [['mina', 'kallistama', 'isa', 'ja', 'ema'], 'mina kallistan isa ja ema'],
     // With something (comitative): toys and people after "mängima"
     [['mina', 'mängima', 'auto'], 'mina mängin autoga'],
     [['mina', 'mängima', 'suur', 'auto'], 'mina mängin suure autoga'],
@@ -347,7 +367,8 @@ describe('the verb list', () => {
   it("gives a place card's forms for the card dialog", () => {
     expect(placeFormsOf('kodu')).toEqual({ to: 'koju', at: 'kodus' })
     expect(placeFormsOf('Mänguväljak')).toEqual({ to: 'Mänguväljakule', at: 'Mänguväljakul' })
-    expect(placeFormsOf('köök', 'noun')).toBeNull()
+    expect(placeFormsOf('köök', 'noun')).toEqual({ to: 'kööki', at: 'köögis' })
+    expect(placeFormsOf('lamp', 'noun')).toBeNull()
     expect(placeFormsOf('kaart')).toBeNull()
   })
 
