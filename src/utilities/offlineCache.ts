@@ -144,9 +144,11 @@ export function findPictures(html: string, origin: string): Picture[] {
 }
 
 // Which build the page runs: kept pages are fetched again after a deploy.
+// The scripts' names without their query: next dev gives them a new `?v=` on every load, which made
+// every page load fetch all the kept pages again (and wore out CI's dev server).
 function buildFingerprint(): string {
   const scripts = [...document.querySelectorAll<HTMLScriptElement>('script[src*="/_next/static/"]')].map(
-    (script) => script.getAttribute('src') ?? '',
+    (script) => (script.getAttribute('src') ?? '').split('?')[0]!,
   )
   return scripts.find((src) => src.includes('/webpack')) ?? scripts.sort().join(' ')
 }

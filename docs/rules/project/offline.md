@@ -27,7 +27,7 @@ A board is the child's voice, so it must speak without Wi-Fi: on the way, at the
   - Also keeps the build files the current page loaded (`performance` entries, buffer raised to 2000) after loading the word forms (`loadGrammar`), which a board loads only once it shows.
   - Then the speech and sounds of the list. Files already kept aren't fetched again (they don't change under the same URL).
   - Once every page is in, removes what no page needs any more (old builds, boards off the home, other pictures).
-  - Remembers what it kept in `localStorage` (`suhtleja:offline`: member, build, page versions, the list's fingerprint). Nothing changed and `/kodu` still in the cache: it stops after the list request.
+  - Remembers what it kept in `localStorage` (`suhtleja:offline`: member, build, page versions, the list's fingerprint). Nothing changed and `/kodu` still in the cache: it stops after the list request. The build is the webpack runtime's file name without its query (next dev gives its scripts a new `?v=` on every load; with it, every page load fetched all the kept pages again, and on 2026-11-02 CI's runner died at the end of the tests).
   - Another member on the device: everything of the last one goes first. Logging out (`handleSignOut` in the header) and logging in (`login-form.tsx`, for a login that ran out without a logout) call `clearOfflineData`, which removes the pages and media and keeps the build files.
   - Asks the browser to keep the storage (`navigator.storage.persist()`).
   - `document.documentElement.dataset.offline` says `saving`, `ready`, `partial` or `off` (the tests wait for `ready`).
