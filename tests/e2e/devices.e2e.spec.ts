@@ -717,9 +717,11 @@ test.describe('without the network', () => {
     page,
     context,
     member,
-    browserName,
-  }) => {
-    test.skip(browserName !== 'chromium', "Playwright reaches a service worker's requests in Chromium only.")
+  }, testInfo) => {
+    // The Android tablet, the child's main device: Playwright reaches a service worker's requests in
+    // Chromium only. Not the phone too: there the member flow test ran right after it, at the end of
+    // a 10-minute step, and CI's runner died twice (2026-11-02); the phone runs the same Chromium code.
+    test.skip(testInfo.project.name !== 'android-tablet', 'Runs on the Android tablet only.')
     test.setTimeout(180_000)
     // next dev runs the worker only when asked (offlineCache.ts).
     await page.addInitScript(() => window.localStorage.setItem('suhtleja:offline-dev', '1'))
