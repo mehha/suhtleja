@@ -233,6 +233,34 @@ test.describe('Koduhaldus, deleting', () => {
   })
 })
 
+test.describe('Koduhaldus, the home screen hint', () => {
+  // Only iOS has `navigator.standalone` (false in a browser tab), and WebKit on Linux lacks it, so
+  // the test gives the page one, as an iPad or iPhone tab has.
+  test('shows the steps on an iPad or iPhone and stays closed once closed', async ({
+    page,
+    baseURL,
+    viewport,
+  }, testInfo) => {
+    test.skip(!['ipad', 'iphone'].includes(testInfo.project.name), 'iPad and iPhone only.')
+    await page.addInitScript(() => Object.defineProperty(navigator, 'standalone', { value: false }))
+    await enterParentView(page, baseURL)
+    await page.goto('/koduhaldus')
+
+    const hint = page.getByRole('region', { name: 'Pane Suhtleja avakuvale' })
+    await expect(hint).toBeVisible()
+    await expect(hint.getByText('„Lisa avakuvale“', { exact: false })).toBeVisible()
+    await expectTouchFriendlyBothWays(page, viewport, 'Koduhaldus with the home screen hint')
+
+    await hint.getByRole('button', { name: 'Peida juhis' }).tap()
+    await expect(hint).toBeHidden()
+    // After a reload, once React has the page (the hint only ever shows from then on).
+    await page.reload()
+    await pageReady(page)
+    await expect(page.getByRole('heading', { level: 1, name: 'Koduhaldus' })).toBeVisible()
+    await expect(hint).toBeHidden()
+  })
+})
+
 test.describe('Koduhaldus, the row menu', () => {
   // WebKit on Linux (the CI's iPhone and iPad) follows a tap's touch press with a mouse press. The
   // menu opened on the first and shut on the second, so it never stayed open; it opens on the click.

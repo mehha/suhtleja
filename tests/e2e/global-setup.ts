@@ -23,6 +23,8 @@ const ROUTES: Array<[method: 'GET' | 'POST', path: string]> = [
   ['GET', '/next/symbol-generate'],
   ['GET', '/next/tts-cache/1/warmup'],
   ['GET', '/next/homepage-tts/warmup'],
+  // Linked from every page; browsers fetch it as a page loads.
+  ['GET', '/manifest.webmanifest'],
   ['POST', '/next/tts-ms'],
   ['POST', '/next/groq'],
   ['POST', '/next/symbol-generate/save'],

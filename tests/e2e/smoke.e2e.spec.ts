@@ -79,6 +79,26 @@ test('public pages are served from the cache', async ({ request }) => {
   }
 })
 
+// Suhtleja can go on a home screen as an app (install-app.md): the pages link the manifest and the
+// iOS icon, and both are served.
+test('pages link the web app manifest and the home screen icon', async ({ request }) => {
+  const html = await (await request.get('/')).text()
+  const manifestPath = html.match(/<link rel="manifest" href="([^"]+)"/)?.[1]
+  const iconPath = html.match(/<link rel="apple-touch-icon" href="([^"]+)"/)?.[1]
+  expect(manifestPath, 'manifest link').toBe('/manifest.webmanifest')
+  expect(iconPath, 'apple-touch-icon link').toBeTruthy()
+
+  const manifest = await request.get(manifestPath!)
+  expect(manifest.status()).toBe(200)
+  const app = await manifest.json()
+  expect(app).toMatchObject({ start_url: '/kodu', display: 'standalone' })
+  for (const src of [iconPath!, ...app.icons.map((icon: { src: string }) => icon.src)]) {
+    const icon = await request.get(src)
+    expect(icon.status(), src).toBe(200)
+    expect(icon.headers()['content-type'], src).toContain('image/png')
+  }
+})
+
 test('/demo redirects permanently to Kuidas see töötab', async ({ request }) => {
   const response = await request.get('/demo', { maxRedirects: 0 })
   expect(response.status()).toBe(308)

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 
 import { cn } from '@/utilities/ui'
 import { GeistSans } from 'geist/font/sans'
@@ -19,6 +19,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { FlashToast } from '@/components/FlashToast'
 import { DEFAULT_META_DESCRIPTION, SITE_NAME } from '@/utilities/seo'
 import { getUiMode } from '@/utilities/uiMode'
+import { APPLE_TOUCH_ICON, WEB_APP_THEME_COLOR } from '@/utilities/webAppManifest'
 import { FrontendShell } from './FrontendShell'
 
 // Rounded display face for marketing headings; its soft corners echo the logo tiles.
@@ -84,8 +85,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   )
 }
 
+// The page background colours the browser's bar, and the installed app's (see webAppManifest.ts).
+export const viewport: Viewport = {
+  themeColor: WEB_APP_THEME_COLOR,
+}
+
 export const metadata: Metadata = {
+  // Put on the home screen, Suhtleja opens full screen as an app of its own, with this name and
+  // icon (iPad and iPhone Safari take the icon from the apple-touch-icon link, not the manifest).
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: SITE_NAME,
+  },
   description: DEFAULT_META_DESCRIPTION,
+  icons: {
+    apple: [{ url: APPLE_TOUCH_ICON, sizes: '180x180', type: 'image/png' }],
+  },
   metadataBase: new URL(getServerSideURL()),
   openGraph: mergeOpenGraph({
     description: DEFAULT_META_DESCRIPTION,

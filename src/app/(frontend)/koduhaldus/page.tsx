@@ -8,6 +8,7 @@ import { BoardsList, type BoardsListBoard } from '../boards/BoardsList'
 import { ConnectDotsBoardsList, type ConnectDotsBoardsPuzzle } from '../boards/ConnectDotsBoardsList'
 import { CreateBoardForm } from '../boards/CreateBoardForm'
 import { Settings2 } from 'lucide-react'
+import { InstallAppHint } from './InstallAppHint'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
 import { KODUHALDUS_OTHERS_PARAM, othersPrivateWhere, ownOrSharedWhere } from '@/utilities/koduhaldusQuery'
 import { requireParentMode } from '@/utilities/uiMode'
@@ -386,6 +387,8 @@ export default async function ActivitiesPage({
         <Settings2 className="h-6 w-6 text-pink-500" aria-hidden="true" />
         Koduhaldus
       </h1>
+
+      <InstallAppHint />
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
