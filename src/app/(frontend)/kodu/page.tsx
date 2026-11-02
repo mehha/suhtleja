@@ -502,13 +502,8 @@ export default async function HomePage() {
               <h1 className="text-2xl font-semibold">Kodu</h1>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {/* Boards are the main thing: adding a game is in the games' section (and Koduhaldus). */}
               <CreateBoardForm createBoard={createBoard} />
-              <Button className="gap-2" asChild>
-                <Link href="/connect-dots/manage/new">
-                  <PlusCircle className="h-4 w-4" />
-                  Lisa mäng
-                </Link>
-              </Button>
               <Button variant="outline" asChild>
                 <Link href="/koduhaldus" className="flex items-center gap-2">
                   <Settings2 className="h-4 w-4" />
@@ -546,8 +541,16 @@ export default async function HomePage() {
 
             {hasPuzzles ? (
               <section className="space-y-6">
-                <div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-lg font-semibold">Mängud</h2>
+                  {isParentMode && (
+                    <Button variant="outline" size="sm" className="gap-2" asChild>
+                      <Link href="/connect-dots/manage/new">
+                        <PlusCircle className="h-4 w-4" />
+                        Lisa mäng
+                      </Link>
+                    </Button>
+                  )}
                 </div>
 
                 <SortableConnectDotsPuzzles

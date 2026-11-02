@@ -124,7 +124,8 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, others, puzzles, 
           <p className="text-sm text-muted-foreground">Halda siin mänge ja vali, millised neist on lapse koduvaates.</p>
         </div>
 
-        <Button asChild className="gap-2">
+        {/* Outline: on Koduhaldus, adding a board is the main action. */}
+        <Button asChild className="gap-2" variant="outline">
           <Link href="/connect-dots/manage/new">
             <PlusCircle className="h-4 w-4" />
             Lisa mäng
