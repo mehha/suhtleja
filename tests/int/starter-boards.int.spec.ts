@@ -112,6 +112,10 @@ describe('the starter set', () => {
     expect(boards.every((board) => ownerId(board.owner) === member.id && !board.visibleToAllUsers)).toBe(true)
     expect(boards.filter((board) => board.pinned).map((board) => board.id)).toEqual([coreId])
     expect(boards.every((board) => board.extra?.grammar === true && board.grid?.cols === 6)).toBe(true)
+    // Made first, so the lists show the core words before their topics.
+    expect(boards[0]?.id).toBe(coreId)
+    const orders = boards.map((board) => board.order ?? 0)
+    expect(orders).toEqual([...orders].sort((a, b) => a - b))
   })
 
   it('lays the words out in reading order, with their word classes', () => {

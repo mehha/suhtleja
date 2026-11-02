@@ -195,6 +195,39 @@ test.describe('Koduhaldus', () => {
   })
 })
 
+test.describe('Koduhaldus, deleting', () => {
+  test('a board goes only after the dialog asks, and a member sees no admin columns', async ({
+    page,
+    member,
+    baseURL,
+  }) => {
+    const name = `Kustutatav ${member.boardName}`
+    await createOwnBoard(page.request, name, [{ title: 'mina' }])
+    await enterParentView(page, baseURL)
+    await page.goto('/koduhaldus')
+    await expect(page.getByRole('heading', { level: 1, name: 'Koduhaldus' })).toBeVisible()
+    for (const column of ['#', 'Looja', 'Nähtavus']) {
+      await expect(page.getByRole('columnheader', { name: column, exact: true })).toHaveCount(0)
+    }
+
+    const row = page.getByRole('row').filter({ hasText: name })
+    const bin = row.getByRole('button', { name: `Kustuta tahvel: ${name}` })
+    const dialog = page.getByRole('alertdialog', { name: 'Kustuta tahvel?' })
+    await bin.tap()
+    await expect(dialog).toBeVisible()
+    await expectOnScreen(page, dialog, 'delete dialog')
+    await expectTouchFriendly(page, 'delete dialog')
+    await dialog.getByRole('button', { name: 'Loobu' }).tap()
+    await expect(dialog).toBeHidden()
+    await expect(row).toBeVisible()
+
+    await bin.tap()
+    await dialog.getByRole('button', { name: 'Kustuta', exact: true }).tap()
+    await expect(page.getByText('Tahvel kustutati.')).toBeVisible()
+    await expect(row).toHaveCount(0)
+  })
+})
+
 test.describe('the starter set', () => {
   test('makes the boards, and the core words open the topic boards', async ({ page, baseURL }, testInfo) => {
     // Its speech is made as the boards are (Azure in CI, about 200 words and forms): one device does.

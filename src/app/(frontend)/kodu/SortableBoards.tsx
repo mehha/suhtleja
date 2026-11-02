@@ -19,8 +19,8 @@ import {
   Edit,
   Globe2,
   GripVertical,
+  EyeOff,
   ImageIcon,
-  TrashIcon,
   UserCog,
 } from 'lucide-react'
 import {
@@ -184,7 +184,7 @@ function SortableBoardCard({
                     }}
                     type="button"
                   >
-                    <TrashIcon className="w-5 h-5 text-red-600" />
+                    <EyeOff className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>

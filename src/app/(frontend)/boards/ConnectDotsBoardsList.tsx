@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { Globe2, Pencil, PlusCircle, Trash2 } from 'lucide-react'
+import { Pencil, PlusCircle } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import { ActionSwitch } from './ActionSwitch'
+import { ConfirmDeleteButton } from './ConfirmDeleteButton'
 
 export type ConnectDotsBoardsPuzzle = {
   enabled?: boolean | null
@@ -77,7 +78,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold">Mängud</h2>
+            <h2 className="text-xl font-semibold">Mängud</h2>
             <p className="text-sm text-muted-foreground">
               Halda siin mänge ja vali, millised neist on lapse koduvaates.
             </p>
@@ -95,7 +96,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
           <Input
             className="max-w-xs"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Otsi mängu…"
+            placeholder="Otsi mänge…"
             type="search"
             value={query}
           />
@@ -121,10 +122,13 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
               <TableHeader className="bg-muted/60">
                 <TableRow>
                   <TableHead>Mäng</TableHead>
-                  <TableHead>Looja</TableHead>
+                  {/* The creator and the sharing are for the admin, as in the boards' table. */}
+                  {isAdmin && <TableHead>Looja</TableHead>}
                   <TableHead>Koduvaade</TableHead>
-                  <TableHead>Nähtavus</TableHead>
-                  <TableHead className="text-right">Koduhaldus</TableHead>
+                  {isAdmin && <TableHead>Nähtavus</TableHead>}
+                  <TableHead className="text-right">
+                    <span className="sr-only">Toimingud</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -132,14 +136,19 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                 {filteredPuzzles.map((puzzle) => {
                   const isPinned = puzzle.homeVisible
                   const canManagePuzzle = isAdmin || puzzle.isOwnedByCurrentUser
+                  const puzzleName = puzzle.title || 'Nimetu mäng'
+                  const isShared = !puzzle.isOwnedByCurrentUser && !!puzzle.visibleToAllUsers
 
                   return (
                     <TableRow key={puzzle.id}>
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{puzzle.title || 'Nimetu mäng'}</span>
+                            <span className="font-medium">{puzzleName}</span>
                             <Badge variant="outline">Ühenda punktid</Badge>
+                            {!isAdmin && isShared ? <Badge variant="secondary">Jagatud</Badge> : null}
+                            {/* Off in the game editor ("Nähtav /connect-dots lehel"): not shown to the child. */}
+                            {!isAdmin && puzzle.enabled === false ? <Badge variant="outline">Peidetud</Badge> : null}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             {/* At least 24px tall, so a finger finds them on a tablet. */}
@@ -158,16 +167,16 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                         </div>
                       </TableCell>
 
-                      <TableCell>{renderCreator(puzzle.owner)}</TableCell>
+                      {isAdmin && <TableCell>{renderCreator(puzzle.owner)}</TableCell>}
 
                       <TableCell>
                         <ActionSwitch
                           action={togglePinned}
-                          ariaLabel={`Näita koduvaates: ${puzzle.title || 'Nimetu mäng'}`}
+                          ariaLabel={`Näita koduvaates: ${puzzleName}`}
                           checked={isPinned}
                           fields={{ puzzleId: String(puzzle.id) }}
                           name="pinned"
-                          stateLabels={{ on: 'Koduvaates', off: 'Peidetud' }}
+                          stateLabels={{ on: 'Koduvaates', off: 'Pole koduvaates' }}
                           successMessages={{
                             on: FLASH_TOASTS['game-pinned'].message,
                             off: FLASH_TOASTS['game-unpinned'].message,
@@ -176,16 +185,18 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                         />
                       </TableCell>
 
-                      <TableCell>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant={puzzle.enabled ? 'default' : 'outline'}>
-                            {puzzle.enabled ? 'Aktiivne' : 'Peidetud'}
-                          </Badge>
-                          <Badge variant={puzzle.visibleToAllUsers ? 'secondary' : 'outline'}>
-                            {puzzle.visibleToAllUsers ? 'Kõigile nähtav' : 'Ainult omanikule'}
-                          </Badge>
-                        </div>
-                      </TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={puzzle.enabled ? 'default' : 'outline'}>
+                              {puzzle.enabled ? 'Aktiivne' : 'Peidetud'}
+                            </Badge>
+                            <Badge variant={puzzle.visibleToAllUsers ? 'secondary' : 'outline'}>
+                              {puzzle.visibleToAllUsers ? 'Kõigile nähtav' : 'Ainult omanikule'}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                      )}
 
                       <TableCell className="text-right">
                         <div className="inline-flex items-center gap-1">
@@ -193,7 +204,7 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button asChild size="icon" variant="ghost">
-                                  <Link aria-label="Muuda mängu" href={`/connect-dots/manage/${puzzle.id}`}>
+                                  <Link aria-label={`Muuda mängu: ${puzzleName}`} href={`/connect-dots/manage/${puzzle.id}`}>
                                     <Pencil className="h-4 w-4" />
                                   </Link>
                                 </Button>
@@ -202,49 +213,13 @@ export function ConnectDotsBoardsList({ deletePuzzle, isAdmin, puzzles, togglePi
                             </Tooltip>
                           ) : null}
 
-                          {puzzle.visibleToAllUsers ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span>
-                                  <Button aria-label="Kõigile nähtav" disabled size="icon" type="button" variant="ghost">
-                                    <Globe2 className="h-4 w-4" />
-                                  </Button>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>See mäng on juba kõigile nähtav</TooltipContent>
-                            </Tooltip>
-                          ) : null}
-
                           {canManagePuzzle ? (
-                            <form
+                            <ConfirmDeleteButton
                               action={deletePuzzle}
-                              className="inline-flex"
-                              onSubmit={(event) => {
-                                if (
-                                  !window.confirm(
-                                    `Kas soovid kindlasti kustutada mängu "${puzzle.title || 'Nimetu mäng'}"?`,
-                                  )
-                                ) {
-                                  event.preventDefault()
-                                }
-                              }}
-                            >
-                              <input name="puzzleId" type="hidden" value={String(puzzle.id)} />
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    aria-label="Kustuta mäng"
-                                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                                    size="icon"
-                                    type="submit"
-                                    variant="ghost"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Kustuta mäng</TooltipContent>
-                              </Tooltip>
-                            </form>
+                              fields={{ puzzleId: String(puzzle.id) }}
+                              kind="mäng"
+                              name={puzzleName}
+                            />
                           ) : (
                             <span className="text-xs text-muted-foreground">Ainult vaade</span>
                           )}

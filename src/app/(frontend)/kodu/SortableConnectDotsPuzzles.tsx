@@ -13,7 +13,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { toast } from 'sonner'
 import { ACTION_ERROR, FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
-import { CircleArrowRight, Edit, Globe2, GripVertical, PencilRuler, TrashIcon, UserCog } from 'lucide-react'
+import { CircleArrowRight, Edit, EyeOff, Globe2, GripVertical, PencilRuler, UserCog } from 'lucide-react'
 
 import {
   Tooltip,
@@ -179,7 +179,7 @@ function SortablePuzzleCard({
                       }}
                       type="button"
                     >
-                      <TrashIcon className="h-5 w-5 text-red-600" />
+                      <EyeOff className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>

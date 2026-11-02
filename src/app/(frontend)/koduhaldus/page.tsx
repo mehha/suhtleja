@@ -7,6 +7,7 @@ import configPromise from '@payload-config'
 import { BoardsList, type BoardsListBoard } from '../boards/BoardsList'
 import { ConnectDotsBoardsList, type ConnectDotsBoardsPuzzle } from '../boards/ConnectDotsBoardsList'
 import { CreateBoardForm } from '../boards/CreateBoardForm'
+import { Settings2 } from 'lucide-react'
 import { getCurrentUser } from '@/utilities/getCurrentUser'
 import { requireParentMode } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
@@ -382,28 +383,39 @@ export default async function ActivitiesPage() {
   }
 
   return (
-    <main className="xl:container space-y-6">
-      <header className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Tahvlid</h1>
-        <CreateBoardForm createBoard={createBoard} />
-      </header>
+    <main className="xl:container space-y-10">
+      {/* The page is called as in the menu; its boards and games are sections of the same kind. */}
+      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        <Settings2 className="h-6 w-6 text-pink-500" aria-hidden="true" />
+        Koduhaldus
+      </h1>
 
-      <BoardsList
-        boards={boards}
-        isAdmin={isAdmin}
-        toggleVisibility={toggleVisibility}
-        togglePinned={togglePinned}
-        deleteBoard={deleteBoard}
-      />
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold">Tahvlid</h2>
+            <p className="text-sm text-muted-foreground">
+              Halda siin tahvleid ja vali, millised neist on lapse koduvaates.
+            </p>
+          </div>
+          <CreateBoardForm createBoard={createBoard} />
+        </div>
 
-      <div className="pt-4 md:pt-6">
-        <ConnectDotsBoardsList
-          deletePuzzle={deletePuzzle}
+        <BoardsList
+          boards={boards}
           isAdmin={isAdmin}
-          puzzles={puzzles}
-          togglePinned={togglePuzzlePinned}
+          toggleVisibility={toggleVisibility}
+          togglePinned={togglePinned}
+          deleteBoard={deleteBoard}
         />
-      </div>
+      </section>
+
+      <ConnectDotsBoardsList
+        deletePuzzle={deletePuzzle}
+        isAdmin={isAdmin}
+        puzzles={puzzles}
+        togglePinned={togglePuzzlePinned}
+      />
     </main>
   )
 }

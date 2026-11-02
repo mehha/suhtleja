@@ -2,18 +2,13 @@
 
 import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { ConfirmDeleteButton } from './ConfirmDeleteButton'
 import { CopyBoardButton } from './CopyBoardButton'
 import type { Board } from '@/payload-types'
 
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import {
   Table,
   TableBody,
@@ -25,7 +20,6 @@ import {
 import {
   Edit3,
   Monitor,
-  Trash2,
 } from 'lucide-react'
 import { FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
 import { ActionSwitch } from './ActionSwitch'
@@ -103,7 +97,7 @@ export function BoardsList({
           <div className="flex-1">
             <Input
               type="search"
-              placeholder="Otsi tahvleid nime või omaniku järgi…"
+              placeholder={isAdmin ? 'Otsi tahvleid nime või omaniku järgi…' : 'Otsi tahvleid…'}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="max-w-xs"
@@ -125,23 +119,31 @@ export function BoardsList({
           <Table className="min-w-max text-sm">
             <TableHeader className="bg-muted/60">
               <TableRow className="border-b">
-                <TableHead className="w-10 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  #
-                </TableHead>
+                {/* The number, the creator and the sharing are for the admin: a member's own boards are
+                    theirs and private, and a shared one says so next to its name. */}
+                {isAdmin && (
+                  <TableHead className="w-10 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    #
+                  </TableHead>
+                )}
                 <TableHead className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Nimi
                 </TableHead>
-                <TableHead className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Looja
-                </TableHead>
+                {isAdmin && (
+                  <TableHead className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Looja
+                  </TableHead>
+                )}
                 <TableHead className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Koduvaade
                 </TableHead>
-                <TableHead className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Nähtavus
-                </TableHead>
-                <TableHead className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Koduhaldus
+                {isAdmin && (
+                  <TableHead className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Nähtavus
+                  </TableHead>
+                )}
+                <TableHead className="px-3 py-2 text-right">
+                  <span className="sr-only">Toimingud</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -154,25 +156,35 @@ export function BoardsList({
                 const canEditBoard = board.isOwnedByCurrentUser
                 // Admins also see other users' private boards; their home pin belongs to the owner.
                 const canTogglePinned = board.isOwnedByCurrentUser || !!board.visibleToAllUsers
+                const isShared = !board.isOwnedByCurrentUser && !!board.visibleToAllUsers
 
                 return (
                   <TableRow
                     key={board.id}
                     className="border-b last:border-b-0 hover:bg-muted/40"
                   >
-                    <TableCell className="px-3 py-2 align-middle text-xs text-muted-foreground">
-                      {index + 1}
-                    </TableCell>
+                    {isAdmin && (
+                      <TableCell className="px-3 py-2 align-middle text-xs text-muted-foreground">
+                        {index + 1}
+                      </TableCell>
+                    )}
 
                     <TableCell className="px-3 py-2 align-middle">
                       <div className="flex flex-col gap-0.5">
                         {/* The links are at least 24px tall, so a finger finds them on a tablet. */}
-                        <Link
-                          href={`/boards/${board.id}`}
-                          className="inline-block py-0.5 font-medium underline-offset-2 hover:underline"
-                        >
-                          {boardName}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/boards/${board.id}`}
+                            className="inline-block py-0.5 font-medium underline-offset-2 hover:underline"
+                          >
+                            {boardName}
+                          </Link>
+                          {isShared && !isAdmin ? (
+                            <Badge variant="secondary" className="px-2 py-0.5 text-[11px]">
+                              Jagatud
+                            </Badge>
+                          ) : null}
+                        </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Link
                             href={`/boards/${board.id}`}
@@ -199,9 +211,11 @@ export function BoardsList({
                       </div>
                     </TableCell>
 
-                    <TableCell className="px-3 py-2 align-middle">
-                      {renderCreator(owner)}
-                    </TableCell>
+                    {isAdmin && (
+                      <TableCell className="px-3 py-2 align-middle">
+                        {renderCreator(owner)}
+                      </TableCell>
+                    )}
 
                     <TableCell className="px-3 py-2 align-middle">
                       <ActionSwitch
@@ -211,7 +225,7 @@ export function BoardsList({
                         disabled={!canTogglePinned}
                         fields={{ boardId: String(board.id) }}
                         name="pinned"
-                        stateLabels={{ on: 'Koduvaates', off: 'Peidetud' }}
+                        stateLabels={{ on: 'Koduvaates', off: 'Pole koduvaates' }}
                         successMessages={{
                           on: FLASH_TOASTS['board-pinned'].message,
                           off: FLASH_TOASTS['board-unpinned'].message,
@@ -220,8 +234,8 @@ export function BoardsList({
                       />
                     </TableCell>
 
-                    <TableCell className="px-3 py-2 align-middle">
-                      {isAdmin ? (
+                    {isAdmin && (
+                      <TableCell className="px-3 py-2 align-middle">
                         <ActionSwitch
                           action={toggleVisibility}
                           ariaLabel={`Nähtav kõigile: ${boardName}`}
@@ -235,47 +249,17 @@ export function BoardsList({
                           }}
                           toastId="board-shared"
                         />
-                      ) : (
-                        <Badge
-                          variant={board.visibleToAllUsers ? 'secondary' : 'outline'}
-                          className="px-2 py-0.5 text-[11px]"
-                        >
-                          {board.visibleToAllUsers ? 'Kõigile nähtav' : 'Ainult omanikule'}
-                        </Badge>
-                      )}
-                    </TableCell>
+                      </TableCell>
+                    )}
 
                     <TableCell className="px-3 py-2 align-middle text-right">
                       {canEditBoard ? (
-                        <form
+                        <ConfirmDeleteButton
                           action={deleteBoard}
-                          onSubmit={(e) => {
-                            if (
-                              !window.confirm(`Kas soovid kindlasti kustutada tahvli “${boardName}”?`)
-                            ) {
-                              e.preventDefault()
-                            }
-                          }}
-                          className="inline-flex"
-                        >
-                          <input type="hidden" name="boardId" value={board.id} />
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="submit"
-                                size="icon"
-                                variant="ghost"
-                                aria-label="Kustuta tahvel"
-                                className="h-7 w-7 text-red-600 hover:bg-red-50 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Kustuta tahvel</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </form>
+                          fields={{ boardId: String(board.id) }}
+                          kind="tahvel"
+                          name={boardName}
+                        />
                       ) : (
                         <span className="text-xs text-muted-foreground">Ainult vaade</span>
                       )}
