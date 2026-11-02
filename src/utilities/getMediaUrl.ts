@@ -18,6 +18,14 @@ export const getMediaUrl = (url: string | null | undefined, cacheTag?: string | 
     return cacheTag ? `${url}?${cacheTag}` : url
   }
 
+  // A root-relative URL (the dev media route) stays relative, so the server and the browser render
+  // the same `src`. With the site's origin in front, they didn't: the server takes it from
+  // NEXT_PUBLIC_SERVER_URL and the browser from the page, which differ in development and the e2e
+  // tests (suhtleja.test and localhost), and React threw the server's HTML away (hydration error).
+  if (url.startsWith('/')) {
+    return cacheTag ? `${url}?${cacheTag}` : url
+  }
+
   // Otherwise prepend client-side URL
   const baseUrl = getClientSideURL()
   return cacheTag ? `${baseUrl}${url}?${cacheTag}` : `${baseUrl}${url}`

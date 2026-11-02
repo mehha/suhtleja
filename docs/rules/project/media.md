@@ -15,6 +15,7 @@ tags: [suhtleja, media, payload, access-control]
 ## File URLs
 - Production: files are served by R2 on the public media domain (`NEXT_PUBLIC_MEDIA_BASE_URL`, default `https://media.suhtleja.ee`), not through the Worker. Payload's own `/api/media/file` route is off (`disablePayloadAccessControl: true`).
 - Outside production, uploads go to the local R2 bucket in `.wrangler/state`, which the public domain doesn't have. Media URLs point to `/next/dev-media/<key>` (`src/app/(frontend)/next/dev-media/[...path]/route.ts`), which serves the local file, or fetches it from the public domain when only production has it (media copied from production). The route answers 404 in production.
+- `getMediaUrl` (`src/utilities/getMediaUrl.ts`, used by `ImageMedia`, `VideoMedia` and the homepage block) keeps a root-relative URL such as `/next/dev-media/<key>` relative and only adds the cache tag. Don't put the site's origin in front: the server takes it from `NEXT_PUBLIC_SERVER_URL` and the browser from the page, which differ in development and the e2e tests (`suhtleja.test` and `localhost`), and the different `src` broke hydration (React threw the server's HTML away; Next's dev overlay showed "1 Issue"). Production URLs are absolute (the public media domain) and pass through unchanged.
 - Media file URLs skip Next's image optimizer in `ImageMedia` (`isMediaFileURL`).
 
 ## Behavior Rules

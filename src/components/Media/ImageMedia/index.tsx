@@ -28,7 +28,8 @@ const placeholderBlur =
  *
  * Flow:
  *   1. Resource URL from Payload: `/media/image-123.jpg`
- *   2. getMediaUrl() adds base URL: `https://yourdomain.com/media/image-123.jpg`
+ *   2. getMediaUrl() keeps a root-relative URL as it is (the same on the server and in the
+ *      browser), and adds the cache tag: `/media/image-123.jpg?2026-…`
  *   3. Next.js Image optimizes via remotePatterns: `/_next/image?url=...&w=1200&q=75`
  *
  * If your storage/plugin returns **external CDN URLs** (e.g. `https://cdn.example.com/...`),

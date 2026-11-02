@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { countPlayedAudio } from './audio'
+import { pageReady } from './ready'
 
 // Read-only smoke tests for the public site. They never submit forms or change data, so they are
 // safe to run against production after a deploy.
@@ -114,6 +115,8 @@ test('"Kuula ise" tile says its word and adds it to the sentence bar', async ({ 
 
 test('homepage FAQ opens an answer', async ({ page }) => {
   await page.goto('/')
+  // A click before React has taken over the page does nothing, and the answer stays shut.
+  await pageReady(page)
   const question = page.locator('#kkk').getByRole('button').first()
   const answer = page.locator('#kkk [role="region"]').first()
 

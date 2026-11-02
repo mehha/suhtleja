@@ -16,8 +16,8 @@ export function getMediaFileURL(key: string): string {
     : `${DEV_MEDIA_PATH}/${key}`
 }
 
-// Media files are served as they are, without Next's image optimizer. A dev URL may already have
-// the site origin in front (getMediaUrl adds it).
+// Media files are served as they are, without Next's image optimizer. A dev URL is root-relative
+// (getMediaUrl keeps it so); one with an origin in front is recognised too.
 export function isMediaFileURL(src: string): boolean {
   return (
     src === PUBLIC_MEDIA_BASE_URL ||
