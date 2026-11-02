@@ -1,6 +1,5 @@
 'use client'
 
-import { Trash2 } from 'lucide-react'
 import { useFormStatus } from 'react-dom'
 
 import {
@@ -11,17 +10,20 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
-type ConfirmDeleteButtonProps = {
+export type DeleteTarget = {
   // The server action that deletes it (Koduhaldus), and the fields it reads.
   action: (formData: FormData) => Promise<void>
   fields: Record<string, string>
   kind: 'tahvel' | 'mäng'
+}
+
+type ConfirmDeleteDialogProps = DeleteTarget & {
   name: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 function DeleteSubmit() {
@@ -34,32 +36,13 @@ function DeleteSubmit() {
   )
 }
 
-/** The bin in a Koduhaldus row: asks in a dialog before it deletes the board or game for good. */
-export function ConfirmDeleteButton({ action, fields, kind, name }: ConfirmDeleteButtonProps) {
-  const label = kind === 'tahvel' ? 'Kustuta tahvel' : 'Kustuta mäng'
-
+/** Asks before a Koduhaldus row's board or game is deleted for good (its "…" menu opens it). */
+export function ConfirmDeleteDialog({ action, fields, kind, name, open, onOpenChange }: ConfirmDeleteDialogProps) {
   return (
-    <AlertDialog>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <AlertDialogTrigger asChild>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-label={`${label}: ${name}`}
-              className="text-red-600 hover:bg-red-50 hover:text-red-700"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          </AlertDialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
-      </Tooltip>
-
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{label}?</AlertDialogTitle>
+          <AlertDialogTitle>{kind === 'tahvel' ? 'Kustuta tahvel?' : 'Kustuta mäng?'}</AlertDialogTitle>
           <AlertDialogDescription>
             „{name}“ kustutatakse jäädavalt. Seda ei saa tagasi võtta.
           </AlertDialogDescription>

@@ -211,7 +211,7 @@ test('a new customer registers, unlocks the parent view and hears a board speak'
 
   await test.step('put the board on the child home', async () => {
     await open('/koduhaldus')
-    const row = page.getByRole('row').filter({ hasText: boardName })
+    const row = page.getByRole('listitem').filter({ hasText: boardName })
     const homeSwitch = row.getByRole('switch', { name: `Näita koduvaates: ${boardName}` })
     await expect(homeSwitch).not.toBeChecked()
     await homeSwitch.click()

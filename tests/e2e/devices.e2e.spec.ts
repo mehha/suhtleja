@@ -605,12 +605,12 @@ test.describe('parent view', () => {
     await enterParentView(page, baseURL)
     await page.goto('/koduhaldus')
 
-    const row = page.getByRole('row').filter({ hasText: member.boardName })
+    const row = page.getByRole('listitem').filter({ hasText: member.boardName })
     const homeSwitch = row.getByRole('switch', { name: `Näita koduvaates: ${member.boardName}` })
     await expect(homeSwitch).toBeChecked()
     await expectNoSidewaysScroll(page)
 
-    // The table may scroll sideways in its own box; tapping brings the switch into view.
+    // The list fits the screen; the switch is on the row's second line on a phone.
     await homeSwitch.tap()
     await expect(homeSwitch).not.toBeChecked()
     await expect(page.getByText('Tahvel eemaldati koduvaatest.')).toBeVisible()

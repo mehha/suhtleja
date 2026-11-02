@@ -1,0 +1,188 @@
+'use client'
+
+import Link from 'next/link'
+import { useState, type ReactNode } from 'react'
+import { useFormStatus } from 'react-dom'
+import { Copy, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/utilities/ui'
+import { copyBoard } from './actions'
+import { ConfirmDeleteDialog, type DeleteTarget } from './ConfirmDeleteDialog'
+
+// The rows of Koduhaldus's boards and games (docs/rules/project/boards.md, "/koduhaldus layout"):
+// one list layout at every width, not a table. On a phone a row is the name, then its switch and
+// buttons; from 640px they share a line.
+
+/** A search box once a list is long enough to need one. */
+export const SEARCH_FROM = 9
+
+export function ListSearch({
+  count,
+  label,
+  onChange,
+  value,
+}: {
+  count: number
+  label: string
+  onChange: (value: string) => void
+  value: string
+}) {
+  if (count < SEARCH_FROM) return null
+  return (
+    <Input
+      aria-label={label}
+      className="max-w-xs"
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={`${label}…`}
+      type="search"
+      value={value}
+    />
+  )
+}
+
+/** "Minu tahvlid", "Jagatud tahvlid" …: a heading, what the group is, and its rows. */
+export function ListGroup({
+  children,
+  description,
+  empty,
+  title,
+}: {
+  children: ReactNode[]
+  description?: string
+  // Shown instead of the list when the group has no rows; without it an empty group isn't shown.
+  empty?: string
+  title: string
+}) {
+  if (!children.length && !empty) return null
+  return (
+    <div className="space-y-2">
+      <div className="space-y-0.5">
+        <h3 className="text-base font-semibold">{title}</h3>
+        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+      </div>
+      {children.length ? (
+        <ul className="divide-y rounded-xl border bg-background">{children}</ul>
+      ) : (
+        <p className="rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground">{empty}</p>
+      )}
+    </div>
+  )
+}
+
+/** One board or game: its name (opens it) with badges, its switches, and its buttons. */
+export function ListRow({
+  actions,
+  badges,
+  controls,
+  href,
+  name,
+  subtitle,
+}: {
+  actions?: ReactNode
+  badges?: ReactNode
+  controls: ReactNode
+  href: string
+  name: string
+  subtitle?: ReactNode
+}) {
+  return (
+    <li className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="min-w-0 space-y-0.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          {/* At least 24px tall, so a finger finds it on a tablet. */}
+          <Link className="inline-block break-words py-0.5 font-medium underline-offset-2 hover:underline" href={href}>
+            {name}
+          </Link>
+          {badges}
+        </div>
+        {subtitle ? <div className="text-xs text-muted-foreground">{subtitle}</div> : null}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 sm:shrink-0 sm:justify-end">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">{controls}</div>
+        {/* The same width on every row from 640px, so the switches line up; empty on a shared game. */}
+        <div className={cn('items-center justify-end gap-1 sm:flex sm:w-48', actions ? 'flex' : 'hidden')}>
+          {actions}
+        </div>
+      </div>
+    </li>
+  )
+}
+
+/** "Muuda": the row's main action, a visible button. */
+export function EditButton({ href, name }: { href: string; name: string }) {
+  return (
+    <Button asChild className="gap-1.5" size="sm" variant="outline">
+      <Link aria-label={`Muuda: ${name}`} href={href}>
+        <Pencil className="h-4 w-4" aria-hidden="true" />
+        Muuda
+      </Link>
+    </Button>
+  )
+}
+
+function CopyMenuItem() {
+  const { pending } = useFormStatus()
+  return (
+    // The menu stays open while the copy is made (its editor opens next), and a second tap does nothing.
+    <DropdownMenuItem asChild className="py-2.5" disabled={pending} onSelect={(event) => event.preventDefault()}>
+      <button className="w-full" type="submit">
+        <Copy aria-hidden="true" />
+        {pending ? 'Teen koopiat…' : 'Tee koopia'}
+      </button>
+    </DropdownMenuItem>
+  )
+}
+
+/** "…": a row's less used actions, a copy of the board and deleting (which asks first). */
+export function RowMenu({
+  copy,
+  name,
+  remove,
+}: {
+  copy?: { boardId: number; returnTo: string }
+  name: string
+  remove?: DeleteTarget
+}) {
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  if (!copy && !remove) return null
+
+  return (
+    <>
+      {/* Not modal: a modal menu that opens the dialog left the page without pointer events. */}
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button aria-label={`Muud toimingud: ${name}`} className="h-9 w-9" size="icon" variant="ghost">
+            <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-44">
+          {copy ? (
+            <form action={copyBoard}>
+              <input name="boardId" type="hidden" value={copy.boardId} />
+              <input name="returnTo" type="hidden" value={copy.returnTo} />
+              <CopyMenuItem />
+            </form>
+          ) : null}
+          {remove ? (
+            <DropdownMenuItem
+              className="py-2.5 text-red-600 focus:bg-red-50 focus:text-red-700"
+              onSelect={() => setDeleteOpen(true)}
+            >
+              <Trash2 aria-hidden="true" />
+              Kustuta
+            </DropdownMenuItem>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {remove ? <ConfirmDeleteDialog {...remove} name={name} onOpenChange={setDeleteOpen} open={deleteOpen} /> : null}
+    </>
+  )
+}

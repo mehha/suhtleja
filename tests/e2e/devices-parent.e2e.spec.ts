@@ -183,20 +183,19 @@ test.describe('Koduhaldus', () => {
   test('fits the screen, and its links and dialog take taps', async ({ page, member, baseURL, viewport }) => {
     await enterParentView(page, baseURL)
     await page.goto('/koduhaldus')
-    await expect(page.getByRole('row').filter({ hasText: member.boardName })).toBeVisible()
+    await expect(page.getByRole('listitem').filter({ hasText: member.boardName })).toBeVisible()
     await expectTouchFriendlyBothWays(page, viewport, 'Koduhaldus')
 
     await page.getByRole('button', { name: 'Lisa tahvel' }).tap()
     await expectDialogTouchFriendly(page, 'Lisa tahvel')
 
-    // The table scrolls sideways in its own box; a tap brings the link into view.
-    await page.getByRole('row').filter({ hasText: member.boardName }).getByRole('link', { name: 'Muuda' }).tap()
+    await page.getByRole('listitem').filter({ hasText: member.boardName }).getByRole('link', { name: 'Muuda' }).tap()
     await expect(page).toHaveURL(new RegExp(`/boards/${member.boardId}/edit$`))
   })
 })
 
 test.describe('Koduhaldus, deleting', () => {
-  test('a board goes only after the dialog asks, and a member sees no admin columns', async ({
+  test('a board goes only after the dialog asks, and a member sees no admin details', async ({
     page,
     member,
     baseURL,
@@ -206,14 +205,19 @@ test.describe('Koduhaldus, deleting', () => {
     await enterParentView(page, baseURL)
     await page.goto('/koduhaldus')
     await expect(page.getByRole('heading', { level: 1, name: 'Koduhaldus' })).toBeVisible()
-    for (const column of ['#', 'Looja', 'Nähtavus']) {
-      await expect(page.getByRole('columnheader', { name: column, exact: true })).toHaveCount(0)
-    }
+    // The creator and the sharing switch are for the admin.
+    await expect(page.getByText(/^Looja:/)).toHaveCount(0)
+    await expect(page.getByRole('switch', { name: /^Nähtav kõigile/ })).toHaveCount(0)
 
-    const row = page.getByRole('row').filter({ hasText: name })
-    const bin = row.getByRole('button', { name: `Kustuta tahvel: ${name}` })
+    const row = page.getByRole('listitem').filter({ hasText: name })
+    const menu = row.getByRole('button', { name: `Muud toimingud: ${name}` })
     const dialog = page.getByRole('alertdialog', { name: 'Kustuta tahvel?' })
-    await bin.tap()
+    // The row fits the screen, its buttons too (the table it replaced hid them sideways on a phone).
+    await expectOnScreen(page, menu, 'row menu button')
+    // Deleting is in the row's "…" menu, and asks first.
+    await menu.tap()
+    await expectTouchFriendly(page, 'row menu')
+    await page.getByRole('menuitem', { name: 'Kustuta' }).tap()
     await expect(dialog).toBeVisible()
     await expectOnScreen(page, dialog, 'delete dialog')
     await expectTouchFriendly(page, 'delete dialog')
@@ -221,7 +225,8 @@ test.describe('Koduhaldus, deleting', () => {
     await expect(dialog).toBeHidden()
     await expect(row).toBeVisible()
 
-    await bin.tap()
+    await menu.tap()
+    await page.getByRole('menuitem', { name: 'Kustuta' }).tap()
     await dialog.getByRole('button', { name: 'Kustuta', exact: true }).tap()
     await expect(page.getByText('Tahvel kustutati.')).toBeVisible()
     await expect(row).toHaveCount(0)
@@ -501,7 +506,8 @@ test.describe('board editor', () => {
   test('Koduhaldus makes a copy of a board and opens it in the editor', async ({ page, member, baseURL }) => {
     await enterParentView(page, baseURL)
     await page.goto('/koduhaldus')
-    await page.getByRole('button', { name: `Tee koopia: ${member.boardName}` }).tap()
+    await page.getByRole('button', { name: `Muud toimingud: ${member.boardName}` }).tap()
+    await page.getByRole('menuitem', { name: 'Tee koopia' }).tap()
     await expect(page).toHaveURL(/\/boards\/\d+\/edit/)
     await expect(page.getByText('Tahvlist tehti sulle koopia. Nüüd saad seda muuta.')).toBeVisible()
 
