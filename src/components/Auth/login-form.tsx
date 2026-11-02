@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/utilities/ui'
 import { getClientSideURL } from '@/utilities/getURL'
+import { clearOfflineData } from '@/utilities/offlineCache'
 import Link from 'next/link'
 
 type LoginFormProps = React.ComponentPropsWithoutRef<'div'>
@@ -68,6 +69,10 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           'samesite=lax',
         ].join('; ')
       }
+
+      // A login whose member didn't log out (the login ran out) may have left their child's boards on
+      // the device for use without the network: they go, and the home keeps this member's instead.
+      await clearOfflineData()
 
       router.push('/kodu')
       router.refresh()

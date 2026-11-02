@@ -8,7 +8,7 @@ import PageClient from './page.client'
 import React from 'react'
 import { isParentModeUtil } from '@/utilities/uiMode'
 import { requireActiveMembership } from '@/utilities/membership'
-import { DEFAULT_TTS_VOICE, speechRate, speechVoice } from '@/utilities/azureTTS'
+import { memberBoardSpeech } from '@/utilities/azureTTS'
 import { labelCase } from '@/utilities/labelCase'
 
 type Args = {
@@ -67,9 +67,7 @@ export default async function BoardRunPage({ params: paramsPromise, searchParams
   const backTo = fromId && linkedBoards[fromId] ? { id: fromId, name: linkedBoards[fromId] } : null
 
   // The member's voice and rate (profile page); the site's voice at the normal rate needs nothing.
-  const voice = speechVoice((user as User).speechVoice)
-  const rate = speechRate((user as User).speechRate)
-  const speech = voice === DEFAULT_TTS_VOICE && rate === 'normal' ? null : { voice, rate }
+  const speech = memberBoardSpeech(user as User)
 
   return (
     <>

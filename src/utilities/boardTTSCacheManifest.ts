@@ -34,6 +34,13 @@ export function buildBoardTTSCacheURL(boardId: string | number, hash: string): s
   return `/next/tts-cache/${encodeURIComponent(String(boardId))}/${hash}`
 }
 
+// The member's own voice or rate (profile page) for the saved speech, as the query the runner adds to
+// its URLs; '' for the site's voice at the normal rate. The offline list (offlineList.ts) uses it too,
+// so the device keeps the files the runner asks for.
+export function boardSpeechQuery(speech: { voice: string; rate: string } | null | undefined): string {
+  return speech ? `?voice=${encodeURIComponent(speech.voice)}&rate=${speech.rate}` : ''
+}
+
 export function getBoardTTSCacheManifest(board: BoardLike | null | undefined): BoardTTSCacheManifest {
   const raw = toObjectValue(board?.ttsCache)
   const rawEntries = Array.isArray(raw?.entries) ? raw.entries : []

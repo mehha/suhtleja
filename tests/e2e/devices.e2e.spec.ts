@@ -2,6 +2,7 @@ import { type Page } from '@playwright/test'
 
 import { countPlayedAudio, silentWav } from './audio'
 import { DEFAULT_PIN } from './member'
+import { pageReady } from './ready'
 import {
   BOARD,
   DOTS,
@@ -705,5 +706,118 @@ test.describe('game', () => {
     await expect(page.getByText('Tubli!')).toHaveCount(0)
     await tapDot(3)
     await expect(page.getByText('Tubli!')).toBeVisible()
+  })
+})
+
+test.describe('without the network', () => {
+  // The child's home, its boards and game, and their speech are kept on the device (offline.md). In
+  // Chromium, Playwright's routes and offline mode cover the service worker's own requests too, so
+  // the test can stand in for the speech and cut the network for the worker as well.
+  test('the home, its boards, a card that opens a board, the speech and the game work offline', async ({
+    page,
+    context,
+    member,
+    browserName,
+  }) => {
+    test.skip(browserName !== 'chromium', "Playwright reaches a service worker's requests in Chromium only.")
+    test.setTimeout(180_000)
+    // next dev runs the worker only when asked (offlineCache.ts).
+    await page.addInitScript(() => window.localStorage.setItem('suhtleja:offline-dev', '1'))
+    const speech = ['**/next/tts-ms', '**/next/tts-cache/**']
+    for (const url of speech) {
+      await context.route(url, (route) => route.fulfill({ body: silentWav(), contentType: 'audio/wav' }))
+    }
+    const played = await countPlayedAudio(page)
+
+    // A board on the home whose card opens another board. A save gives both their saved speech.
+    const food = `Söök võrguta ${member.boardName}`
+    const foodId = await createOwnBoard(page.request, food, [
+      { title: 'õun', wordClass: 'noun' },
+      { title: 'piim', wordClass: 'noun' },
+    ])
+    const start = `Võrguta ${member.boardName}`
+    const startId = await createOwnBoard(page.request, start, [
+      { title: 'mina', wordClass: 'person' },
+      { title: 'tahan', wordClass: 'verb' },
+      { title: 'söök', linkBoard: foodId },
+    ])
+    for (const id of [foodId, startId]) {
+      const saved = await page.request.patch(`/api/boards/${id}`, {
+        data: { pinned: id === startId, extra: { grammar: false } },
+      })
+      expect(saved.status(), await saved.text()).toBe(200)
+    }
+
+    try {
+      await page.goto('/kodu')
+      await expect(page.locator('html')).toHaveAttribute('data-offline', 'ready', { timeout: 120_000 })
+      await page.evaluate(async () => {
+        await navigator.serviceWorker.ready
+      })
+      // A production page names the scripts of its route; next dev's page leaves them to webpack, so
+      // here the worker keeps them as a board and the game load once with the network.
+      for (const url of [`/boards/${member.boardId}`, `/connect-dots?puzzle=${member.puzzleId}`]) {
+        await page.goto(url)
+        await expect(page.locator('html')).toHaveAttribute('data-offline', 'ready', { timeout: 60_000 })
+      }
+      await page.goto('/kodu')
+      for (const url of speech) await context.unroute(url)
+      // Every request fails, the service worker's too. next dev's own socket stays: React gets part
+      // of the page's data in development through it (reactDebugChannel) and waits for it, which a
+      // production build doesn't. So this is a Wi-Fi without internet, where the browser still
+      // thinks it is online.
+      await context.route('**/*', (route) => route.abort('internetdisconnected'))
+
+      await page.reload()
+      await expect(page.getByRole('heading', { level: 1, name: 'Kodu' })).toBeVisible()
+      await pageReady(page)
+
+      // A card on the home opens its board, whose words speak.
+      await page.getByRole('button').filter({ hasText: start }).tap()
+      await expect(page).toHaveURL(new RegExp(`/boards/${startId}$`))
+      await pageReady(page)
+      const phrase = page.locator('.actionbar-container')
+      await page.getByRole('button', { name: 'mina', exact: true }).tap()
+      await expect.poll(played, { message: '"mina" should play' }).toBe(1)
+      await page.getByRole('button', { name: 'tahan', exact: true }).tap()
+      await expect.poll(played, { message: '"tahan" should play' }).toBe(2)
+
+      // The sentence can't be made as a whole without the network: it is said word by word.
+      await phrase.getByRole('button', { name: 'Esita kogu fraas' }).tap()
+      await expect.poll(played, { message: 'the phrase should play word by word' }).toBe(4)
+      await expect(page.getByText('Heli ei õnnestunud')).toHaveCount(0)
+
+      // A card opens its board with the sentence and a back button.
+      await page.getByRole('button', { name: `söök, avab tahvli ${food}` }).tap()
+      await expect(page).toHaveURL(new RegExp(`/boards/${foodId}\\?from=${startId}$`))
+      await pageReady(page)
+      await expect(phrase.getByText('tahan', { exact: true })).toBeVisible()
+      // Without the network the router loads the whole page, so the count starts again.
+      await page.getByRole('button', { name: 'õun', exact: true }).tap()
+      await expect.poll(played, { message: '"õun" should play' }).toBe(1)
+      // next dev hands React part of a page's data once, over its socket (reactDebugChannel): a kept
+      // page opened a second time waited for it and never came alive. A production build has no such
+      // channel, so here each kept page opens once: the back button is checked by where it goes.
+      await expect(page.getByRole('link', { name: `Tagasi: ${start}` })).toHaveAttribute('href', `/boards/${startId}`)
+
+      // The game on the home, with its picture.
+      await page.goto(`/connect-dots?puzzle=${member.puzzleId}`, { waitUntil: 'commit' })
+      await pageReady(page)
+      await expect
+        .poll(() =>
+          page.locator('img[src="/og-image.jpg"]').evaluateAll(
+            (images) => images.length > 0 && images.every((image) => (image as HTMLImageElement).naturalWidth > 0),
+          ),
+        )
+        .toBe(true)
+
+      // A page the device hasn't kept says the network is missing.
+      await page.goto('/boards/999999999', { waitUntil: 'commit' })
+      await expect(page.getByRole('heading', { level: 1, name: 'Võrguühendus puudub' })).toBeVisible()
+    } finally {
+      await context.unrouteAll({ behavior: 'ignoreErrors' }).catch(() => undefined)
+      // The worker's other tests have the home as it was.
+      await page.request.patch(`/api/boards/${startId}`, { data: { pinned: false } }).catch(() => undefined)
+    }
   })
 })

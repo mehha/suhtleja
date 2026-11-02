@@ -11,9 +11,18 @@ export type Grammar = typeof import('./applyGrammar')
 let loaded: Grammar | null = null
 let loading: Promise<Grammar> | null = null
 
-/** The word forms, loading them once. A tap before they are in waits for them. */
+/**
+ * The word forms, loading them once. A tap before they are in waits for them. A failed load (no
+ * network, and the device hasn't kept them) is tried again on the next call.
+ */
 export function loadGrammar(): Promise<Grammar> {
-  loading ??= import('./applyGrammar').then((grammar) => (loaded = grammar))
+  loading ??= import('./applyGrammar').then(
+    (grammar) => (loaded = grammar),
+    (error: unknown) => {
+      loading = null
+      throw error
+    },
+  )
   return loading
 }
 
@@ -24,9 +33,13 @@ export function useGrammar(enabled = true): Grammar | null {
   useEffect(() => {
     if (!enabled || grammar) return
     let current = true
-    void loadGrammar().then((module) => {
-      if (current) setGrammar(module)
-    })
+    // Without them the words are said as written.
+    loadGrammar().then(
+      (module) => {
+        if (current) setGrammar(module)
+      },
+      () => undefined,
+    )
     return () => {
       current = false
     }

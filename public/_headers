@@ -2,3 +2,8 @@
 # https://opennext.js.org/cloudflare/caching#static-assets-caching
 /_next/static/*
   Cache-Control: public,max-age=31536000,immutable
+
+# The service worker (offline use, docs/rules/project/offline.md) is checked for a new version on
+# every visit, so a fix reaches the devices at once.
+/sw.js
+  Cache-Control: no-cache

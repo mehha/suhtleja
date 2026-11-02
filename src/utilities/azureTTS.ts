@@ -1,6 +1,6 @@
 import { createHash } from 'crypto'
 
-import { SPEECH_RATES, TTS_VOICES, type SpeechRate } from './speechSettings'
+import { SPEECH_RATES, TTS_VOICES, speechRate, type SpeechRate } from './speechSettings'
 
 export { SPEECH_RATES, TTS_VOICES, speechRate, type SpeechRate } from './speechSettings'
 
@@ -15,6 +15,19 @@ export const TTS_OUTPUT_FORMAT =
 /** A voice the site speaks with: one of TTS_VOICES or the default; anything else is the default. */
 export function speechVoice(value: unknown): string {
   return typeof value === 'string' && (value in TTS_VOICES || value === DEFAULT_TTS_VOICE) ? value : DEFAULT_TTS_VOICE
+}
+
+/**
+ * The member's voice and rate (profile page) for their boards' speech, or null for the site's voice
+ * at the normal rate, which the saved speech is in. The board page and the offline list use it.
+ */
+export function memberBoardSpeech(user: {
+  speechRate?: unknown
+  speechVoice?: unknown
+}): { rate: SpeechRate; voice: string } | null {
+  const voice = speechVoice(user.speechVoice)
+  const rate = speechRate(user.speechRate)
+  return voice === DEFAULT_TTS_VOICE && rate === 'normal' ? null : { voice, rate }
 }
 
 export function prepareTextForTTS(text: string): string {

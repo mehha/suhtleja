@@ -75,7 +75,13 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
         }
       } catch (error) {
         console.error(error)
-        tryAgain({ success: false, error: 'Midagi läks valesti. Palun proovi uuesti.' })
+        // The child's pages work without the network (offline.md); the PIN is checked on the server.
+        tryAgain({
+          success: false,
+          error: navigator.onLine
+            ? 'Midagi läks valesti. Palun proovi uuesti.'
+            : 'Võrguühendus puudub. Vanema vaatesse saab, kui võrk on tagasi.',
+        })
       } finally {
         setIsSubmitting(false)
       }

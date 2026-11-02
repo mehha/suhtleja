@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="et">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f9fafb" />
+    <title>Võrguühendus puudub | Suhtleja</title>
+    <!-- The service worker (public/sw.js) shows this for a child's page this device hasn't kept. -->
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        color: #22314c;
+        background: #f9fafb;
+      }
+      body {
+        margin: 0;
+        min-height: 100svh;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+      main {
+        max-width: 28rem;
+        text-align: center;
+      }
+      svg {
+        width: 72px;
+        height: 72px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 16px 0 8px;
+      }
+      p {
+        margin: 0 0 24px;
+        line-height: 1.5;
+        color: #4b5563;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+      }
+      a,
+      button {
+        min-height: 48px;
+        padding: 0 20px;
+        border-radius: 12px;
+        font: inherit;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      a {
+        background: #ef4035;
+        color: #fff;
+      }
+      button {
+        background: #fff;
+        color: #22314c;
+        border: 1px solid #d1d5db;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="bg" x1="8" x2="56" y1="8" y2="56" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#ff7668" />
+            <stop offset="0.55" stop-color="#ef4035" />
+            <stop offset="1" stop-color="#bf1f2b" />
+          </linearGradient>
+        </defs>
+        <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#bg)" />
+        <path
+          d="M32.001 17.409c4.698-4.217 11.96-4.077 16.485 0.458 4.525 4.534 4.68 11.759 0.471 16.471L32 51.32 15.043 34.338c-4.209-4.712-4.051-11.947 0.472-16.471 4.528-4.528 11.775-4.68 16.486-0.458Z"
+          fill="#fff"
+        />
+      </svg>
+      <h1>Võrguühendus puudub</h1>
+      <p>Seda lehte pole selles seadmes. Lapse kodu ja selle tahvlid töötavad ka ilma võrguta.</p>
+      <div class="actions">
+        <a href="/kodu">Ava kodu</a>
+        <button type="button" onclick="location.reload()">Proovi uuesti</button>
+      </div>
+    </main>
+  </body>
+</html>

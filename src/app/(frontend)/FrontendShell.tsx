@@ -3,6 +3,8 @@
 import { usePathname } from 'next/navigation'
 import React from 'react'
 
+import { OfflineSync } from '@/components/OfflineSync'
+import { CHILD_VIEW_ATTRIBUTE } from '@/utilities/offlineCache'
 import { cn } from '@/utilities/ui'
 import type { UiMode } from '@/utilities/uiMode'
 
@@ -38,9 +40,15 @@ export function FrontendShell({
         {!childFullscreen && adminBar}
         {!childFullscreen && header}
       </div>
-      <div className={cn(childFullscreen ? 'min-h-screen px-3 py-3' : 'px-4 py-10', 'print:p-0')}>
+      {/* The child's view is kept on the device for use without the network (OfflineSync); the
+          attribute tells a page in it from the same page in the parent's view. */}
+      <div
+        className={cn(childFullscreen ? 'min-h-screen px-3 py-3' : 'px-4 py-10', 'print:p-0')}
+        {...(childFullscreen ? { [CHILD_VIEW_ATTRIBUTE]: '' } : {})}
+      >
         {children}
       </div>
+      {childFullscreen && <OfflineSync />}
       <div className="contents print:hidden">{!childFullscreen && footer}</div>
     </>
   )

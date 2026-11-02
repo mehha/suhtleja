@@ -17,7 +17,7 @@ import { applyCompounds, type SelectedToken } from './compounds/applyCompounds'
 import { getCompoundFormForLastToken } from './compounds/getCompoundFormForLastToken'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { AnimatedVolumeIcon } from '@/components/Animations/AnimatedVolumeIcon'
-import { getBoardTTSCacheManifest } from '@/utilities/boardTTSCacheManifest'
+import { boardSpeechQuery, getBoardTTSCacheManifest } from '@/utilities/boardTTSCacheManifest'
 import { prepareTextForTTS } from '@/utilities/azureTTS'
 import { ChildModeBar } from '@/app/(frontend)/kodu/ChildModeBar'
 import { CellLabel } from './CellLabel'
@@ -189,7 +189,7 @@ export default function Runner({
   const ttsCacheManifest = useMemo(() => getBoardTTSCacheManifest(board), [board])
   // The saved speech is in the site's voice; another voice or rate asks for the same word in it, which
   // the route makes on the first request and keeps.
-  const speechQuery = speech ? `?voice=${encodeURIComponent(speech.voice)}&rate=${speech.rate}` : ''
+  const speechQuery = boardSpeechQuery(speech)
   const cachedAudioUrlByText = useMemo(
     () => new Map(ttsCacheManifest.entries.map((entry) => [entry.text, entry.url + speechQuery] as const)),
     [ttsCacheManifest.entries, speechQuery],
@@ -571,7 +571,8 @@ export default function Runner({
       // The words as the sentence says them (word forms), then compounds, which are off with AI on.
       // A tap before the word forms have loaded waits for them; if the child tapped on meanwhile,
       // the later tap speaks and this one stays silent.
-      const forms = grammarEnabled ? (grammar ?? (await loadGrammar())) : null
+      // Word forms that can't load (no network, not kept on the device) leave the word as written.
+      const forms = grammarEnabled ? (grammar ?? (await loadGrammar().catch(() => null))) : null
       if (key !== tapKeyRef.current) return
       const nextTokens = sentenceTokens(nextSequence, forms)
       const form = nextTokens.at(-1)!.text
@@ -592,6 +593,34 @@ export default function Runner({
     }
   }
 
+  // Without the network (or with the speech service down) the sentence can't be made as a whole: the
+  // board's saved speech says it word by word, each word in its form, else as the card writes it.
+  // False when a word has no saved speech.
+  const playWordByWord = async (): Promise<boolean> => {
+    const urls: string[] = []
+    for (const [index, token] of compoundsResult.tokens.entries()) {
+      const url = [token.tts, sequence[index]?.text ?? '']
+        .map((text) => cachedAudioUrlByText.get(prepareTextForTTS(text)))
+        .find(Boolean)
+      if (!url) return false
+      urls.push(url)
+    }
+    for (const url of urls) preloadAudioRef.current(url)
+
+    let expected = playbackTokenRef.current
+    for (const url of urls) {
+      await preloadPromisesRef.current.get(url)
+      // A tap meanwhile speaks its own word; the sentence stops.
+      if (playbackTokenRef.current !== expected) return true
+      const playing = playAudioURL(preloadedAudioUrlBySourceRef.current.get(url) ?? url)
+      expected = playbackTokenRef.current
+      const played = await playing
+      if (playbackTokenRef.current !== expected) return true
+      if (!played) return false
+    }
+    return true
+  }
+
   const handlePlayAll = async () => {
     if (!sequence.length) return
     ensureAudioUnlocked()
@@ -600,7 +629,7 @@ export default function Runner({
     setPhrasePlaying(true)
     try {
       // Sõnaühendite järgi kombineeritud fraas
-      if (!(await playSpeech(ttsAll))) notifySpeechFailed()
+      if (!(await playSpeech(ttsAll)) && !(await playWordByWord())) notifySpeechFailed()
     } finally {
       setPhrasePlaying(false)
     }

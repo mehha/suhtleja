@@ -12,6 +12,7 @@ import { UserMenu } from '@/Header/Nav/UserMenu'
 import { NavMobile } from '@/Header/Nav/NavMobile'
 import { fetchClientUser } from '@/utilities/fetchClientUser'
 import { getClientSideURL } from '@/utilities/getURL'
+import { clearOfflineData } from '@/utilities/offlineCache'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { LogIn } from 'lucide-react'
@@ -78,6 +79,8 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
       if (typeof document !== 'undefined') {
         document.cookie = ['uiMode=', 'path=/', 'max-age=0', 'samesite=lax'].join('; ')
       }
+      // The child's boards and speech kept for use without the network go with the login.
+      await clearOfflineData()
 
       setClientUser(null)
       router.push('/login')

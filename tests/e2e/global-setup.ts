@@ -25,6 +25,8 @@ const ROUTES: Array<[method: 'GET' | 'POST', path: string]> = [
   ['GET', '/next/homepage-tts/warmup'],
   // Linked from every page; browsers fetch it as a page loads.
   ['GET', '/manifest.webmanifest'],
+  // What the child's pages keep for use without the network (the offline test).
+  ['GET', '/next/offline'],
   ['POST', '/next/tts-ms'],
   ['POST', '/next/groq'],
   ['POST', '/next/symbol-generate/save'],

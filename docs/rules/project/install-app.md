@@ -23,11 +23,11 @@ tags: [suhtleja, frontend, pwa, ios, ipad]
 
 ## Why No App Store App (2026-11-02)
 - The membership is sold through Stripe. An iOS app that unlocks paid features has to sell it with Apple's in-app purchase (15-30%) or use the EU external purchase link entitlement, which has Apple's fees too, and the membership would then have a second source next to the Stripe webhooks. A login-only app without a way to buy risks rejection, and so does an app that only wraps the website (guideline 4.2).
-- What the tablet needs comes without it: full screen and an icon from the home screen, Guided Access, and (later) offline use through a service worker.
+- What the tablet needs comes without it: full screen and an icon from the home screen, Guided Access, and offline use through a service worker (`offline.md`).
 - Revisit it when parents or therapists ask for Suhtleja in the App Store, or when offline use or audio needs something iOS doesn't give a web app. The next step then would be a Capacitor wrapper with something of its own, after deciding between Apple's in-app purchase and the EU link.
 
-## Not Done Yet
-- Offline use: there is no service worker. An open board plays its words without the network (the runner loads its saved speech up front, see `audio-tts.md`), but opening the home or another board needs it.
+## Without The Network
+- The child's home, its boards and games and their speech work without the network: see `offline.md`.
 
 ## Tests
 - `tests/int/web-app-manifest.int.spec.ts`: the manifest's start, display and icons (every file is in `public/`), and when the hint shows.
