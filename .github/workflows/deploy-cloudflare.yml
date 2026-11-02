@@ -66,8 +66,11 @@ jobs:
   # child's and the parent's pages on phones and tablets, upright and sideways), against a local dev
   # server on a throwaway D1 and R2. The member flow test signs its own Stripe webhook event, so the
   # Stripe values are placeholders and nothing calls Stripe; its speech uses the real Azure key.
-  # Split by device over three runners, so each has its own dev server and database: on one runner
-  # the tests took about 15 minutes, and two browsers sharing its dev server timed out.
+  # Split by device over four runners, so each has its own dev server and database: on one runner
+  # the tests took about 15 minutes, and two browsers sharing its dev server timed out. The computer
+  # and the Android phone shared one until 2026-11-02: at about 10 minutes, in its last test (the
+  # member flow on the phone), the runner died three times in a row ("The operation was canceled."
+  # after every test had passed).
   browser-tests:
     name: Browser tests (${{ matrix.name }})
     runs-on: ubuntu-24.04
@@ -77,11 +80,15 @@ jobs:
     strategy:
       # Every job runs to the end, so one failure doesn't hide another.
       fail-fast: false
-      # About as long each (5.5-7.5 minutes of tests).
+      # The phone, iPhone and tablets about as long each (7-9 minutes of tests); the computer runs
+      # only the member flow test (the device tests are for touch screens).
       matrix:
         include:
-          - name: computer and Android phone
-            projects: --project=desktop --project=mobile
+          - name: computer
+            projects: --project=desktop
+            browsers: chromium
+          - name: Android phone
+            projects: --project=mobile
             browsers: chromium
           - name: iPhone
             projects: --project=iphone
