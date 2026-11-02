@@ -66,11 +66,11 @@ jobs:
   # child's and the parent's pages on phones and tablets, upright and sideways), against a local dev
   # server on a throwaway D1 and R2. The member flow test signs its own Stripe webhook event, so the
   # Stripe values are placeholders and nothing calls Stripe; its speech uses the real Azure key.
-  # Split by device over four runners, so each has its own dev server and database: on one runner
-  # the tests took about 15 minutes, and two browsers sharing its dev server timed out. The computer
-  # and the Android phone shared one until 2026-11-02: at about 10 minutes, in its last test (the
-  # member flow on the phone), the runner died three times in a row ("The operation was canceled."
-  # after every test had passed).
+  # Split by device over five runners, so each has its own dev server and database: on one runner
+  # the tests took about 15 minutes, and two browsers sharing its dev server timed out. On
+  # 2026-11-02 the runners shared by two devices (computer and Android phone, then iPad and Android
+  # tablet) died four times in a row in their last test, at 10-14 minutes, after the others had
+  # passed ("The operation was canceled."); since then each device has its own.
   browser-tests:
     name: Browser tests (${{ matrix.name }})
     runs-on: ubuntu-24.04
@@ -80,8 +80,8 @@ jobs:
     strategy:
       # Every job runs to the end, so one failure doesn't hide another.
       fail-fast: false
-      # The phone, iPhone and tablets about as long each (7-9 minutes of tests); the computer runs
-      # only the member flow test (the device tests are for touch screens).
+      # One device each (5-9 minutes of tests); the computer runs only the member flow test (the
+      # device tests are for touch screens).
       matrix:
         include:
           - name: computer
@@ -93,9 +93,12 @@ jobs:
           - name: iPhone
             projects: --project=iphone
             browsers: webkit
-          - name: iPad and Android tablet
-            projects: --project=ipad --project=android-tablet
-            browsers: chromium webkit
+          - name: iPad
+            projects: --project=ipad
+            browsers: webkit
+          - name: Android tablet
+            projects: --project=android-tablet
+            browsers: chromium
 
     steps:
       - name: Check out repository
@@ -130,6 +133,13 @@ jobs:
           SPEECH_REGION: ${{ vars.SPEECH_REGION }}
           SPEECH_VOICE: ${{ vars.SPEECH_VOICE }}
         run: |
+          # The runner's memory every 30 s and its biggest processes, to tell whether a runner that
+          # dies mid-step ran out of it.
+          (while sleep 30; do
+            echo "memory $(date -u +%T): $(free -m | awk '/^Mem:/ { print "used " $3 " MB, available " $7 " MB of " $2 " MB" }')"
+            ps -eo rss=,args= --sort=-rss | head -4 | awk '{ printf "  %5d MB  %s\n", $1 / 1024, substr($0, index($0, $2), 100) }'
+          done) &
+          trap 'kill $! 2>/dev/null' EXIT
           pnpm payload migrate
           pnpm test:e2e tests/e2e/member-flow.e2e.spec.ts tests/e2e/devices.e2e.spec.ts tests/e2e/devices-parent.e2e.spec.ts ${{ matrix.projects }}
 
