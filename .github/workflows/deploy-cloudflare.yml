@@ -70,11 +70,15 @@ jobs:
   # the tests took about 15 minutes, and two browsers sharing its dev server timed out. On
   # 2026-11-02 the runners shared by two devices (computer and Android phone, then iPad and Android
   # tablet) died four times in a row in their last test, at 10-14 minutes, after the others had
-  # passed ("The operation was canceled."); since then each device has its own.
+  # passed ("The operation was canceled."); since then each device has its own. They ran out of
+  # memory: the dev server started another workerd process for every board save, speech file and
+  # media request, and none of them closed (one platform proxy since, `getCloudflareContext.ts`).
+  # The memory log in the test step shows whether it comes back.
   browser-tests:
     name: Browser tests (${{ matrix.name }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # 10 minutes of tests, and WebKit's system packages once took 6.5 minutes to install.
+    timeout-minutes: 30
     permissions:
       contents: read
     strategy:

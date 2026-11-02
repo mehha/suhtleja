@@ -43,6 +43,12 @@ for (const path of PUBLIC_PAGES) {
     await expect(page.locator('footer')).toBeVisible()
 
     await scrollThrough(page)
+    // A lazy image the quick scroll didn't start loads now: the check is that it loads, not when.
+    // After most deploys, WebKit on CI's iPhone left the homepage's video poster unloaded on the
+    // first try, and the retry passed (2026-11-02).
+    await page.evaluate(() => {
+      for (const img of document.images) if (img.loading === 'lazy' && !img.complete) img.loading = 'eager'
+    })
     // Images on screen must load in the browser.
     await expect
       .poll(
