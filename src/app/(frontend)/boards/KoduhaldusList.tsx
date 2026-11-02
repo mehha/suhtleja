@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Copy, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 
@@ -179,19 +179,43 @@ export function RowMenu({
   name: string
   remove?: DeleteTarget
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   if (!copy && !remove) return null
+
+  // A press on the button itself isn't outside the menu: its click opens and closes it.
+  const onTrigger = (event: { target: EventTarget | null; preventDefault: () => void }) => {
+    if (event.target instanceof Node && triggerRef.current?.contains(event.target)) event.preventDefault()
+  }
 
   return (
     <>
       {/* Not modal: a modal menu that opens the dialog left the page without pointer events. */}
-      <DropdownMenu modal={false}>
+      <DropdownMenu modal={false} onOpenChange={setMenuOpen} open={menuOpen}>
         <DropdownMenuTrigger asChild>
-          <Button aria-label={`Muud toimingud: ${name}`} className="h-9 w-9" size="icon" variant="ghost">
+          <Button
+            aria-label={`Muud toimingud: ${name}`}
+            className="h-9 w-9"
+            // It opens on the click, not on the press (Radix's way): a press that turns into a scroll
+            // opens nothing, and WebKit on Linux (the CI's iPhone and iPad) followed a tap's touch
+            // press with a mouse press, which opened the menu and shut it at once. The keyboard
+            // (Enter, Space, arrow down) still goes through Radix.
+            onClick={() => setMenuOpen((open) => !open)}
+            onPointerDown={(event) => event.preventDefault()}
+            ref={triggerRef}
+            size="icon"
+            variant="ghost"
+          >
             <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-44">
+        <DropdownMenuContent
+          align="end"
+          className="min-w-44"
+          onFocusOutside={onTrigger}
+          onPointerDownOutside={onTrigger}
+        >
           {copy ? (
             <form action={copyBoard}>
               <input name="boardId" type="hidden" value={copy.boardId} />

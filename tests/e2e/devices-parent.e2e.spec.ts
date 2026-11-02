@@ -233,6 +233,28 @@ test.describe('Koduhaldus, deleting', () => {
   })
 })
 
+test.describe('Koduhaldus, the row menu', () => {
+  // WebKit on Linux (the CI's iPhone and iPad) follows a tap's touch press with a mouse press. The
+  // menu opened on the first and shut on the second, so it never stayed open; it opens on the click.
+  test('stays open after a tap that brings a mouse press too', async ({ page, member, baseURL }) => {
+    await enterParentView(page, baseURL)
+    await page.goto('/koduhaldus')
+    const trigger = page.getByRole('button', { name: `Muud toimingud: ${member.boardName}` })
+    const press = { button: 0, isPrimary: true, bubbles: true, cancelable: true }
+    for (const pointerType of ['touch', 'mouse']) {
+      await trigger.dispatchEvent('pointerdown', { ...press, pointerType })
+      await trigger.dispatchEvent('pointerup', { ...press, pointerType })
+    }
+    await trigger.dispatchEvent('click', { button: 0, bubbles: true })
+    await page.waitForTimeout(500)
+    await expect(page.getByRole('menuitem', { name: 'Tee koopia' })).toBeVisible()
+
+    // A tap on the button again shuts it.
+    await trigger.tap()
+    await expect(page.getByRole('menuitem', { name: 'Tee koopia' })).toBeHidden()
+  })
+})
+
 test.describe('the starter set', () => {
   test('makes the boards, and the core words open the topic boards', async ({ page, baseURL }, testInfo) => {
     // Its speech is made as the boards are (Azure in CI, about 200 words and forms): one device does.
