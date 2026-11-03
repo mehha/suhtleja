@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { OFFLINE_CACHES, findPictures, findStaticURLs, pictureKey } from '@/utilities/offlineCache'
+import { OFFLINE_CACHES, cardPicture, findPictures, findStaticURLs, pictureKey } from '@/utilities/offlineCache'
 
 // What the device keeps from a page (src/utilities/offlineCache.ts), and that the service worker
 // (public/sw.js) looks it up the same way.
@@ -59,6 +59,23 @@ describe('the pictures a page shows', () => {
       { url: `${ORIGIN}/og-image.jpg`, key: `${ORIGIN}/og-image.jpg`, sameOrigin: true },
       { url: 'https://static.arasaac.org/kass.svg', key: 'https://static.arasaac.org/kass.svg', sameOrigin: false },
     ])
+  })
+})
+
+describe("a board card's picture", () => {
+  // A board's cards render in the browser only, so their pictures come from the offline list.
+  it('is asked for the way the board shows it: optimized, at about 640px, under the shared key', () => {
+    const src = '/next/dev-media/pildipank-kass.png'
+    expect(cardPicture(src, ORIGIN)).toEqual({
+      url: `${ORIGIN}/_next/image?url=${encodeURIComponent(src)}&w=640&q=75`,
+      key: pictureKey(ORIGIN, src),
+      sameOrigin: true,
+    })
+  })
+
+  it('keeps an SVG symbol as it is, since the board shows those unoptimized', () => {
+    const src = '/next/symbol-image/openmoji-1F436.svg'
+    expect(cardPicture(src, ORIGIN)).toEqual({ url: `${ORIGIN}${src}`, key: `${ORIGIN}${src}`, sameOrigin: true })
   })
 })
 

@@ -3,14 +3,16 @@ import type { Payload, Where } from 'payload'
 import type { User } from '@/payload-types'
 import { memberBoardSpeech } from '@/utilities/azureTTS'
 import { boardSpeechQuery, getBoardTTSCacheManifest } from '@/utilities/boardTTSCacheManifest'
+import { cellImageSrc } from '@/utilities/cardImage'
 import { serializeConnectDotsPuzzle } from '@/utilities/connectDots'
 import { labelCase } from '@/utilities/labelCase'
 import { getUserSharedHomePreferences, sortSharedDocs, toIdString } from '@/utilities/sharedHomePreferences'
 
 // What a device keeps for the child to use without the network (GET /next/offline, see
 // docs/rules/project/offline.md): the child's home, the boards on it and the boards their cards open,
-// the games on it, and the speech and sounds these pages play. The pictures the browser finds in
-// the pages themselves (src/utilities/offlineCache.ts).
+// the games on it, the speech and sounds these pages play, and the boards' card pictures. The other
+// pictures the browser finds in the pages themselves (src/utilities/offlineCache.ts): a board's cards
+// render in the browser only, so its page has no <img> for them.
 
 /** The boards a device keeps at most: the home's first, then the ones their cards open. */
 export const OFFLINE_MAX_BOARDS = 40
@@ -29,6 +31,8 @@ export type OfflineList = {
   pages: OfflinePage[]
   // Saved speech and sounds, by the URLs the pages ask for.
   media: string[]
+  // The boards' card pictures, as the board gives them to next/image (cellImageSrc).
+  pictures: string[]
 }
 
 type BoardEntry = {
@@ -36,7 +40,11 @@ type BoardEntry = {
   updatedAt: string
   links: number[]
   media: string[]
+  pictures: Array<{ external?: string; mediaId?: number }>
 }
+
+// D1 binds at most 100 parameters per query.
+const MEDIA_BATCH = 90
 
 type Dated = { id: number | string; updatedAt?: string | null }
 
@@ -101,7 +109,11 @@ export async function buildOfflineList(payload: Payload, user: User): Promise<Of
       depth: 0,
       pagination: false,
       limit: ids.length,
-      select: { grid: { cells: { linkBoard: true, locked: true } }, ttsCache: true, updatedAt: true },
+      select: {
+        grid: { cells: { externalImageURL: true, image: true, linkBoard: true, locked: true } },
+        ttsCache: true,
+        updatedAt: true,
+      },
     })
     const byId = new Map(found.docs.map((board) => [board.id, board]))
     const next: number[] = []
@@ -116,10 +128,33 @@ export async function buildOfflineList(payload: Payload, user: User): Promise<Of
         updatedAt: board.updatedAt,
         links: [...new Set(links)],
         media: getBoardTTSCacheManifest(board).entries.map((entry) => entry.url + speechQuery),
+        pictures: (board.grid?.cells ?? []).flatMap((cell): BoardEntry['pictures'] => {
+          if (cell.externalImageURL) return [{ external: cell.externalImageURL }]
+          const mediaId = typeof cell.image === 'object' && cell.image ? cell.image.id : cell.image
+          return typeof mediaId === 'number' ? [{ mediaId }] : []
+        }),
       })
       for (const link of links) if (!boards.has(link) && !next.includes(link)) next.push(link)
     }
     level = next.filter((id) => !boards.has(id))
+  }
+
+  // The uploaded pictures' URLs, as the board page gets them (its board at depth 1).
+  const mediaIds = [...new Set([...boards.values()].flatMap((board) => board.pictures.flatMap((p) => p.mediaId ?? [])))]
+  const mediaURLs = new Map<number, string>()
+  for (let start = 0; start < mediaIds.length; start += MEDIA_BATCH) {
+    const found = await payload.find({
+      collection: 'media',
+      ...access,
+      where: { id: { in: mediaIds.slice(start, start + MEDIA_BATCH) } },
+      depth: 0,
+      pagination: false,
+      limit: MEDIA_BATCH,
+    })
+    for (const doc of found.docs) {
+      const url = cellImageSrc({ image: doc })
+      if (url) mediaURLs.set(doc.id, url)
+    }
   }
 
   // The games on the home, as /kodu lists them, and every game the game page lists.
@@ -168,12 +203,17 @@ export async function buildOfflineList(payload: Payload, user: User): Promise<Of
     { url: '/kodu', version: versionOf(dated(homeBoards), dated(homePuzzles), userVersion) },
   ]
   const media: string[] = []
+  const pictures: string[] = []
   // A board shows the names of the boards its cards open, and of the one it was opened from.
   const boardVersion = (board: BoardEntry, ...more: unknown[]) =>
     versionOf(board.updatedAt, board.links.map((id) => [id, boards.get(id)?.updatedAt ?? '']), userVersion, ...more)
   for (const board of boards.values()) {
     pages.push({ url: `/boards/${board.id}`, version: boardVersion(board) })
     media.push(...board.media)
+    for (const picture of board.pictures) {
+      const src = picture.external ?? (picture.mediaId ? mediaURLs.get(picture.mediaId) : undefined)
+      if (src) pictures.push(src)
+    }
   }
   // A card that opens a board goes there with a back button (`?from=`).
   for (const board of boards.values()) {
@@ -193,5 +233,5 @@ export async function buildOfflineList(payload: Payload, user: User): Promise<Of
     }
   }
 
-  return { userId: user.id, pages, media: [...new Set(media)] }
+  return { userId: user.id, pages, media: [...new Set(media)], pictures: [...new Set(pictures)] }
 }

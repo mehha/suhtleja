@@ -116,7 +116,7 @@ export const test = base.extend<object, { member: Member }>({
 export async function createOwnBoard(
   request: APIRequestContext,
   name: string,
-  cells: Array<{ title: string; wordClass?: string; linkBoard?: number }>,
+  cells: Array<{ title: string; wordClass?: string; linkBoard?: number; externalImageURL?: string }>,
   extra?: { ai?: boolean; grammar?: boolean; wordClassColors?: boolean },
 ) {
   const response = await request.post('/api/boards', {

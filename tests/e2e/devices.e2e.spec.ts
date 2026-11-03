@@ -739,7 +739,9 @@ test.describe('without the network', () => {
     ])
     const start = `Võrguta ${member.boardName}`
     const startId = await createOwnBoard(page.request, start, [
-      { title: 'mina', wordClass: 'person' },
+      // A card with a picture: the board renders its cards in the browser only, so the offline list
+      // has to name the picture (offlineList.ts).
+      { title: 'mina', wordClass: 'person', externalImageURL: '/og-image.jpg' },
       { title: 'tahan', wordClass: 'verb' },
       { title: 'söök', linkBoard: foodId },
     ])
@@ -778,6 +780,12 @@ test.describe('without the network', () => {
       await page.getByRole('button').filter({ hasText: start }).tap()
       await expect(page).toHaveURL(new RegExp(`/boards/${startId}$`))
       await pageReady(page)
+      // The card's picture shows: it was kept, though the page's HTML has no <img> for it.
+      await expect
+        .poll(() => page.locator('.react-grid-item img[alt="mina"]').evaluateAll(
+          (images) => images.length > 0 && images.every((image) => (image as HTMLImageElement).naturalWidth > 0),
+        ), { message: "the card's picture should show without the network" })
+        .toBe(true)
       const phrase = page.locator('.actionbar-container')
       await page.getByRole('button', { name: 'mina', exact: true }).tap()
       await expect.poll(played, { message: '"mina" should play' }).toBe(1)

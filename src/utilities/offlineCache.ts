@@ -2,8 +2,12 @@
 // Suhtleja without the network. The child's pages fill the caches here (OfflineSync); the service
 // worker (public/sw.js) serves from them. See docs/rules/project/offline.md.
 
+import { getImageProps } from 'next/image'
+
+import { CARD_IMAGE_SIZES } from '@/utilities/cardImage'
 import { loadGrammar } from '@/utilities/grammar/useGrammar'
 import type { OfflineList } from '@/utilities/offlineList'
+import { isSvgImageURL } from '@/utilities/symbolProxy'
 
 // The same names as in public/sw.js.
 export const OFFLINE_CACHES = {
@@ -125,22 +129,39 @@ function pickCandidate(srcset: string): string | null {
   return (sorted.find((candidate) => candidate.width >= PICTURE_WIDTH) ?? sorted.at(-1)!).url
 }
 
+// An <img>'s picture, as the device fetches and keeps it.
+function pictureOf(srcset: string, src: string | null | undefined, origin: string): Picture | null {
+  const chosen = pickCandidate(srcset) ?? src
+  if (!chosen || chosen.startsWith('data:')) return null
+  const url = new URL(chosen, origin)
+  const optimized = url.origin === origin && url.pathname === '/_next/image' && url.searchParams.get('url')
+  return {
+    url: url.href,
+    key: optimized ? pictureKey(origin, optimized) : url.href,
+    sameOrigin: url.origin === origin,
+  }
+}
+
 /** The pictures a page shows, as the device fetches and keeps them. */
 export function findPictures(html: string, origin: string): Picture[] {
   const doc = new DOMParser().parseFromString(html, 'text/html')
-  const pictures: Picture[] = []
-  for (const img of doc.querySelectorAll('img')) {
-    const chosen = pickCandidate(img.getAttribute('srcset') ?? '') ?? img.getAttribute('src')
-    if (!chosen || chosen.startsWith('data:')) continue
-    const url = new URL(chosen, origin)
-    const optimized = url.origin === origin && url.pathname === '/_next/image' && url.searchParams.get('url')
-    pictures.push({
-      url: url.href,
-      key: optimized ? pictureKey(origin, optimized) : url.href,
-      sameOrigin: url.origin === origin,
-    })
+  return [...doc.querySelectorAll('img')].flatMap(
+    (img) => pictureOf(img.getAttribute('srcset') ?? '', img.getAttribute('src'), origin) ?? [],
+  )
+}
+
+/**
+ * A board card's picture, as the board shows it: its cards render in the browser only, so the page's
+ * HTML has no <img> for them. next/image gives the same request the board's <Image> makes (Runner).
+ */
+export function cardPicture(src: string, origin: string): Picture | null {
+  try {
+    const { props } = getImageProps({ src, alt: '', fill: true, sizes: CARD_IMAGE_SIZES, unoptimized: isSvgImageURL(src) })
+    return pictureOf(props.srcSet ?? '', props.src, origin)
+  } catch {
+    // next/image refuses a host it isn't set up for; the board can't show that picture either.
+    return null
   }
-  return pictures
 }
 
 // Which build the page runs: kept pages are fetched again after a deploy.
@@ -270,6 +291,10 @@ async function run(): Promise<OfflineStatus> {
     for (const file of findStaticURLs(html, origin)) staticURLs.add(file)
     for (const picture of findPictures(html, origin)) pictures.set(picture.key, picture)
   })
+  for (const src of list.pictures ?? []) {
+    const picture = cardPicture(src, origin)
+    if (picture) pictures.set(picture.key, picture)
+  }
 
   // The files this page loaded, with the word forms, which a board loads only once it shows.
   await loadGrammar().catch(() => undefined)

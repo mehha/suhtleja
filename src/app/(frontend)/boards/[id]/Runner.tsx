@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback, type CSSProperties } from 'react'
 import Image from 'next/image'
-import type { Board, Media } from '@/payload-types'
+import type { Board } from '@/payload-types'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,7 @@ import { cn } from '@/utilities/ui'
 import { CopyBoardButton } from '../CopyBoardButton'
 import { toast } from 'sonner'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
+import { CARD_IMAGE_SIZES, cellImageSrc } from '@/utilities/cardImage'
 import { wordClassColor } from '@/utilities/wordClass'
 import type { GrammarToken } from '@/utilities/grammar/applyGrammar'
 import { loadGrammar, useGrammar, type Grammar } from '@/utilities/grammar/useGrammar'
@@ -79,15 +80,6 @@ type SequenceItem = {
   image?: string
 }
 
-
-// A card's picture: an external symbol or an uploaded picture.
-function cellImageSrc(cell: any): string {
-  return (
-    cell?.externalImageURL ||
-    (cell?.image && typeof cell.image === 'object' && (cell.image as Media).url) ||
-    ''
-  )
-}
 
 // play() rejects with AbortError when a newer tap interrupts it; that isn't a failure.
 function isInterruptedPlayback(error: unknown) {
@@ -666,7 +658,7 @@ export default function Runner({
           src={src}
           alt={cell.title ?? ''}
           fill
-          sizes="(max-width: 768px) 100vw, 1200px"
+          sizes={CARD_IMAGE_SIZES}
           className="rounded object-contain p-2"
           priority={false}
           unoptimized={isSvgImageURL(src)}

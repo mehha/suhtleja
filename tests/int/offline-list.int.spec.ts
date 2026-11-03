@@ -9,7 +9,7 @@ import { getPayload, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import config from '@/payload.config'
-import type { Board, User } from '@/payload-types'
+import type { Board, Media, User } from '@/payload-types'
 import { buildOfflineList, type OfflineList } from '@/utilities/offlineList'
 
 // No speech service here: a save keeps its words in the speech manifest without their audio.
@@ -32,8 +32,9 @@ let notOnHome: Board
 let bobPrivate: Board
 let sharedHidden: Board
 let puzzleId: number
+let picture: Media
 
-const created: Array<{ collection: 'users' | 'boards' | 'connect-dots-puzzles'; id: number }> = []
+const created: Array<{ collection: 'users' | 'boards' | 'connect-dots-puzzles' | 'media'; id: number }> = []
 
 async function createUser(name: string, data: Partial<User> = {}): Promise<User> {
   const doc = await payload.create({
@@ -72,8 +73,21 @@ beforeAll(async () => {
   // Alice speaks slowly (profile page), and has hidden Bob's shared board from her home.
   alice = await createUser('alice', { speechRate: 'slow', hiddenSharedBoardIds: [String(sharedHidden.id)] } as Partial<User>)
 
+  // An uploaded picture for a card (1x1 PNG).
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64')
+  picture = await payload.create({
+    collection: 'media',
+    data: { alt: `kass ${run}`, owner: alice.id } as never,
+    file: { data: png, mimetype: 'image/png', name: `offline-kass-${run}.png`, size: png.length },
+    overrideAccess: true,
+  })
+  created.push({ collection: 'media', id: picture.id })
+
   linked = await createBoard('Söök', { owner: alice.id })
-  notOnHome = await createBoard('Mujal', { owner: alice.id })
+  notOnHome = await createBoard('Mujal', {
+    owner: alice.id,
+    grid: { cols: 1, rows: 1, cells: [cell('mujal', 0, { title: 'mujal', externalImageURL: '/mujal.png' })] },
+  } as Partial<Board>)
   home = await createBoard('Kodu tahvel', {
     owner: alice.id,
     pinned: true,
@@ -82,8 +96,8 @@ beforeAll(async () => {
       cols: 3,
       rows: 1,
       cells: [
-        cell('mina', 0, { title: 'mina' }),
-        cell('sook', 1, { title: 'söök', linkBoard: linked.id }),
+        cell('mina', 0, { title: 'mina', externalImageURL: '/og-image.jpg' }),
+        cell('sook', 1, { title: 'söök', linkBoard: linked.id, image: picture.id }),
         // Bob's private board: an ordinary card for Alice, nothing to keep.
         cell('bob', 2, { title: 'bob', linkBoard: bobPrivate.id }),
       ],
@@ -155,6 +169,14 @@ describe('the offline list', () => {
     expect(homeSpeech).toMatch(/\?voice=.+&rate=slow$/)
     expect(list.media.some((url) => url.startsWith(`/next/tts-cache/${linked.id}/`))).toBe(true)
     expect(list.media).toEqual(expect.arrayContaining(['/connect-dots-success.mp3', '/soft-dots-journey.mp3']))
+  })
+
+  // A board's cards render in the browser only, so the device can't find their pictures in the page.
+  it("keeps the kept boards' card pictures as the board shows them, an upload and a symbol", async () => {
+    const list = await buildOfflineList(payload, alice)
+    expect(picture.url).toBeTruthy()
+    expect(list.pictures).toEqual(expect.arrayContaining(['/og-image.jpg', picture.url]))
+    expect(list.pictures).not.toContain('/mujal.png')
   })
 
   it('changes the version of exactly the pages a change shows on', async () => {
