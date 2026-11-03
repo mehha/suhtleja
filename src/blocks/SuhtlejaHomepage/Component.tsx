@@ -10,6 +10,7 @@ import {
   Puzzle,
   ShieldCheck,
   Volume2,
+  WifiOff,
   X,
 } from 'lucide-react'
 
@@ -296,7 +297,8 @@ function DotsMockup() {
   )
 }
 
-const heroBadgeIcons = [Volume2, Lock, ImageIcon]
+// By position, matching the labels in `defaults.ts`: the spoken sentence, the PIN, offline use.
+const heroBadgeIcons = [Volume2, Lock, WifiOff]
 
 // Where each floating label sits around the hero image on large screens: on the device
 // edges, clear of the middle of the screenshot.
@@ -306,7 +308,8 @@ const heroBadgePositions = [
   'lg:absolute lg:-bottom-5 lg:left-10',
 ]
 
-const featureIcons = [Grid3X3, Puzzle, ShieldCheck, Home]
+// By position, matching the stored feature tabs: sentences, linked boards, pictures, the dots game.
+const featureIcons = [MessageCircle, Grid3X3, ImageIcon, Puzzle]
 
 export const SuhtlejaHomepageBlock: React.FC<Props> = ({
   className,

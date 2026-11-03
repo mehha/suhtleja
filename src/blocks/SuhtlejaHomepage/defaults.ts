@@ -9,10 +9,11 @@ const trialNote = `Esimesed ${MEMBERSHIP_TRIAL_DAYS} päeva on tasuta. Kaarti po
 export const homepageDefaults = {
   hero: {
     note: trialNote,
+    // The first label has a speaker icon: it reads as the sentence the board says.
     badges: [
-      'Puuduta pilti ja kuula sõna',
+      '„Mina tahan süüa õuna.“',
       'Lapsevaade on PIN-koodiga lukus',
-      'Oma pildid või pildipank',
+      'Töötab ka ilma internetita',
     ],
   },
   audience: {
@@ -21,19 +22,19 @@ export const homepageDefaults = {
       {
         title: 'Lapsevanemale',
         description:
-          'Tee lapsele tahvlid tema enda päeva jaoks: söök, riietumine, mänguasjad ja tunded. Laps kasutab neid oma koduvaates.',
+          'Alusta viie valmis tahvliga ja lisa juurde lapse oma maailm: lemmiktoit, mänguasjad ja pereliikmete fotod. Tahvlid töötavad ka autos või õues, kus internetti pole.',
         link: { label: 'Alusta kodus', href: '/register' },
       },
       {
         title: 'Lasteaiale ja koolile',
         description:
-          'Valmista rühmale või klassile ette pildid ja tegevused, mida laps saab päeva jooksul korduvalt kasutada.',
+          'Tee rühmale või klassile ühised tahvlid ja prindi need ka paberile. Laps leiab samad pildid nii ekraanilt kui ka seinalt või laualt.',
         link: { label: 'Võta ühendust', href: '/kontakt' },
       },
       {
         title: 'Logopeedile ja terapeudile',
         description:
-          'Loo lapsele tähenduslikke harjutusi ja suhtlustahvleid, mida saab tundides ikka ja jälle kasutada.',
+          'Tee tunni sõnadest tahvel mõne minutiga. Kaardid on sõnaliikide värvides ja laps kuuleb lauset õigetes vormides.',
         link: { label: 'Vaata, kuidas see töötab', href: '/kuidas-see-tootab' },
       },
     ],
@@ -51,17 +52,17 @@ export const homepageDefaults = {
     items: [
       {
         title: 'Loo konto',
-        description: `Registreeru ja ava lapsele oma koduvaade. Esimesed ${MEMBERSHIP_TRIAL_DAYS} päeva on tasuta.`,
+        description: `Registreeru e-postiga. Esimesed ${MEMBERSHIP_TRIAL_DAYS} päeva on tasuta ja kaarti pole vaja.`,
       },
       {
-        title: 'Lisa tahvlid',
+        title: 'Alusta valmis tahvlitega',
         description:
-          'Vali valmis tahvel, lase Suhtlejal tahvel automaatselt luua või lisa oma pildid ja sõnad.',
+          'Ühe puudutusega saad viis seotud tahvlit: põhisõnad, söök ja jook, mängimine, tunded ja kohad. Muuda neid või tee juurde oma.',
       },
       {
         title: 'Anna seade lapsele',
         description:
-          'Lapsevaates näeb laps ainult talle valitud tahvleid ja mänge. Seadetesse pääseb vanema PIN-koodiga.',
+          'Lisa Suhtleja seadme avaekraanile ja ava lapse vaade. Laps näeb ainult oma tahvleid ja mänge, seadetesse pääseb vanema PIN-koodiga.',
       },
     ],
   },
@@ -74,7 +75,7 @@ export const homepageDefaults = {
       {
         title: 'Kõik on eesti keeles',
         description:
-          'Tahvlid, nupud ja kõne on eesti keeles. Laps kuuleb sõnu eestikeelse kõnesünteesiga.',
+          'Tahvlid, nupud ja kõne on eesti keeles. Vali kahe hääle vahel ja sea kõne tempo lapsele sobivaks.',
       },
       {
         title: 'Laps on turvalises vaates',
@@ -82,8 +83,9 @@ export const homepageDefaults = {
           'Lapsevaates on ainult tema tahvlid ja mängud. Muutmiseks on vaja vanema neljakohalist PIN-koodi.',
       },
       {
-        title: 'Paigaldamist pole vaja',
-        description: 'Suhtleja töötab veebibrauseris: iPadis, tahvelarvutis ja arvutis.',
+        title: 'Töötab igas seadmes',
+        description:
+          'Ava Suhtleja brauseris või lisa see avaekraanile, siis avaneb see nagu äpp. Lapse tahvlid ja mängud töötavad ka ilma internetita.',
       },
     ],
     link: { label: 'Loe meist lähemalt', href: '/meist' },
@@ -96,10 +98,12 @@ export const homepageDefaults = {
     price: '14 €',
     period: 'kuus',
     includes: [
-      'Suhtlustahvlid ja tahvlite automaatne loomine',
-      'Pildipangad ja oma pildid',
-      'Sõnaühendid lausete loomiseks',
-      'Eestikeelne kõnesüntees',
+      'Viis valmis tahvlit ja oma tahvlid',
+      'Laused õiges vormis ja sõnaühendid',
+      'Pildipank, oma fotod ja tehisaru pildid',
+      'Eestikeelne kõne kahe häälega',
+      'Töötab ka ilma internetita',
+      'Tahvlite printimine',
       'Ühenda punktid mängud',
       'Lapsevaade vanema PIN-koodiga',
     ],
@@ -123,7 +127,12 @@ export const homepageDefaults = {
       {
         question: 'Mis seadet on vaja?',
         answer:
-          'Sobib iga seade, millel on kaasaegne veebibrauser: iPad, tahvelarvuti või arvuti. Rakendust pole vaja paigaldada.',
+          'Sobib iPad, Androidi tahvelarvuti, telefon või arvuti, millel on kaasaegne veebibrauser. Lisa Suhtleja avaekraanile, siis avaneb see nagu äpp otse lapse koduvaates.',
+      },
+      {
+        question: 'Kas Suhtleja töötab ilma internetita?',
+        answer:
+          'Lapse vaade töötab. Kui avad lapse koduvaate internetiga, jätab seade tema tahvlid, pildid, sõnade kõne ja mängud meelde. Hiljem saab laps neid kasutada ka autos, õues või reisil. Tahvlite muutmiseks on internet vaja.',
       },
       {
         question: 'Mis saab pärast tasuta prooviaega?',
@@ -132,7 +141,7 @@ export const homepageDefaults = {
       {
         question: 'Kas saan kasutada oma pilte?',
         answer:
-          'Jah. Võid kasutada pildipanga pilte või laadida üles oma fotosid, näiteks lapse mänguasjadest, toidust või pereliikmetest.',
+          'Jah. Lisa fotosid lapse mänguasjadest, toidust või pereliikmetest. Pildipangas on sümbolid teemade kaupa ja kui sobivat pilti pole, saad lasta tehisarul selle joonistada.',
       },
       {
         question: 'Kas laps saab kogemata seadeid muuta?',
@@ -142,13 +151,13 @@ export const homepageDefaults = {
       {
         question: 'Kas Suhtlejat saab kasutada lasteaias või koolis?',
         answer:
-          'Jah. Õpetaja või tugispetsialist saab luua tahvleid ja harjutusi, mida laps kasutab rühmas või tunnis. Asutuse kasutuse kohta küsi lisa kontaktilehelt.',
+          'Jah. Õpetaja või tugispetsialist saab teha tahvleid ja harjutusi rühmale või tunnile ning tahvli ka paberile printida. Asutuse kasutuse kohta küsi lisa kontaktilehelt.',
       },
     ],
   },
   closing: {
     title: 'Proovi Suhtlejat oma lapsega',
-    description: 'Loo lapsele esimene koduvaade ja vali tahvlid, mis talle sobivad.',
+    description: 'Viis valmis tahvlit on ühe puudutuse kaugusel. Proovi koos lapsega, kas Suhtleja sobib teile.',
     cta: { label: 'Loo lapsele esimene koduvaade', href: '/register' },
     note: trialNote,
   },

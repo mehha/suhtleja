@@ -45,7 +45,8 @@ tags: [suhtleja, pages, blocks, payload]
 - Each step has a title, a description and optionally a screenshot or a short video from the real app, with an aspect ratio (4:3 default). Videos show controls and don't autoplay.
 - Steps without media show only the number and text; there is no placeholder frame (an outlined placeholder read as broken, empty boxes). Add real screenshots, not generated mockups.
 - Screenshots and videos sit in a navy device frame (the same look as the "Kuula ise" board). Upload screenshots at the frame's aspect ratio (1:1, 4:3 or 16:9) so nothing is letterboxed.
-- The current step screenshots (`suhtleja-samm-*.webp`) were taken from the app with a local test account and generic boards, never with real families' boards.
+- The current step screenshots (`suhtleja-samm-*.webp`, and the homepage's `suhtleja-voimalus-*.webp` and `suhtleja-avaleht-tahvel.webp`) were taken on 2026-11-03 from the app with a local e2e account and the starter set, never with real families' boards.
+- Take a screenshot at about the width it is shown (a frame is about 700 px wide on a computer): a board reads well from a 1080 px wide tablet, but a dialog shot that wide shrinks its text past reading. Dialogs were shot at 720 x 540 and clipped to the dialog.
 - Numbers sit in their own column with a dashed line between them; each step plays a one-time `Reveal` entrance.
 - The optional closing panel (`cta`) renders only when the button text and link are set.
 - New steps blocks start with six default steps in Estonian; keep claims factual (trial length comes from `MEMBERSHIP_TRIAL_DAYS`).
