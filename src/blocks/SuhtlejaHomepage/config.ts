@@ -27,10 +27,16 @@ const fallbackText = (
     ? { name, label: options.label, type: 'textarea', admin: { placeholder } }
     : { name, label: options.label, type: 'text', admin: { placeholder } }
 
-const fallbackLink = (name: string, label: string, fallback: { label: string; href: string }): Field => ({
+const fallbackLink = (
+  name: string,
+  label: string,
+  fallback: { label: string; href: string },
+  description?: string,
+): Field => ({
   name,
   label,
   type: 'group',
+  ...(description ? { admin: { description } } : {}),
   fields: [fallbackText('label', fallback.label), fallbackText('href', fallback.href)],
 })
 
@@ -259,6 +265,7 @@ export const SuhtlejaHomepage: Block = {
             },
           ],
         },
+        fallbackLink('link', 'Link kõigi võimaluste juurde', d.features.link, fallbackGroupDescription),
       ],
     },
     {

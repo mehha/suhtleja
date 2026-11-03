@@ -490,6 +490,14 @@ export const SuhtlejaHomepageBlock: React.FC<Props> = ({
               })}
             </Tabs>
           )}
+
+          <div className="mt-8">
+            <ButtonLink
+              href={textOr(features?.link?.href, homepageDefaults.features.link.href)}
+              label={textOr(features?.link?.label, homepageDefaults.features.link.label)}
+              variant="secondary"
+            />
+          </div>
         </div>
       </div>}
 

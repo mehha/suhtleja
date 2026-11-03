@@ -26,7 +26,7 @@ The homepage answers a parent's questions in the order they ask them. Each secti
 3. `audience` "Kellele" (`#kellele`): three cards for parents, kindergartens and schools, and therapists.
 4. `listen` "Kuula ise" (`#kuula`): tiles that speak their word in Estonian when tapped.
 5. `steps` "Kuidas alustada" (`#alusta`): numbered steps from sign-up to handing the device to the child.
-6. `features` "Võimalused" (`#voimalused`): one tab per feature item.
+6. `features` "Võimalused" (`#voimalused`): one tab per feature item (at most 4), then a link to the full list, "Vaata kõiki võimalusi" (`features.link`, default `/kuidas-see-tootab#voimalused`): a visitor sees only the open tab, so the other features are one click away instead of in another homepage section.
 7. `about` "Miks Suhtleja" (`#miks`): reasons to trust Suhtleja, a link to `/meist`, and quotes when editors add them.
 8. `pricing` "Hind" (`#hind`): one plan card and a contact line for institutions.
 9. `faq` "KKK" (`#kkk`): questions and answers in an accordion.
@@ -38,7 +38,7 @@ Header nav items are content in the Header global; link new sections with anchor
 
 - The homepage content should stay editable in Payload through the `suhtlejaHomepage` block.
 - Each main section should have an `enabled` toggle so editors can hide it without deleting content.
-- Empty text fields and empty lists in `hero.note`, `hero.badges`, `audience.eyebrow`, `audience.cards` and every field of `listen`, `steps`, `about`, `pricing`, `faq` and `closing` render the copy in `defaults.ts`. Sections added after the homepage was first saved have no stored content, so the live page shows these defaults until an editor fills the fields. The admin shows the default text as each field's placeholder.
+- Empty text fields and empty lists in `hero.note`, `hero.badges`, `features.link`, `audience.eyebrow`, `audience.cards` and every field of `listen`, `steps`, `about`, `pricing`, `faq` and `closing` render the copy in `defaults.ts`. Sections added after the homepage was first saved have no stored content, so the live page shows these defaults until an editor fills the fields. The admin shows the default text as each field's placeholder.
 - Keep fallback copy factual. Trial length comes from `MEMBERSHIP_TRIAL_DAYS`; claims about the product (PIN lock, Estonian speech, browser use) must match how it works. "Kaarti pole vaja" is true only for first-time subscribers, and the FAQ says so.
 - `about.testimonials` and `hero.highlights` have no fallback. Quotes are shown only when an editor adds real ones; highlights only when an editor adds them, because the floating labels already carry the short selling points.
 - The hero image uses `object-contain` so device mockups are never cropped; other media frames use `object-cover`. The hero should show a real product screenshot with correct Estonian, not a generated mockup. With an uploaded image the frame is 4:3 below `lg` so phones don't show empty space around the device.

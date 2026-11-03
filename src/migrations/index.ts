@@ -18,6 +18,7 @@ import * as migration_20261101_144213_grammar from './20261101_144213_grammar';
 import * as migration_20261101_184319_card_opens_board from './20261101_184319_card_opens_board';
 import * as migration_20261101_190915_speech_settings from './20261101_190915_speech_settings';
 import * as migration_20261101_200536_label_case from './20261101_200536_label_case';
+import * as migration_20261103_093733_homepage_features_link from './20261103_093733_homepage_features_link';
 
 export const migrations = [
   {
@@ -118,6 +119,11 @@ export const migrations = [
   {
     up: migration_20261101_200536_label_case.up,
     down: migration_20261101_200536_label_case.down,
-    name: '20261101_200536_label_case'
+    name: '20261101_200536_label_case',
+  },
+  {
+    up: migration_20261103_093733_homepage_features_link.up,
+    down: migration_20261103_093733_homepage_features_link.down,
+    name: '20261103_093733_homepage_features_link'
   },
 ];

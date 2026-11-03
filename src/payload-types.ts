@@ -949,6 +949,13 @@ export interface SuhtlejaHomepageBlock {
           id?: string | null;
         }[]
       | null;
+    /**
+     * Tühjad väljad kuvavad vaikimisi teksti, mida näed väljade kohatäitena.
+     */
+    link?: {
+      label?: string | null;
+      href?: string | null;
+    };
   };
   /**
    * Tühjad väljad kuvavad vaikimisi teksti, mida näed väljade kohatäitena.
@@ -1931,6 +1938,12 @@ export interface SuhtlejaHomepageBlockSelect<T extends boolean = true> {
               imageAspectRatio?: T;
               imageLabel?: T;
               id?: T;
+            };
+        link?:
+          | T
+          | {
+              label?: T;
+              href?: T;
             };
       };
   audience?:

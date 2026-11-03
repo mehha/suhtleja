@@ -51,6 +51,9 @@ tags: [suhtleja, pages, blocks, payload]
 - Updated on 2026-11-03: offline use, Workers AI pictures, Groq's real jobs, Global Symbols (Mulberry), the shared AI pictures, and the Mulberry and Fluent Emoji licences. ARASAAC's licence excludes commercial use; see `symbols-ai.md`.
 - The terms promise 30 days' notice of material changes (§12). Telling members about a change is the team's call, not part of the edit.
 
+## Features block (`aac-features`)
+- The section has the anchor `#voimalused` (`src/blocks/AacFeatures/Component.tsx`): the homepage features section links to `/kuidas-see-tootab#voimalused` as the full list of features. A page has one such block; keep the six cards in step with what the app does (see `homepage.md`).
+
 ## Steps block (`howItWorks`)
 - Use it first on "Kuidas see töötab", with the page title as its title, so it becomes the page's h1.
 - Each step has a title, a description and optionally a screenshot or a short video from the real app, with an aspect ratio (4:3 default). Videos show controls and don't autoplay.

@@ -16,6 +16,10 @@ export const homepageDefaults = {
       'Töötab ka ilma internetita',
     ],
   },
+  // The tabs show four features; the link leads to the full list (the aac-features block's anchor).
+  features: {
+    link: { label: 'Vaata kõiki võimalusi', href: '/kuidas-see-tootab#voimalused' },
+  },
   audience: {
     eyebrow: 'Kellele',
     cards: [

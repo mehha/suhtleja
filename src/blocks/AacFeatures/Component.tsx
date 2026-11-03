@@ -47,7 +47,9 @@ export const AacFeaturesBlock: React.FC<Props> = ({
   if (!items || items.length === 0) return null
 
   return (
-    <section className={cn('py-20 text-[#22314c] sm:py-24', className)}>
+    // `#voimalused` is the homepage features section's "Vaata kõiki võimalusi" link target
+    // (/kuidas-see-tootab#voimalused); a page has one of these blocks.
+    <section className={cn('py-20 text-[#22314c] sm:py-24', className)} id="voimalused">
       <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 sm:px-6 lg:px-8">
         <SectionIntro eyebrow={eyebrow} title={title} description={subtitle} as={promoteHeading ? 'h1' : 'h2'} />
 
