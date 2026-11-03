@@ -2,6 +2,8 @@ import type { Payload, PayloadRequest, Where } from 'payload'
 
 import type { Media } from '@/payload-types'
 
+import { rankPictureMatches } from './pictureMatch'
+
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg']
 
 /** The library folder that saved AI pictograms are filed into (src/collections/SymbolGenerations.ts). */
@@ -126,10 +128,16 @@ const toPictureItem = (media: Media, source: PictureItem['source']): PictureItem
   }
 }
 
+/** How many names containing the query a search ranks (pictureMatch.ts) before it keeps `limit`. */
+const SEARCH_CANDIDATES = 200
+
 /**
  * Pictures for the card editor's search: the member's own images (`mine`) or the shared library
  * (`library`, media in a folder). Never other customers' files outside the library. Without a query
- * the newest come first, so the search doubles as browsing.
+ * the newest come first, so the search doubles as browsing. With one, the exact name comes first,
+ * then names where the query starts a word, then compound tails (`rankPictureMatches`); a match
+ * inside a word isn't shown. The exact name is looked up on its own, so names that merely contain
+ * the query can't push it out.
  */
 export async function searchPictureMedia(
   payload: Payload,
@@ -145,27 +153,44 @@ export async function searchPictureMedia(
     { mimeType: { contains: 'image' } },
     scope === 'mine' ? { owner: { equals: userId } } : { folder: { exists: true } },
   ]
-  if (q) {
-    conditions.push({ or: [{ alt: { contains: q } }, { filename: { contains: q } }] })
-  }
   if (excludeIds.length) {
     conditions.push({ id: { not_in: excludeIds } })
   }
 
-  // Media is publicly readable; the where clause above is what keeps other customers' files out.
-  const { docs } = await payload.find({
-    collection: 'media',
-    depth: 0,
-    limit,
-    pagination: false,
-    sort: '-createdAt',
-    where: { and: conditions },
-  })
+  // Media is publicly readable; the where clauses here are what keep other customers' files out.
+  const find = (match: Where | null, max: number) =>
+    payload
+      .find({
+        collection: 'media',
+        depth: 0,
+        limit: max,
+        pagination: false,
+        sort: '-createdAt',
+        where: { and: match ? [...conditions, match] : conditions },
+      })
+      .then((result) => result.docs)
 
-  return docs.flatMap((media) => {
-    const item = toPictureItem(media, scope)
-    return item ? [item] : []
+  const query = q.trim()
+  if (!query) {
+    return find(null, limit).then((docs) => docs.flatMap((media) => toPictureItem(media, scope) ?? []))
+  }
+
+  const exact = exactWordMatch(query)
+  const [exactDocs, containing] = await Promise.all([
+    exact ? find(exact, limit) : [],
+    find({ or: [{ alt: { contains: query } }, { filename: { contains: query } }] }, SEARCH_CANDIDATES),
+  ])
+  const seen = new Set<number>()
+  const docs = [...exactDocs, ...containing].filter((media) => {
+    if (seen.has(media.id)) return false
+    seen.add(media.id)
+    return true
   })
+  const names = (media: Media) => [media.alt ?? '', media.filename?.replace(/\.[^.]+$/, '') ?? ''].filter(Boolean)
+
+  return rankPictureMatches(docs, query, names)
+    .slice(0, limit)
+    .flatMap((media) => toPictureItem(media, scope) ?? [])
 }
 
 export type PictureBankCategory = {

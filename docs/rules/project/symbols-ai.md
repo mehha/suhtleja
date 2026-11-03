@@ -54,7 +54,12 @@ tags: [suhtleja, frontend, symbols, groq, api]
 ## `GET /next/image-search` (card editor)
 - Params: `q` (trimmed, at most 80 characters; may be empty), `scope` (`all` default, `mine`, `library`, `arasaac`, `mulberry`, `openmoji`).
 - Returns `{ mine, library, banks, aiError? }`. `mine` and `library` items carry `mediaId`; the editor sets those as the card's `image`, symbol items as `externalImageURL`.
-  - `mine`: the member's own image media (`owner` = user), `alt` or file name containing `q`, newest first.
+  - `mine`: the member's own image media (`owner` = user) whose `alt` or file name matches `q` (`searchPictureMedia`, ranked by `src/utilities/pictureMatch.ts`):
+    - the exact name first, looked up on its own so it is never cut off;
+    - then names that start with `q` ("palli lööma"), then a later word that does ("ma ei taha");
+    - then, for a `q` of 4 letters or more, a compound's last part ("õhupall"; shorter word endings are mostly grammar: "veerema" for "ema");
+    - each rank shorter names first, then newest first.
+    A match inside a word is left out: until 2026-11-03 the search took every name containing `q`, newest first, so "ei" listed "leidma" and "leib" and cut the bank's "ei" off at 12. The database query still takes names containing `q` (`SEARCH_CANDIDATES`, 200), and the ranking keeps the word matches.
   - `library`: image media in any folder (the shared library), same match, without the member's own files (they are in `mine`).
   - `banks`: one `{ bank, items, aiTerms? }` per symbol bank, which the editor shows as its own group. `all` ("Kõik allikad") searches ARASAAC and Mulberry; a bank scope searches that bank. OpenMoji (emoji, not AAC symbols) is never part of `all`. Nothing without a query.
 - `all` returns at most 12 per picture group and 24 per bank; a single scope up to 40. Without a query, `mine` and `library` list the newest files.

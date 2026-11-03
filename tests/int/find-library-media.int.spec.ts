@@ -1,13 +1,14 @@
 // @vitest-environment node
 
 // Bulk add's own pictures (src/utilities/findLibraryMedia.ts): only media library files whose alt
-// text or file name is exactly the word. Every run creates its own media and deletes it afterwards.
+// text or file name is exactly the word. And the card editor's library search, which puts the exact
+// picture first. Every run creates its own media and deletes it afterwards.
 
 import { getPayload, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import config from '@/payload.config'
-import { findLibraryMedia } from '@/utilities/findLibraryMedia'
+import { findLibraryMedia, searchPictureMedia } from '@/utilities/findLibraryMedia'
 
 const run = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 const word = (name: string) => `${name}${run}`
@@ -64,5 +65,24 @@ describe('findLibraryMedia', () => {
   it('does not match the word inside a longer name', async () => {
     await createMedia(`va${word('ema')}.png`, { alt: `Va${word('ema')} vaade`, inLibrary: true })
     expect(await findLibraryMedia(payload, word('ema'))).toBeNull()
+  })
+})
+
+describe('searchPictureMedia', () => {
+  it('shows the exact picture first, then word matches, and leaves out names that only contain the word', async () => {
+    const q = word('zq')
+    await createMedia(`exact-${run}.png`, { alt: q, inLibrary: true })
+    // Newer files, which the search used to list first and cut the exact one off with.
+    await createMedia(`inside-1-${run}.png`, { alt: `a${q}b`, inLibrary: true })
+    await createMedia(`inside-2-${run}.png`, { alt: `le${q}ma`, inLibrary: true })
+    await createMedia(`tail-${run}.png`, { alt: `liha${q}`, inLibrary: true })
+    await createMedia(`phrase-${run}.png`, { alt: `ma ${q} taha`, inLibrary: true })
+    await createMedia(`start-${run}.png`, { alt: `${q} lööma`, inLibrary: true })
+
+    const found = await searchPictureMedia(payload, { limit: 3, q, scope: 'library', userId: 0 })
+    expect(found.map((item) => item.title)).toEqual([q, `${q} lööma`, `ma ${q} taha`])
+
+    const all = await searchPictureMedia(payload, { limit: 10, q, scope: 'library', userId: 0 })
+    expect(all.map((item) => item.title)).toEqual([q, `${q} lööma`, `ma ${q} taha`, `liha${q}`])
   })
 })
