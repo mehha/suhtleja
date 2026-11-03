@@ -40,6 +40,16 @@ tags: [suhtleja, pages, blocks, payload]
 - Full-width content columns keep a readable line length (about 70 characters) and align left with the page title (`src/blocks/Content/Component.tsx`).
 - "Meist" sticks to facts the team has confirmed: the mission, the team description, the company details and what the product does. Don't add a founder story, partners or numbers without the team's input.
 
+## Legal pages
+- `/kasutustingimused` and `/privaatsus` are rich text in one content block each, and must say what the app does. Update them (and their "muudetud" date in the first paragraph) with the change that makes them wrong:
+  - a new service that receives data (the privacy policy's providers list and what each one gets);
+  - a new browser storage key, cookie or cache (the privacy policy's cookie list, with its lifetime);
+  - a new picture source (the terms' licence list, with its author and link);
+  - anything that shows a member's content to others, such as the shared AI pictures;
+  - a change to what needs the internet.
+- Updated on 2026-11-03: offline use, Workers AI pictures, Groq's real jobs, Global Symbols (Mulberry), the shared AI pictures, and the Mulberry and Fluent Emoji licences. ARASAAC's licence excludes commercial use; see `symbols-ai.md`.
+- The terms promise 30 days' notice of material changes (§12). Telling members about a change is the team's call, not part of the edit.
+
 ## Steps block (`howItWorks`)
 - Use it first on "Kuidas see töötab", with the page title as its title, so it becomes the page's h1.
 - Each step has a title, a description and optionally a screenshot or a short video from the real app, with an aspect ratio (4:3 default). Videos show controls and don't autoplay.
