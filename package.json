@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build --webpack",
+    "cache:prune": "python3 ./scripts/opennext-cache/prune.py",
     "db:clone:remote-to-local": "bash ./scripts/db/clone-d1-remote-to-local.sh",
     "deploy": "pnpm run deploy:database && pnpm run deploy:app:full",
     "deploy:app": "opennextjs-cloudflare build && rm -rf .open-next/cache/__fetch && opennextjs-cloudflare deploy --rclone --cacheChunkSize 10",

@@ -25,6 +25,7 @@ tags: [suhtleja, pages, blocks, payload]
   - the header, footer and page sitemap through `revalidateTag(tag, { expire: 0 })`.
   There is no background revalidation queue, so don't use `'max'` (stale-while-revalidate) or time-based `revalidate` here; such entries are served stale and never refresh. `/posts` (time-based) shows this.
 - Content changed outside the admin (Payload scripts run with `context: { disableRevalidate: true }`) shows after the next deploy, which rebuilds the cache.
+- Each deploy writes its pages to a new folder, `opennext-cache/<buildId>/`, in the `suhtleja` bucket, and nothing deletes the old ones (by 2026-11-03, 127 old folders held 191 MB). `pnpm cache:prune` (`scripts/opennext-cache/prune.py`) lists them, and `pnpm cache:prune --delete` deletes all but the newest 5 (`--keep N`), paced under the Cloudflare API's rate limit. It deletes production data: agents run `--delete` only when asked.
 - Draft previews still render per request: the draft mode cookie skips the cache.
 - App pages (`/kodu`, boards, profile, login) read cookies and render per request.
 
