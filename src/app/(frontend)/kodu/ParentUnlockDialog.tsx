@@ -135,7 +135,10 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        {/* Near the top, not in the middle: the on-screen keyboard covers the bottom of the screen
+            without making the page shorter (iPad Safari), almost half of it on a tablet turned
+            sideways. It slides in by 0.5rem, not by the centred dialog's 48%. */}
+        <DialogContent className="top-[8%] translate-y-0 data-[state=closed]:[--tw-exit-translate-y:-0.5rem] data-[state=open]:[--tw-enter-translate-y:-0.5rem]">
           <DialogHeader>
             <DialogTitle>Avan vanema vaate</DialogTitle>
           </DialogHeader>

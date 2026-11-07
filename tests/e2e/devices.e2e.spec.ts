@@ -581,6 +581,25 @@ test.describe('parent view', () => {
     await expect(pin).toHaveAttribute('inputmode', 'numeric')
     await dialog.locator('[data-input-otp-container]').tap()
     await expect(pin).toBeFocused()
+
+    // A wrong PIN empties the boxes, says so and leaves the cursor in the first box.
+    await page.keyboard.type(DEFAULT_PIN === '1111' ? '2222' : '1111')
+    await expect(dialog.getByText('Vale PIN.')).toBeVisible()
+    await expect(pin).toBeFocused()
+
+    // The on-screen keyboard covers the bottom of the screen without making the page shorter (iPad
+    // Safari), almost half of it on a tablet turned sideways. The dialog sits near the top, so the
+    // boxes, the message and the button stay above the keyboard. A phone turned sideways has room
+    // for the field only; Safari scrolls to it.
+    const phone = Math.min(viewport!.width, viewport!.height) < 600
+    for (const [name, size] of orientations(viewport)) {
+      if (phone && name === 'sideways') continue
+      await page.setViewportSize(size)
+      const box = (await dialog.boundingBox())!
+      expect(box.y + box.height, `PIN dialog ${name}: bottom edge`).toBeLessThanOrEqual(size.height / 2)
+    }
+    await page.setViewportSize(viewport!)
+
     await page.keyboard.type(DEFAULT_PIN)
     await expect(dialog).toBeHidden()
 
