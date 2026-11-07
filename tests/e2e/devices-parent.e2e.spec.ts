@@ -377,7 +377,17 @@ test.describe('board editor', () => {
       await page.getByRole('button', { name }).tap()
       await expectDialogTouchFriendly(page, name)
     }
+    // The card dialog opens without the keyboard, which would cover the picture search, the
+    // pictures and "Salvesta". The search key closes it again, so the pictures show.
     await page.getByRole('button', { name: 'Muuda kaarti' }).first().tap()
+    const cardDialog = page.getByRole('dialog', { name: 'Muuda' })
+    await expect(cardDialog).toBeFocused()
+    const search = cardDialog.getByRole('textbox', { name: 'Otsi pilti' })
+    await expect(search).toHaveAttribute('enterkeyhint', 'search')
+    await search.tap()
+    await expect(search).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(search).not.toBeFocused()
     await expectDialogTouchFriendly(page, 'Muuda')
 
     await page.getByRole('button', { name: 'Muuda nime' }).tap()
@@ -617,6 +627,8 @@ test.describe('board editor', () => {
 
     await start.tap()
     const picker = page.getByRole('dialog', { name: 'Uus sõnaühend' })
+    // The parent taps cards: the card search doesn't bring up the keyboard as the dialog opens.
+    await expect(picker).toBeFocused()
     await expectOnScreen(page, picker, 'card picker')
     await expectTouchFriendly(page, 'card picker')
     await picker.getByRole('button', { name: 'mina', exact: true }).tap()

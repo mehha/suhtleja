@@ -35,6 +35,7 @@ import {
   type WordClass,
 } from '@/utilities/wordClass'
 import { useGrammar } from '@/utilities/grammar/useGrammar'
+import { closeKeyboardOnEnter, openWithoutKeyboardOnTouch } from '@/utilities/touchScreen'
 
 type SymbolBank = 'arasaac' | 'mulberry' | 'openmoji'
 
@@ -621,7 +622,12 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[760px] max-w-[94vw] overflow-y-auto rounded-2xl p-4 shadow-md">
+      {/* Opens without the keyboard on a touch screen: it would cover the picture search, the
+          pictures and "Salvesta" (touchScreen.ts). */}
+      <DialogContent
+        className="max-h-[92vh] w-[760px] max-w-[94vw] overflow-y-auto rounded-2xl p-4 shadow-md"
+        onOpenAutoFocus={openWithoutKeyboardOnTouch}
+      >
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Muuda</DialogTitle>
         </DialogHeader>
@@ -772,10 +778,10 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                     setQuery(e.target.value)
                     setBankFolder(null)
                   }}
-                  onKeyDown={(e) => {
-                    // Search runs while typing; Enter must not submit or close anything.
-                    if (e.key === 'Enter') e.preventDefault()
-                  }}
+                  // Search runs while typing. The keyboard's search key closes it on a touch screen,
+                  // so the pictures under the field show.
+                  enterKeyHint="search"
+                  onKeyDown={closeKeyboardOnEnter}
                 />
                 <Button
                   type="button"

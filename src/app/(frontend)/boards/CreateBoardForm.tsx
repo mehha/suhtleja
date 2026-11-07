@@ -57,7 +57,9 @@ export function CreateBoardForm({ createBoard }: CreateBoardFormProps) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md">
+      {/* The name field brings up the keyboard; near the top, the field and the buttons stay above
+          it (dialog.tsx). */}
+      <DialogContent placement="top" className="max-h-[88svh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Lisa tahvel</DialogTitle>
           <DialogDescription>

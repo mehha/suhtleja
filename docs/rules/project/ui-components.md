@@ -26,6 +26,10 @@ tags: [suhtleja, ui, shadcn]
 - Hover-only styles that should not stick after a tap go behind `[@media(hover:hover)]:hover:` (a touch screen keeps `:hover` on the last tapped element).
 - The dialog close button is 36px and named `Sulge`; the sheet's is 44px. Labels in the UI are Estonian, also for screen readers (`Ava menüü`, not "Open menu").
 - Safari turns a `min-height` into a `min-width` through `aspect-ratio`; give such boxes `max-width: 100%` so they stay within a phone's width.
+- The on-screen keyboard covers the bottom of the screen without making the page shorter (iPad Safari): on a 13" iPad turned sideways about 420-480 of 1032 points. Viewport units (`vh`, `svh`, `dvh`) don't follow it, and Safari has neither `interactive-widget` nor the VirtualKeyboard API. So:
+  - A dialog where the parent types sits near the top: `DialogContent placement="top"` (the PIN dialog, `Lisa tahvel`, `Lisa plokk`). A tall one sets a `max-h` that leaves the 8% above it, such as `max-h-[88svh]`.
+  - A dialog where the parent mostly taps doesn't put the cursor in a field as it opens on a touch screen: `onOpenAutoFocus={openWithoutKeyboardOnTouch}` (`src/utilities/touchScreen.ts`) focuses the dialog itself (the card dialog, the compounds card picker). A computer keeps the cursor in the field.
+  - A field that searches as you type, with its results under it, gets `enterKeyHint="search"` and `closeKeyboardOnEnter`, so the search key closes the keyboard and the results show.
 
 ## Viewport-Sized Overlays
 - For shared sheets, drawers, and mobile menus, prefer stable viewport height units (`svh`) over dynamic viewport height (`dvh`) so Safari on iPad/iOS does not jump when browser chrome changes.

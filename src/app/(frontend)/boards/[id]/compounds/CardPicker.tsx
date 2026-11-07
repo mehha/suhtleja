@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/utilities/ui'
 import { CellLabel } from '../CellLabel'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
+import { openWithoutKeyboardOnTouch } from '@/utilities/touchScreen'
 
 // A card on the board, as the compounds page shows it.
 export type BoardCard = {
@@ -102,7 +103,12 @@ export function CardPicker({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-3xl flex-col gap-4 rounded-2xl p-4 sm:p-6">
+      {/* The parent mostly taps cards: on a touch screen the search doesn't bring up the keyboard as
+          the dialog opens, which would cover most of the cards (touchScreen.ts). */}
+      <DialogContent
+        className="flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-3xl flex-col gap-4 rounded-2xl p-4 sm:p-6"
+        onOpenAutoFocus={openWithoutKeyboardOnTouch}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
