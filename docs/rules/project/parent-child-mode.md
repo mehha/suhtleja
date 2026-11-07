@@ -8,7 +8,8 @@ tags: [suhtleja, auth, mode, home, boards]
 
 ## Scope
 - Dialog UI: `src/app/(frontend)/kodu/ParentUnlockDialog.tsx`
-- Actions: `src/app/(frontend)/kodu/modeActions.ts`
+- Unlock: `POST /next/parent-unlock` (`src/app/(frontend)/next/parent-unlock/route.ts`), logic in `src/utilities/parentUnlock.ts`
+- Actions (back to the child view): `src/app/(frontend)/kodu/modeActions.ts`
 - Utilities: `src/utilities/uiMode.ts`
 - Protected route example: `src/app/(frontend)/koduhaldus/page.tsx`
 - User PIN fields: `src/collections/Users/index.ts`
@@ -40,7 +41,8 @@ tags: [suhtleja, auth, mode, home, boards]
 
 ## UX Rules
 - Keep OTP auto-submit after 4 digits.
-- Parent unlock should submit through the controlled client handler, not programmatic native form submission, so mobile Safari stays on the client navigation path.
+- The dialog sends the PIN with `fetch` to `POST /next/parent-unlock` (`{ pin }` in, `{ success, error }` out), from its own handler: not a native form submission, so mobile Safari stays on the client navigation path, and not a Server Action. Action ids change with every build, the child's tablet keeps its page open for days, and a PIN sent through an old page's action failed with „Midagi läks valesti“ on every try until the page was loaded again (the installed app has no reload button). A route's address stays. After the unlock `router.replace('/kodu')` loads a page from an older build as a full page load (the router does that when the builds differ).
+- The route answers only requests from the site's own pages (`isSameOriginRequest`: `Origin` matches the host; Server Actions check the same), and only for a logged-in user.
 - On invalid PIN:
   - Clear fields.
   - Return focus to first OTP slot.

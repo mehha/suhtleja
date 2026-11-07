@@ -21,7 +21,7 @@ Use this file as the quick-start for contributors. Keep deeper guidance in `docs
 ## Frontend Feature Map
 - `boards`: management hub `src/app/(frontend)/koduhaldus`, board play/edit routes `src/app/(frontend)/boards`, collection `src/collections/Boards/index.ts`, word forms `src/utilities/grammar` (word lists from `scripts/grammar`), rule `docs/rules/project/boards.md`.
 - `connect-dots`: player route `src/app/(frontend)/connect-dots`, collection `src/collections/ConnectDotsPuzzles/index.ts`, management surface `src/app/(frontend)/koduhaldus`, rule `docs/rules/project/connect-dots.md`.
-- Parent/child mode shared flow: `src/app/(frontend)/kodu/ParentUnlockDialog.tsx`, `src/app/(frontend)/kodu/modeActions.ts`, `src/utilities/uiMode.ts`, rule `docs/rules/project/parent-child-mode.md`.
+- Parent/child mode shared flow: `src/app/(frontend)/kodu/ParentUnlockDialog.tsx`, `src/app/(frontend)/kodu/modeActions.ts`, unlock route `src/app/(frontend)/next/parent-unlock/route.ts` (`src/utilities/parentUnlock.ts`), `src/utilities/uiMode.ts`, rule `docs/rules/project/parent-child-mode.md`.
 - Shared speech pattern (`/next/tts-ms`): `src/app/(frontend)/next/tts-ms/route.ts`, rule `docs/rules/project/audio-tts.md`.
 - `membership`: Stripe routes `src/app/(frontend)/next/stripe`, helper `src/utilities/membershipStatus.ts`, rule `docs/rules/project/membership.md`.
 - `auth/profile`: `src/app/(frontend)/login`, `register`, `profile`, rule `docs/rules/project/auth-profile.md`.

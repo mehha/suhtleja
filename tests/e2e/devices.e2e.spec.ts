@@ -1,4 +1,4 @@
-import { type Page } from '@playwright/test'
+import { type Page, type Route } from '@playwright/test'
 
 import { countPlayedAudio, silentWav } from './audio'
 import { DEFAULT_PIN } from './member'
@@ -600,8 +600,25 @@ test.describe('parent view', () => {
     }
     await page.setViewportSize(viewport!)
 
+    // The PIN goes to a route that takes it only from the site's own pages.
+    const elsewhere = await page.request.post('/next/parent-unlock', {
+      data: { pin: DEFAULT_PIN },
+      headers: { Origin: 'https://example.com' },
+    })
+    expect(elsewhere.status()).toBe(403)
+
+    // A page loaded before a deploy: the server knows none of its Server Actions any more (their ids
+    // change with every build), and the child's tablet keeps the page open for days. The PIN doesn't
+    // use one, so the parent view still opens.
+    const oldPage = (route: Route) =>
+      route.request().headers()['next-action']
+        ? route.fulfill({ status: 404, headers: { 'x-nextjs-action-not-found': '1' }, body: '' })
+        : route.fallback()
+    await page.route('**/*', oldPage)
     await page.keyboard.type(DEFAULT_PIN)
     await expect(dialog).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Lapse vaade', exact: true })).toBeVisible()
+    await page.unroute('**/*', oldPage)
 
     // From the md breakpoint (768px, an iPad upright) the main menu is in the header; narrower
     // screens open it from the menu button.

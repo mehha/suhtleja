@@ -55,4 +55,4 @@ tags: [suhtleja, ui, shadcn]
 
 ## Error Page
 - `src/app/(frontend)/error.tsx` catches errors from pages and their Server Actions, so a failure shows a message instead of a blank page; the header stays.
-- A Server Action sent from a page loaded before a deploy fails with `UnrecognizedActionError` (action ids change every build). The error page reloads once by itself (guarded in `sessionStorage` against loops) and otherwise offers a reload button.
+- A Server Action sent from a page loaded before a deploy fails with `UnrecognizedActionError` (action ids change every build). The error page reloads once by itself (guarded in `sessionStorage` against loops) and otherwise offers a reload button. A call that catches its own errors never gets there, so what must work on a page that stays open (the PIN dialog) uses a route instead (`parent-child-mode.md`).

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { unlockParentModeAction, type UnlockState } from './modeActions'
+import type { UnlockState } from '@/utilities/parentUnlock'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -48,9 +48,6 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
       submittedPinRef.current = nextPin
       setIsSubmitting(true)
 
-      const formData = new FormData()
-      formData.set('pin', nextPin)
-
       // A wrong PIN empties the slots and puts the cursor back in the first one (after the DOM has
       // the empty slots).
       const tryAgain = (next: UnlockState) => {
@@ -61,9 +58,17 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
       }
 
       try {
-        const result = await unlockParentModeAction(initialState, formData)
+        // A route, not a Server Action: the child's tablet keeps its page open for days, and after a
+        // deploy the server no longer knows that page's action ids (parentUnlock.ts).
+        const response = await fetch('/next/parent-unlock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: nextPin }),
+        })
+        const result = (await response.json()) as UnlockState
         if (result.success) {
-          // Unlocked: close the dialog and show the home in the parent view.
+          // Unlocked: close the dialog and show the home in the parent view. A page from an older
+          // build gets the new one as a full page load (the router does that when the builds differ).
           setState(result)
           setOpen(false)
           setPin('')
@@ -162,7 +167,6 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
                   <InputOTPSlot index={3} />
                 </InputOTPGroup>
               </InputOTP>
-              <input type="hidden" name="pin" value={pin} />
             </div>
 
             {state.error && (

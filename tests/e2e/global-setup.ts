@@ -29,6 +29,7 @@ const ROUTES: Array<[method: 'GET' | 'POST', path: string]> = [
   ['GET', '/next/offline'],
   ['POST', '/next/tts-ms'],
   ['POST', '/next/groq'],
+  ['POST', '/next/parent-unlock'],
   ['POST', '/next/symbol-generate/save'],
   ['POST', '/next/stripe/webhook'],
 ]
