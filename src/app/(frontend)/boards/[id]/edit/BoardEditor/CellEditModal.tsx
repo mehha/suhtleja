@@ -3,7 +3,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
-import { ArrowLeft, Copy, LayoutGrid, Sparkles, Upload } from 'lucide-react'
+import { ArrowLeft, CornerLeftUp, LayoutGrid, Search, Sparkles, Upload } from 'lucide-react'
 
 import { getClientSideURL } from '@/utilities/getURL'
 import { cn } from '@/utilities/ui'
@@ -505,6 +505,11 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     setGenLabel(query.trim() || title)
     setShowGenerate(true)
   }
+  // The panel opens under the search results, so it is brought into view.
+  const generatePanelRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (showGenerate) generatePanelRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+  }, [showGenerate])
 
   const pickItem = (item: PictureItem) => {
     // A card without text would say nothing: give it the picture's word.
@@ -624,15 +629,18 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Opens without the keyboard on a touch screen: it would cover the picture search, the
           pictures and "Salvesta" (touchScreen.ts). */}
+      {/* The title and the buttons stay put and only the part between them scrolls: "Salvesta" was
+          at the end of the scroll, under the search results, and on a phone the results scrolled in
+          a box of their own inside the scrolling dialog. */}
       <DialogContent
-        className="max-h-[92vh] w-[760px] max-w-[94vw] overflow-y-auto rounded-2xl p-4 shadow-md"
+        className="flex max-h-[92svh] w-[760px] max-w-[94vw] flex-col gap-0 overflow-hidden rounded-2xl p-0 shadow-md"
         onOpenAutoFocus={openWithoutKeyboardOnTouch}
       >
-        <DialogHeader>
+        <DialogHeader className="shrink-0 px-4 pb-2 pt-4">
           <DialogTitle className="text-lg font-semibold">Muuda</DialogTitle>
         </DialogHeader>
 
-        <div className="mt-4 flex flex-col gap-5">
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4 pt-2">
           <div className="flex items-start gap-4">
             {previewSrc && (
               <div
@@ -666,16 +674,19 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="nt. Koer"
                 />
+                {/* Searches pictures for the text as it now stands (the search starts from the
+                    card's text, but doesn't follow it as the parent types). A magnifier, with its
+                    words where there is room: a "copy" icon said nothing. */}
                 <Button
                   type="button"
-                  size="icon"
                   variant="outline"
+                  className="shrink-0 gap-2 px-3"
                   onClick={() => setQuery(title)}
                   disabled={!title.trim()}
-                  title="Otsi pilti selle tekstiga"
                   aria-label="Otsi pilti selle tekstiga"
                 >
-                  <Copy className="h-4 w-4" />
+                  <Search className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Otsi pilti</span>
                 </Button>
               </div>
 
@@ -767,8 +778,13 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
 
           {/* Picture search */}
           <div className="flex flex-col gap-3">
+            {/* The field's name stays "Otsi pilti" (aria-label); the heading says what this part of
+                the dialog is for: without it the field looked like a second "Tekst". */}
+            <Label htmlFor="cell-picture-search" className="-mb-2 text-lg">
+              Pilt
+            </Label>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex min-w-[14rem] flex-1 items-center gap-2">
+              <div className="flex min-w-[11rem] flex-1 items-center gap-2">
                 <Input
                   id="cell-picture-search"
                   value={query}
@@ -783,16 +799,16 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                   enterKeyHint="search"
                   onKeyDown={closeKeyboardOnEnter}
                 />
+                {/* Makes the searched word the card's text. */}
                 <Button
                   type="button"
-                  size="icon"
                   variant="outline"
+                  className="shrink-0 gap-2 px-3"
                   onClick={() => setTitle(query)}
                   disabled={!query.trim()}
-                  title="Kopeeri otsing tekstiväljale"
-                  aria-label="Kopeeri otsing tekstiväljale"
                 >
-                  <Copy className="h-4 w-4" />
+                  <CornerLeftUp className="h-4 w-4" aria-hidden="true" />
+                  Pane tekstiks
                 </Button>
               </div>
               <Select value={scope} onValueChange={(value: SearchScope) => setScope(value)}>
@@ -821,10 +837,46 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
               )}
             </div>
 
+            {/* The other ways to a picture, with the search and above its results: under a long
+                list of results they were a long scroll away. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void handleUpload(file)
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="gap-2"
+              >
+                {uploading ? <Spinner /> : <Upload className="h-4 w-4" />}
+                Lae üles
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={showGenerate ? 'secondary' : 'outline'}
+                onClick={openGenerate}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Loo AI-ga
+              </Button>
+            </div>
+
             {searchError && <p className="text-xs text-red-500">{searchError}</p>}
 
             {showBank ? (
-              <div className="flex max-h-96 flex-col gap-4 overflow-y-auto p-1">
+              <div className="flex flex-col gap-4 p-1 sm:max-h-96 sm:overflow-y-auto">
                 {bankFolder ? (
                   <section className="flex flex-col gap-2">
                     <div className="flex flex-wrap items-center gap-2">
@@ -897,7 +949,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
                 <Spinner /> Otsin…
               </p>
             ) : sections.length ? (
-              <div className="flex max-h-80 flex-col gap-4 overflow-y-auto p-1">
+              <div className="flex flex-col gap-4 p-1 sm:max-h-80 sm:overflow-y-auto">
                 {sections.map((section) => (
                   <section key={section.key} className="flex flex-col gap-2">
                     <h3 className="text-sm font-semibold">{section.heading}</h3>
@@ -916,49 +968,16 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
               </p>
             ) : null}
 
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) void handleUpload(file)
-                }}
-              />
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="gap-2"
-              >
-                {uploading ? <Spinner /> : <Upload className="h-4 w-4" />}
-                Lae üles
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={showGenerate ? 'secondary' : 'outline'}
-                onClick={openGenerate}
-                className="gap-2"
-              >
-                <Sparkles className="h-4 w-4" />
-                Loo AI-ga
-              </Button>
-              {banksWithItems.length > 0 && (
-                <p className="ml-auto text-[10px] text-slate-400">
-                  {banksWithItems.map((result) => BANK_LICENSES[result.bank]).join(' · ')}
-                </p>
-              )}
-            </div>
+            {banksWithItems.length > 0 && (
+              <p className="text-[10px] text-slate-400">
+                {banksWithItems.map((result) => BANK_LICENSES[result.bank]).join(' · ')}
+              </p>
+            )}
           </div>
 
           {/* AI generation */}
           {showGenerate && (
-            <div className="flex flex-col gap-3 rounded-xl border bg-slate-50 p-3">
+            <div ref={generatePanelRef} className="flex flex-col gap-3 rounded-xl border bg-slate-50 p-3">
               {hasQuery && ownAndLibraryCount > 0 && (
                 <p className="text-xs text-slate-600">
                   Sellele otsingule on juba {ownAndLibraryCount}{' '}
@@ -1043,7 +1062,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
           )}
         </div>
 
-        <DialogFooter className="mt-6 flex justify-end gap-2">
+        <DialogFooter className="shrink-0 flex-row justify-end gap-2 border-t bg-background px-4 py-3">
           <DialogClose asChild>
             <Button type="button" size="sm" variant="outline" disabled={saving}>
               Tühista

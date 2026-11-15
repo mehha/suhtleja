@@ -399,6 +399,48 @@ test.describe('board editor', () => {
     await expect(page.getByRole('heading', { level: 1, name: member.boardName })).toBeVisible()
   })
 
+  test('the card dialog keeps its buttons in reach over a long list of pictures', async ({ page, member, baseURL, viewport }) => {
+    // Forty pictures of the member's own, more than a screen of them.
+    const mine = Array.from({ length: 40 }, (_, index) => ({ id: `mine-${index}`, title: `pilt ${index + 1}`, preview: '/logo.png', source: 'mine' }))
+    await page.route('**/next/image-search**', (route) => route.fulfill({ json: { banks: [], library: [], mine } }))
+    const boardId = await createOwnBoard(page.request, `Pildid ${member.boardName}`, [{ title: 'kass' }])
+    await enterParentView(page, baseURL)
+    await page.goto(`/boards/${boardId}/edit`)
+    await page.getByRole('button', { name: 'Muuda kaarti' }).tap()
+    const dialog = page.getByRole('dialog', { name: 'Muuda' })
+    await expect(dialog.getByRole('button', { name: 'pilt 40' })).toBeAttached()
+
+    // "Salvesta" and "Tühista" stay at the dialog's bottom edge while the pictures scroll, and the
+    // dialog is the only thing that scrolls on a phone: no list scrolling inside it.
+    const save = dialog.getByRole('button', { name: 'Salvesta' })
+    await expect(save).toBeInViewport({ ratio: 1 })
+    await expect(dialog.getByRole('button', { name: 'Tühista' })).toBeInViewport({ ratio: 1 })
+    await dialog.getByRole('button', { name: 'pilt 40' }).scrollIntoViewIfNeeded()
+    await expect(save).toBeInViewport({ ratio: 1 })
+    if (Math.min(viewport!.width, viewport!.height) < 600) {
+      const scrollers = await dialog.evaluate((element) =>
+        [...element.querySelectorAll('*')].filter((child) => {
+          const overflow = getComputedStyle(child).overflowY
+          return (overflow === 'auto' || overflow === 'scroll') && child.scrollHeight > child.clientHeight + 1
+        }).length,
+      )
+      expect(scrollers, 'scrolling areas in the dialog').toBe(1)
+    }
+    // The other ways to a picture are with the search, above its results.
+    await dialog.getByRole('textbox', { name: 'Otsi pilti' }).scrollIntoViewIfNeeded()
+    await expect(dialog.getByRole('button', { name: 'Lae üles' })).toBeInViewport()
+    await expectTouchFriendly(page, 'card dialog with pictures')
+
+    // The picture part has its name, and its buttons say what they do.
+    await expect(dialog.getByText('Pilt', { exact: true })).toBeVisible()
+    await dialog.getByRole('textbox', { name: 'Otsi pilti' }).fill('koer')
+    await dialog.getByRole('button', { name: 'Pane tekstiks' }).tap()
+    await expect(dialog.getByRole('textbox', { name: 'Tekst', exact: true })).toHaveValue('koer')
+    await dialog.getByRole('textbox', { name: 'Tekst', exact: true }).fill('hobune')
+    await dialog.getByRole('button', { name: 'Otsi pilti selle tekstiga' }).tap()
+    await expect(dialog.getByRole('textbox', { name: 'Otsi pilti' })).toHaveValue('hobune')
+  })
+
   test('a deleted card comes back with "Võta tagasi", and emptying the board asks first', async ({
     page,
     member,
