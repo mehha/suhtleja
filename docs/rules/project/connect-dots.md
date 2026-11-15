@@ -102,6 +102,8 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
   - keep owner/private-vs-shared visibility rules intact
   - keep frontend route gating unchanged unless intentionally redesigned
 - When changing frontend authoring:
+  - Labels speak of the game, never of addresses or data: the `enabled` checkbox is `Mäng on kasutusel` ("Välja lülitatud mängu laps ei näe."), and the dot list names the dots (`Punkt 1`) without their coordinates.
+  - The picture is chosen with one button, `Vali pilt seadmest`, which opens a hidden file input and uploads the file at once (`Laen üles…` meanwhile). Don't show the browser's own file field: it says "Choose File" in the browser's language.
   - `createPuzzle` / `updatePuzzle` return an `ActionResult` on errors, which the editor shows as a toast while keeping the dots; on success they redirect to `/koduhaldus` with the `game-saved` toast (`feedback-toasts.md`).
   - keep parent-mode enforcement on list/create/edit/delete routes
   - keep non-admin users from changing global visibility

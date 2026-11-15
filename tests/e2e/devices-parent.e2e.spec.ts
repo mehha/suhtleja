@@ -708,6 +708,17 @@ test.describe('game editor', () => {
     await page.goto('/connect-dots/manage/new')
     await expect(page.getByLabel('Pealkiri')).toBeVisible()
     await expectTouchFriendlyBothWays(page, viewport, 'new game')
+
+    // One Estonian button picks the picture: no browser file field ("Choose File") beside a button
+    // that does nothing. The labels speak of the game, not of the page's address.
+    await pageReady(page)
+    const chooser = page.waitForEvent('filechooser')
+    await page.getByRole('button', { name: 'Vali pilt seadmest' }).tap()
+    await chooser
+    // The file field itself is there for the button and for screen readers only (1px).
+    expect((await page.locator('input[type="file"]').boundingBox())!.width).toBeLessThanOrEqual(1)
+    await expect(page.getByText('Mäng on kasutusel')).toBeVisible()
+    await expect(page.getByText('/connect-dots')).toHaveCount(0)
   })
 
   test('a tap on the picture adds a dot', async ({ page, member, baseURL, viewport }) => {
@@ -718,6 +729,9 @@ test.describe('game editor', () => {
     // The server already draws the dots; a tap before React takes over adds none (CI's WebKit).
     await pageReady(page)
     await expectTouchFriendlyBothWays(page, viewport, 'game editor')
+    // The list names the dots; their coordinates mean nothing to a parent.
+    await expect(page.getByRole('button', { name: 'Punkt 1', exact: true })).toBeVisible()
+    await expect(page.getByText(/\d\.\d{3}, \d\.\d{3}/)).toHaveCount(0)
 
     // A free spot in the lower left of the picture (the dots' layer covers it).
     const picture = page.locator('svg:has([data-dot-handle="true"])')

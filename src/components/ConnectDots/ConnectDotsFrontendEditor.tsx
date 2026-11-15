@@ -135,6 +135,7 @@ export function ConnectDotsFrontendEditor({
   const [symbolLoading, setSymbolLoading] = useState(false)
   const [symbolError, setSymbolError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
   const boardRef = useRef<HTMLDivElement | null>(null)
   const dotsRef = useRef<ConnectDotsPoint[]>(dots)
   const dragMovedRef = useRef(false)
@@ -533,11 +534,12 @@ export function ConnectDotsFrontendEditor({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-6 rounded-2xl border bg-card px-4 py-3">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border bg-card px-4 py-3">
         <label className="flex items-center gap-2 text-sm font-medium">
           <Checkbox checked={enabled} onCheckedChange={(checked) => setEnabled(checked === true)} />
-          <span>Nähtav /connect-dots lehel</span>
+          <span>Mäng on kasutusel</span>
         </label>
+        <p className="text-xs text-muted-foreground">Välja lülitatud mängu laps ei näe.</p>
 
         {canShareGlobally ? (
           <label className="flex items-center gap-2 text-sm font-medium">
@@ -711,9 +713,6 @@ export function ConnectDotsFrontendEditor({
                     type="button"
                   >
                     <span className={styles.dotLabel}>Punkt {index + 1}</span>
-                    <span className={styles.dotCoords}>
-                      {dot.x.toFixed(3)}, {dot.y.toFixed(3)}
-                    </span>
                   </button>
                 ))}
               </div>
@@ -736,25 +735,33 @@ export function ConnectDotsFrontendEditor({
                 </TabsList>
 
                 <TabsContent className="space-y-4" value="upload">
-                  <div className="space-y-2">
-                    <Label htmlFor="connect-dots-upload">Pildifail</Label>
-                    <Input
-                      id="connect-dots-upload"
-                      accept="image/*"
-                      disabled={uploading}
-                      onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                        const file = event.target.files?.[0]
-                        if (file) {
-                          void handleUpload(file)
-                          event.target.value = ''
-                        }
-                      }}
-                      type="file"
-                    />
-                  </div>
-                  <Button disabled={uploading} size="sm" type="button" variant="outline">
+                  {/* One button in Estonian. The browser's own file field said "Choose File" in English,
+                      and the button under it ("Vali fail ülal") did nothing. The picture uploads as
+                      soon as it is chosen. */}
+                  <input
+                    ref={uploadInputRef}
+                    accept="image/*"
+                    aria-label="Pildifail"
+                    className="sr-only"
+                    disabled={uploading}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      const file = event.target.files?.[0]
+                      if (file) {
+                        void handleUpload(file)
+                        event.target.value = ''
+                      }
+                    }}
+                    tabIndex={-1}
+                    type="file"
+                  />
+                  <Button
+                    disabled={uploading}
+                    onClick={() => uploadInputRef.current?.click()}
+                    type="button"
+                    variant="outline"
+                  >
                     <Upload className="mr-2 h-4 w-4" />
-                    {uploading ? 'Laen üles…' : 'Vali fail ülal'}
+                    {uploading ? 'Laen üles…' : 'Vali pilt seadmest'}
                   </Button>
                 </TabsContent>
 
