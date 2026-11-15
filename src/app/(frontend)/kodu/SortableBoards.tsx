@@ -104,8 +104,13 @@ function SortableBoardCard({
       tabIndex={0}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
-      className="relative flex aspect-[4/3] w-full min-w-0 cursor-pointer flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm ring-1 ring-gray-900/5"
+      // Two cards to a row on a phone, so the child sees four or six without scrolling: there the
+      // card is square (a 4:3 card half a phone wide left no room for the picture) with less padding.
+      className="relative flex aspect-square w-full min-w-0 cursor-pointer flex-col gap-2 rounded-xl border bg-white p-2 shadow-sm ring-1 ring-gray-900/5 xs:aspect-[4/3] xs:gap-3 xs:p-3"
     >
+      {/* The card's controls: the parent's (and an owner's edit link). The child's card has none,
+          so it has no row for them and the picture gets the room. */}
+      {canManage || board.canEdit ? (
       <TooltipProvider>
         <div className="flex items-center justify-between gap-2">
           {/* DRAG HANDLE – ainult parent mode saab sortida */}
@@ -129,7 +134,7 @@ function SortableBoardCard({
           )}
 
           {(canManage || board.canEdit) && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 xs:gap-2">
               {isAdmin && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -195,6 +200,7 @@ function SortableBoardCard({
           )}
         </div>
       </TooltipProvider>
+      ) : null}
 
       <div className="relative flex h-[calc(100%-50px)] w-full items-center justify-center overflow-hidden rounded-lg">
         {hasUploadImage ? (
@@ -216,8 +222,9 @@ function SortableBoardCard({
         )}
       </div>
 
-      <div className="flex-1 flex gap-2 items-center justify-between bg-gray-900/95 text-white py-1 px-3 shadow-sm ring-1 ring-gray-900/5 rounded-xl">
-        <h2 className="font-medium">{board.name}</h2>
+      <div className="flex-1 flex gap-2 items-center justify-between bg-gray-900/95 text-white py-1 px-2 shadow-sm ring-1 ring-gray-900/5 rounded-xl xs:px-3">
+        {/* Smaller on a phone's half-width card, on two lines at most; a long word breaks rather than spill. */}
+        <h2 className="line-clamp-2 min-w-0 break-words text-sm font-medium leading-tight xs:text-base xs:leading-normal">{board.name}</h2>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -226,7 +233,7 @@ function SortableBoardCard({
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
               >
-                <CircleArrowRight className="w-8 h-8 stroke-1 fill-pink-100 stroke-gray-900" />
+                <CircleArrowRight className="h-6 w-6 stroke-1 fill-pink-100 stroke-gray-900 xs:h-8 xs:w-8" />
               </span>
             </TooltipTrigger>
             <TooltipContent>
@@ -319,7 +326,7 @@ export function SortableBoards({
 
   if (!mounted) {
     return (
-      <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+      <ul className="grid grid-cols-2 gap-3 xs:gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
         {visibleItems.map((board) => (
           <SortableBoardCard
             key={board.id}
@@ -340,7 +347,7 @@ export function SortableBoards({
           items={visibleItems.map((item) => item.id)}
           strategy={rectSortingStrategy}
         >
-          <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+          <ul className="grid grid-cols-2 gap-3 xs:gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
             {visibleItems.map((board) => (
               <SortableBoardCard
                 key={board.id}

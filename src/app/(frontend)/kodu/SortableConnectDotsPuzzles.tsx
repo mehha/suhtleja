@@ -84,7 +84,9 @@ function SortablePuzzleCard({
       tabIndex={0}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
-      className="relative flex aspect-[4/3] w-full min-w-0 cursor-pointer flex-col gap-3 rounded-xl border bg-white p-3 shadow-sm ring-1 ring-gray-900/5"
+      // Two cards to a row on a phone, so the child sees four or six without scrolling: there the
+      // card is square (a 4:3 card half a phone wide left no room for the picture) with less padding.
+      className="relative flex aspect-square w-full min-w-0 cursor-pointer flex-col gap-2 rounded-xl border bg-white p-2 shadow-sm ring-1 ring-gray-900/5 xs:aspect-[4/3] xs:gap-3 xs:p-3"
     >
       <TooltipProvider>
         <div className="flex items-center justify-between gap-2">
@@ -124,7 +126,7 @@ function SortablePuzzleCard({
             </Tooltip>
 
             {(canManage || puzzle.canEdit) && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 xs:gap-2">
                 {isAdmin && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -196,8 +198,8 @@ function SortablePuzzleCard({
         <img src={puzzle.imageUrl} alt={puzzle.title} className="h-full w-full object-contain" />
       </div>
 
-      <div className="flex flex-1 items-center justify-between gap-2 rounded-xl bg-gray-900/95 px-3 py-1 text-white shadow-sm ring-1 ring-gray-900/5">
-        <h2 className="font-medium">{puzzle.title}</h2>
+      <div className="flex flex-1 items-center justify-between gap-2 rounded-xl bg-gray-900/95 px-2 py-1 text-white shadow-sm ring-1 ring-gray-900/5 xs:px-3">
+        <h2 className="line-clamp-2 min-w-0 break-words text-sm font-medium leading-tight xs:text-base xs:leading-normal">{puzzle.title}</h2>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -206,7 +208,7 @@ function SortablePuzzleCard({
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
               >
-                <CircleArrowRight className="h-8 w-8 fill-pink-100 stroke-gray-900 stroke-1" />
+                <CircleArrowRight className="h-6 w-6 fill-pink-100 stroke-gray-900 stroke-1 xs:h-8 xs:w-8" />
               </span>
             </TooltipTrigger>
             <TooltipContent>
@@ -298,7 +300,7 @@ export function SortableConnectDotsPuzzles({
 
   if (!mounted) {
     return (
-      <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+      <ul className="grid grid-cols-2 gap-3 xs:gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
         {visibleItems.map((puzzle) => (
           <SortablePuzzleCard
             key={puzzle.id}
@@ -316,7 +318,7 @@ export function SortableConnectDotsPuzzles({
     <>
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleItems.map((item) => item.id)} strategy={rectSortingStrategy}>
-          <ul className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+          <ul className="grid grid-cols-2 gap-3 xs:gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
             {visibleItems.map((puzzle) => (
               <SortablePuzzleCard
                 key={puzzle.id}

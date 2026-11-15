@@ -195,4 +195,6 @@ tags: [suhtleja, frontend, boards, payload]
   - Keep keyboard navigation and drag behavior usable.
   - Pass the same ids, of the same type, to `SortableContext` `items` and to `useSortable({ id })`. dnd-kit compares them with `indexOf`, so a string `'9'` never matches a number `9`: the drop still reorders, but no card moves during the drag.
   - Validate image fallback behavior for missing board visuals.
-  - Use responsive grid columns for the home card lists rather than fixed card widths so mobile can render one column and wider screens can expand naturally.
+  - Use responsive grid columns for the home card lists rather than fixed card widths: two columns on a phone, three from `sm`, up to six on wide screens. One column on a phone made the child scroll a screen for each board.
+  - On a phone (under the `xs` breakpoint, 440px) a home card is square with 8px padding, a 14px name on two lines at most and a 24px arrow: a 4:3 card half a phone wide left no room for the picture. From `xs` it is 4:3 as before.
+  - A board card's top row (grip, shared mark, edit, remove) is rendered only when it has something in it: the child's card has no controls, so the picture gets the row's room. A game card keeps its row for the game's mark.

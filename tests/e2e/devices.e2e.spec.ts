@@ -166,6 +166,20 @@ test.describe('child home', () => {
         const card = page.getByRole('button').filter({ hasText: member.boardName })
         await expectOnScreen(page, card, 'board card')
         await expectFingerSized(card, 'board card')
+        // Cards stand side by side on every screen, two to a row on a phone: one to a row made the
+        // child scroll a screen for each board. Each card still has room for its picture.
+        const cards = await page.locator('main ul').first().locator('> li').evaluateAll((items) =>
+          items.map((item) => {
+            const { top, width } = item.getBoundingClientRect()
+            const picture = item.querySelector('img, svg')!.parentElement!.getBoundingClientRect()
+            return { top: Math.round(top), width, pictureHeight: picture.height }
+          }),
+        )
+        expect(cards.length, 'board cards').toBeGreaterThanOrEqual(2)
+        expect(cards[1]!.top, `second card beside the first, ${name}`).toBe(cards[0]!.top)
+        for (const [index, { pictureHeight }] of cards.entries()) {
+          expect(pictureHeight, `card ${index + 1}: picture height, ${name}`).toBeGreaterThanOrEqual(70)
+        }
         await expectTouchFriendly(page, `child home, ${name}`)
       })
     }
