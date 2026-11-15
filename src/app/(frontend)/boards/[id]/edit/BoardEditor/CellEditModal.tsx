@@ -3,7 +3,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
-import { ArrowLeft, CornerLeftUp, LayoutGrid, Search, Sparkles, Upload } from 'lucide-react'
+import { ArrowLeft, CornerLeftUp, LayoutGrid, Search, Sparkles, Trash, Upload } from 'lucide-react'
 
 import { getClientSideURL } from '@/utilities/getURL'
 import { cn } from '@/utilities/ui'
@@ -116,6 +116,8 @@ type CellEditModalProps = {
       }
     | null
   onSaveAction: (cellId: string, patch: CellImagePatch) => void
+  // Takes the card off the board (the editor shows its "Võta tagasi" toast) and closes the dialog.
+  onDeleteAction?: (cellId: string) => void
   // The board's word forms (extra.grammar): the dialog shows a verb card's forms.
   grammar?: boolean
   // Boards the card can open.
@@ -206,6 +208,7 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
   onOpenChange,
   cell,
   onSaveAction,
+  onDeleteAction,
   grammar = true,
   linkableBoards = [],
 }) => {
@@ -1063,6 +1066,21 @@ export const CellEditModal: React.FC<CellEditModalProps> = ({
         </div>
 
         <DialogFooter className="shrink-0 flex-row justify-end gap-2 border-t bg-background px-4 py-3">
+          {/* Apart from the other two, on the left: on a phone the card has no delete button of its
+              own (the editor's whole card opens this dialog). */}
+          {onDeleteAction && cell ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={saving}
+              onClick={() => onDeleteAction(cell.id)}
+              className="mr-auto gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+            >
+              <Trash className="h-4 w-4" aria-hidden="true" />
+              Kustuta kaart
+            </Button>
+          ) : null}
           <DialogClose asChild>
             <Button type="button" size="sm" variant="outline" disabled={saving}>
               Tühista

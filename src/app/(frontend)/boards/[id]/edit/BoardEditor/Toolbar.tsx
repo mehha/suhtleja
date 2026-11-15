@@ -540,7 +540,8 @@ export function BoardEditorToolbar({
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button variant="destructive" size="xs" type="button" disabled={cellCount === 0}>
-            <Trash width={16} /> Kustuta kõik kastid
+            {/* One word shorter on a phone, so the three buttons share a row; the name stays whole. */}
+            <Trash width={16} /> Kustuta kõik<span className="max-sm:sr-only"> kastid</span>
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>

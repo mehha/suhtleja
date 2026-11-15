@@ -179,6 +179,9 @@ export default function BoardEditor({
   // be mapped back to the board's own columns without moving and widening every cell, so the
   // layout is read-only until the screen is wide enough.
   const layoutLocked = activeGridCols !== cols
+  // A phone's cards are about 110px wide: the edit and delete buttons covered half the picture.
+  // There the whole card is the edit button, and "Kustuta kaart" is in the card's dialog.
+  const compactCells = gridWidth > 0 && gridWidth < 640
   const rowHeight = useMemo(() => {
     if (!gridWidth) return 140
 
@@ -285,8 +288,10 @@ export default function BoardEditor({
   return (
     <TooltipProvider>
       <div className="space-y-2">
-        <div className="xl:container mb-10">
-          <div className="mb-10 flex flex-wrap items-center justify-between gap-2">
+        {/* Tighter on a phone, where the title, the buttons and the toolbar took the whole first
+            screen before a single card showed. */}
+        <div className="xl:container mb-4 sm:mb-10">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 sm:mb-10">
             {/* Title + edit */}
             <div className="flex items-center gap-2">
               {isEditingTitle ? (
@@ -583,9 +588,10 @@ export default function BoardEditor({
           </div>
         )}
 
-        {layoutLocked ? (
+        {compactCells || layoutLocked ? (
           <p className="container text-sm text-muted-foreground">
-            Kaartide liigutamiseks ja suuruse muutmiseks ava tahvel laiemal ekraanil.
+            {compactCells ? 'Kaardi muutmiseks puuduta seda. ' : null}
+            {layoutLocked ? 'Kaartide liigutamiseks ja suuruse muutmiseks ava tahvel laiemal ekraanil.' : null}
           </p>
         ) : null}
 
@@ -640,6 +646,7 @@ export default function BoardEditor({
                     </span>
                   )}
 
+                  {compactCells ? null : (
                   <div className="board-cell-controls absolute right-2 top-2 z-10 flex gap-1">
                     <Button
                       type="button"
@@ -671,6 +678,7 @@ export default function BoardEditor({
                       <Trash className="h-4 w-4" />
                     </Button>
                   </div>
+                  )}
 
                   {opens ? (
                     <span
@@ -695,6 +703,17 @@ export default function BoardEditor({
                       alone={!cellImageSrc(cell)}
                     />
                   )}
+
+                  {/* On a phone the whole card opens its dialog. Last, so it lies over the picture
+                      and the word; the grip and the resize corner (z-10) keep their own taps. */}
+                  {compactCells ? (
+                    <button
+                      type="button"
+                      className="absolute inset-0 rounded-xl"
+                      aria-label="Muuda kaarti"
+                      onClick={() => setEditingCellId(cell.id)}
+                    />
+                  ) : null}
                 </div>
                 )
               })}
@@ -724,6 +743,11 @@ export default function BoardEditor({
           }
           linkableBoards={linkableBoards}
           onSaveAction={handleModalSave}
+          onDeleteAction={(cellId) => {
+            const deleted = cells.find((cell) => cell.id === cellId)
+            setEditingCellId(null)
+            if (deleted) handleDeleteCell(deleted)
+          }}
           grammar={grammar}
         />
 

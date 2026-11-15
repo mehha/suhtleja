@@ -467,8 +467,13 @@ test.describe('board editor', () => {
     page,
     member,
     baseURL,
+    viewport,
   }) => {
     const words = ['mina', 'tahan', 'kass', 'koer']
+    // A phone's cards are small: the whole card opens its dialog, which has "Kustuta kaart"; a
+    // wider screen has the button on the card.
+    await page.route('**/next/image-search**', (route) => route.fulfill({ json: { banks: [], library: [], mine: [] } }))
+    const phone = Math.min(viewport!.width, viewport!.height) < 600
     const boardId = await createOwnBoard(page.request, `Kustutamine ${member.boardName}`, words.map((title) => ({ title })))
     await enterParentView(page, baseURL)
     await page.goto(`/boards/${boardId}/edit`)
@@ -491,8 +496,16 @@ test.describe('board editor', () => {
     const before = await places()
 
     // The delete button is small and next to the edit button: a slip is put right from the toast.
-    await card('tahan').getByRole('button', { name: 'Kustuta kaart' }).tap()
-    await card('kass').getByRole('button', { name: 'Kustuta kaart' }).tap()
+    const deleteCard = async (word: string) => {
+      if (!phone) return card(word).getByRole('button', { name: 'Kustuta kaart' }).tap()
+      await expect(card(word).getByRole('button', { name: 'Kustuta kaart' })).toHaveCount(0)
+      await card(word).getByRole('button', { name: 'Muuda kaarti' }).tap()
+      const dialog = page.getByRole('dialog', { name: 'Muuda' })
+      await dialog.getByRole('button', { name: 'Kustuta kaart' }).tap()
+      await expect(dialog).toBeHidden()
+    }
+    await deleteCard('tahan')
+    await deleteCard('kass')
     await expect(cards).toHaveCount(2)
     const undo = page.getByRole('button', { name: 'Võta tagasi' })
     await expect(page.getByText('Kaart „kass“ kustutati.')).toBeVisible()
