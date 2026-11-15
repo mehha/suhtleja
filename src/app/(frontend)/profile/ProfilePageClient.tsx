@@ -13,7 +13,7 @@ import { PIN_SETTINGS_ID } from '@/utilities/parentPin'
 import { withToast } from '@/utilities/flashToast'
 import { MEMBERSHIP_TRIAL_DAYS } from '@/utilities/membershipCheckout'
 import { startMembershipTrial } from '@/utilities/startMembershipTrial'
-import { Loader2, ShieldCheck, CircleSlash } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 const initialState = {
   success: false,
@@ -246,44 +246,34 @@ export function ProfilePageClient({
           </div>
 
           {checkoutError && <p className="text-sm text-red-500">{checkoutError}</p>}
-          <Button
-            type="button"
-            onClick={isTrialEligible ? startTrial : startMembershipCheckout}
-            disabled={Boolean(checkoutLoading) || hasMembershipAccess}
-            className="gap-2"
-          >
-            {checkoutLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {checkoutLoading === 'trial' ? 'Alustan prooviperioodi…' : 'Suunan checkouti...'}
-              </>
-            ) : isPendingCancellation ? (
-              <>
-                <CircleSlash className="h-4 w-4" />
-                Tühistatud perioodi lõpus
-              </>
-            ) : hasMembershipAccess ? (
-              <>
-                <ShieldCheck className="h-4 w-4" />
-                Liikmelisus aktiivne
-              </>
-            ) : isTrialEligible ? (
-              `Alusta tasuta prooviperioodi (${MEMBERSHIP_TRIAL_DAYS} päeva)`
-            ) : (
-              'Alusta liikmelisust'
+          {/* The status is the text above. A member gets no greyed-out "Liikmelisus aktiivne"
+              button here: it looked like something to press that didn't work. */}
+          <div className="flex flex-wrap gap-2">
+            {!hasMembershipAccess && (
+              <Button
+                type="button"
+                onClick={isTrialEligible ? startTrial : startMembershipCheckout}
+                disabled={Boolean(checkoutLoading)}
+                className="gap-2"
+              >
+                {checkoutLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {checkoutLoading === 'trial' ? 'Alustan prooviperioodi…' : 'Suunan checkouti...'}
+                  </>
+                ) : isTrialEligible ? (
+                  `Alusta tasuta prooviperioodi (${MEMBERSHIP_TRIAL_DAYS} päeva)`
+                ) : (
+                  'Alusta liikmelisust'
+                )}
+              </Button>
             )}
-          </Button>
-          {canManageMembership && isParentMode && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={openMembershipPortal}
-              disabled={portalLoading}
-              className="ms-2"
-            >
-              {portalLoading ? 'Avan halduse...' : 'Halda liikmelisust'}
-            </Button>
-          )}
+            {canManageMembership && isParentMode && (
+              <Button type="button" variant="outline" onClick={openMembershipPortal} disabled={portalLoading}>
+                {portalLoading ? 'Avan halduse...' : 'Halda liikmelisust'}
+              </Button>
+            )}
+          </div>
           {canManageMembership && !isParentMode && (
             <p className="text-sm text-muted-foreground">
               Liikmelisuse haldamiseks ava vanema vaade (ülal paremal).

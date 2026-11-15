@@ -518,7 +518,7 @@ export default async function HomePage() {
           <>
             <p className="text-muted-foreground">Sul pole veel midagi lisatud kodu vaatesse.</p>
             {!isParentMode && (
-              <p className="text-muted-foreground">Lisamiseks lülituse vanema vaatesse</p>
+              <p className="text-muted-foreground">Lisamiseks ava vanema vaade.</p>
             )}
           </>
         ) : (

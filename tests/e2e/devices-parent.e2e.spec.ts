@@ -164,6 +164,9 @@ test.describe('profile', () => {
     await page.goto('/profile')
     await expectTouchFriendlyBothWays(page, viewport, 'profile, parent view')
     await expectOnScreen(page, page.getByRole('button', { name: 'Halda liikmelisust' }), 'Halda liikmelisust')
+    // The membership's state is text ("Staatus: …"), not a greyed-out button that looks pressable.
+    await expect(page.getByText('Staatus: Prooviperiood')).toBeVisible()
+    await expect(page.getByRole('button', { name: /Liikmelisus aktiivne|Alusta/ })).toHaveCount(0)
 
     const name = page.getByLabel('Nimi')
     await name.tap()
