@@ -610,6 +610,22 @@ test.describe('board editor', () => {
     expect(reset.status(), await reset.text()).toBe(200)
   })
 
+  test('the footer scrolls clear of the phrase bar in the parent view', async ({ page, member, baseURL }) => {
+    // The parent view has the site's footer after the board, and the bar is fixed to the bottom.
+    await enterParentView(page, baseURL)
+    await page.goto(`/boards/${member.boardId}`)
+    const bar = page.locator('.actionbar-container > div')
+    await expect(bar).toBeVisible()
+    await expect(async () => {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+      const barTop = (await bar.boundingBox())!.y
+      const linksBottom = await page
+        .locator('footer a')
+        .evaluateAll((links) => Math.max(...links.map((link) => link.getBoundingClientRect().bottom)))
+      expect(linksBottom, 'footer links above the phrase bar').toBeLessThanOrEqual(barTop)
+    }).toPass({ timeout: 5_000 })
+  })
+
   test('a board prints in its own layout, without the page around it', async ({ page, member, baseURL }) => {
     await enterParentView(page, baseURL)
     await page.goto(`/boards/${member.boardId}`)

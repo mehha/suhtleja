@@ -276,6 +276,15 @@ export default function Runner({
 
     return () => observer.disconnect()
   }, [])
+  // In the parent view the site's footer comes after the board, and the bar sat on top of its
+  // links, which could not be scrolled clear of it. The footer leaves the bar's height under its
+  // links (--fixed-bar-height, read in Footer/Component.tsx). The child view has no footer.
+  useEffect(() => {
+    if (!isParentMode || !actionBarHeight) return
+    const root = document.documentElement
+    root.style.setProperty('--fixed-bar-height', `${actionBarHeight}px`)
+    return () => void root.style.removeProperty('--fixed-bar-height')
+  }, [actionBarHeight, isParentMode])
 
   const squareRowHeight = useMemo(() => {
     if (!gridWidth) return 140

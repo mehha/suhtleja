@@ -14,7 +14,9 @@ export async function Footer() {
   const navItems = footerData?.navItems || []
 
   return (
-    <footer className="mt-auto bg-[#22314c] text-white dark:bg-card">
+    // A page with a bar fixed to the bottom edge (the board's phrase bar in the parent view) sets
+    // --fixed-bar-height, so the footer's links can be scrolled clear of the bar.
+    <footer className="mt-auto bg-[#22314c] pb-[var(--fixed-bar-height,0px)] text-white dark:bg-card">
       <div className="container flex flex-col gap-8 py-8 lg:flex-row lg:items-center lg:justify-between">
         <Link className="flex items-center" href="/">
           <Logo className="rounded-[22px] bg-white px-3 py-2 shadow-[0_10px_30px_rgba(15,23,42,0.22)]" />
