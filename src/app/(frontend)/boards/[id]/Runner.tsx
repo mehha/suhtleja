@@ -123,6 +123,8 @@ export default function Runner({
   const router = useRouter()
   // UUS: hoiame cellId + teksti
   const [sequence, setSequence] = useState<SequenceItem[]>([])
+  // The phrase the bin emptied, which undo brings back (see handleClear).
+  const [clearedSequence, setClearedSequence] = useState<SequenceItem[] | null>(null)
   const [activeCellId, setActiveCellId] = useState<string | null>(null)
   const [phrasePlaying, setPhrasePlaying] = useState(false)
   const [tempLabel, setTempLabel] = useState<{ id: string; text: string } | null>(null)
@@ -579,6 +581,7 @@ export default function Runner({
       // The word joins the phrase at once, so the next tap builds on it even while this one waits
       // for the word forms below.
       setSequence(nextSequence)
+      setClearedSequence(null)
       setActiveCellId(cellId)
 
       // The words as the sentence says them (word forms), then compounds, which are off with AI on.
@@ -648,13 +651,27 @@ export default function Runner({
     }
   }
 
+  // The bin empties the whole phrase on one tap, right beside the undo button, so undo also takes
+  // that back: the emptied phrase is kept until the child taps a card (a new phrase has begun).
   const handleClear = () => {
+    if (!sequence.length) return
+    setClearedSequence(sequence)
     setSequence([])
     setTempLabel(null)
   }
 
+  // Undo has a word to take back, or an emptied phrase to bring back.
+  const canUndo = sequence.length > 0 || clearedSequence !== null
+
   const handleUndoLast = () => {
-    if (!sequence.length || phrasePlaying) return
+    if (phrasePlaying) return
+    if (!sequence.length) {
+      if (clearedSequence) {
+        setSequence(clearedSequence)
+        setClearedSequence(null)
+      }
+      return
+    }
 
     setSequence((prev) => {
       const next = prev.slice(0, -1)
@@ -988,9 +1005,9 @@ export default function Runner({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant={sequence.length && !phrasePlaying ? 'secondary' : 'muted'}
+                      variant={canUndo && !phrasePlaying ? 'secondary' : 'muted'}
                       size="icon"
-                      disabled={!sequence.length || phrasePlaying}
+                      disabled={!canUndo || phrasePlaying}
                       onClick={handleUndoLast}
                       aria-label="Võta viimane tagasi"
                       roundness="full"
@@ -1001,11 +1018,13 @@ export default function Runner({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      {!sequence.length
+                      {!canUndo
                         ? 'Pole midagi tagasi võtta'
                         : phrasePlaying
                           ? 'Oota, heli mängib'
-                          : 'Võta viimane tagasi'}
+                          : sequence.length
+                            ? 'Võta viimane tagasi'
+                            : 'Too tühjendatud fraas tagasi'}
                     </p>
                   </TooltipContent>
                 </Tooltip>

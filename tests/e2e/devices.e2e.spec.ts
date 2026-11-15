@@ -295,6 +295,17 @@ test.describe('board', () => {
     await clear.tap()
     await expect(bar.getByText('Vali pilte, et fraasi koostada')).toBeVisible()
     await expect(page.getByText('Heli ei õnnestunud')).toHaveCount(0)
+
+    // The bin is one tap beside the undo button, so undo brings the emptied phrase back.
+    await undo.tap()
+    await expect(bar).toContainText(/mina.*tahan/)
+    // Once the child taps a card after emptying, a new phrase has begun: undo takes that word
+    // back and has nothing more to bring back.
+    await clear.tap()
+    await page.getByRole('button', { name: 'sina', exact: true }).tap()
+    await undo.tap()
+    await expect(bar.getByText('Vali pilte, et fraasi koostada')).toBeVisible()
+    await expect(undo).toBeDisabled()
   })
 
   test('a tapped tile does not stay highlighted', async ({ page, member }) => {
