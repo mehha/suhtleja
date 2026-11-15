@@ -17,6 +17,7 @@ tags: [suhtleja, frontend, ui, sonner]
 - Errors: a failed user action always toasts, with a retry hint. It must not fall through to the error page or fail silently.
 - Messages that belong to a field (wrong PIN, missing name, login and registration errors) stay inline next to the field.
 - Child view (`/kodu` in child mode, the board player, the game): no success toasts. The only toast is the speech error in `Runner.tsx` ("Heli ei õnnestunud. Puuduta uuesti.", id `tts`), so a tap that made no sound isn't silent.
+- Undo: a delete that takes effect at once and can be put back shows a toast with a `Võta tagasi` action instead of asking first (a card in the board editor, see `boards.md`). The Toaster makes Sonner's action button 36px tall with 14px text, for a finger. A delete that can't be put back asks first in an `AlertDialog`.
 - Copy is Estonian and short. Users see "tahvel" and "mäng", never "puzzle" or "Connect Dots".
 
 ## How

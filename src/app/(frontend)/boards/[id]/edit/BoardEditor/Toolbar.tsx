@@ -1,7 +1,18 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -29,7 +40,7 @@ type ToolbarProps = {
     }>,
   ) => void
   onClearAction: () => void
-  disableClear: boolean
+  cellCount: number
 }
 
 type TextCellImageMatch = {
@@ -198,7 +209,7 @@ export function BoardEditorToolbar({
   onAddBlockAction,
   onAddTextCellsAction,
   onClearAction,
-  disableClear,
+  cellCount,
 }: ToolbarProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [mode, setMode] = useState<'block' | 'text'>('block')
@@ -525,15 +536,29 @@ export function BoardEditorToolbar({
         </DialogContent>
       </Dialog>
 
-      <Button
-        variant="destructive"
-        size="xs"
-        type="button"
-        onClick={onClearAction}
-        disabled={disableClear}
-      >
-        <Trash width={16} /> Kustuta kõik kastid
-      </Button>
+      {/* Asks first: the button sits among the buttons that add cards, and one tap emptied the board. */}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" size="xs" type="button" disabled={cellCount === 0}>
+            <Trash width={16} /> Kustuta kõik kastid
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kustuta kõik kastid?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tahvel jääb tühjaks: kõik kaardid ({cellCount}) eemaldatakse. Tagasi saab need ainult siis, kui lahkud
+              lehelt salvestamata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Loobu</AlertDialogCancel>
+            <AlertDialogAction className={buttonVariants({ variant: 'destructive' })} onClick={onClearAction}>
+              Kustuta kõik
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

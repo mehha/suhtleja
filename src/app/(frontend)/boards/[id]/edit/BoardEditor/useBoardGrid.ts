@@ -1,7 +1,7 @@
 // src/components/BoardEditor/useBoardGrid.ts
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { Layout } from 'react-grid-layout'
 import type { Board } from '@/payload-types'
 import { getClientSideURL } from '@/utilities/getURL'
@@ -25,6 +25,40 @@ type BulkTextCellInput = {
 }
 
 type LayoutShape = Pick<Layout, 'i' | 'x' | 'y' | 'w' | 'h'>
+
+type CellPlace = Pick<LocalCell, 'x' | 'y' | 'w' | 'h'>
+
+// A card taken off the board, kept so "Võta tagasi" can put it back: the card, where it stood in
+// the list, and every card's place before it went. The grid closes the gap a deleted card leaves
+// (the cards under it move up), so putting it back also puts the others back where they were.
+export type DeletedCell = { cell: LocalCell; index: number; places: Map<string, CellPlace> }
+
+export function removeCell(cells: LocalCell[], cellId: string): { cells: LocalCell[]; deleted: DeletedCell | null } {
+  const index = cells.findIndex((cell) => cell.id === cellId)
+  if (index === -1) return { cells, deleted: null }
+
+  return {
+    cells: cells.filter((cell) => cell.id !== cellId),
+    deleted: {
+      cell: cells[index],
+      index,
+      places: new Map(cells.map(({ id, x, y, w, h }) => [id, { x, y, w, h }])),
+    },
+  }
+}
+
+// The cards as they are now (a title or a picture changed since stays changed, a card added since
+// stays), in the places they had before the card was deleted, with the card back among them.
+export function restoreCell(cells: LocalCell[], { cell, index, places }: DeletedCell): LocalCell[] {
+  const restored = cells
+    .filter((current) => current.id !== cell.id)
+    .map((current) => {
+      const place = places.get(current.id)
+      return place ? { ...current, ...place } : current
+    })
+  restored.splice(Math.min(index, restored.length), 0, cell)
+  return restored
+}
 
 function toLayoutShape(cell: LocalCell): LayoutShape {
   return {
@@ -279,9 +313,32 @@ export function useBoardGrid(board: Board) {
     [baseCols, cells],
   )
 
-  const deleteCell = useCallback((cellId: string) => {
-    setCells((prev) => prev.filter((c) => c.id !== cellId))
+  // The cards deleted while the "Kaart kustutati" toast is up, newest last.
+  const deletedCellsRef = useRef<DeletedCell[]>([])
+
+  const deleteCell = useCallback(
+    (cellId: string) => {
+      const { cells: remaining, deleted } = removeCell(cells, cellId)
+      if (!deleted) return
+      deletedCellsRef.current.push(deleted)
+      setCells(remaining)
+      setDirty(true)
+    },
+    [cells],
+  )
+
+  // Puts the last deleted card back and returns the one deleted before it, if any, so the toast
+  // can offer that one next.
+  const restoreDeletedCell = useCallback((): LocalCell | null => {
+    const deleted = deletedCellsRef.current.pop()
+    if (!deleted) return null
+    setCells((prev) => restoreCell(prev, deleted))
     setDirty(true)
+    return deletedCellsRef.current.at(-1)?.cell ?? null
+  }, [])
+
+  const forgetDeletedCells = useCallback(() => {
+    deletedCellsRef.current = []
   }, [])
 
   const updateCellAction = useCallback((cellId: string, patch: Partial<LocalCell>) => {
@@ -290,6 +347,7 @@ export function useBoardGrid(board: Board) {
   }, [])
 
   const clearGrid = useCallback(() => {
+    deletedCellsRef.current = []
     setCells([])
     setDirty(true)
   }, [])
@@ -346,6 +404,8 @@ export function useBoardGrid(board: Board) {
     appendBlock,
     appendTextCells,
     deleteCell,
+    restoreDeletedCell,
+    forgetDeletedCells,
     clearGrid,
     updateCellAction,
     updateActionBar,

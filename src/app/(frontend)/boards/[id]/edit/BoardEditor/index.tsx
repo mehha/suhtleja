@@ -41,6 +41,7 @@ const TOGGLE_CARD_CLASS = 'flex items-center gap-2 rounded-xl border bg-card px-
 const GRID_MARGIN: [number, number] = [16, 16]
 // The narrowest cell that still fits its grip and buttons.
 const MIN_CELL_WIDTH = 96
+const DELETED_CELL_TOAST = 'board-cell-deleted'
 
 const layoutsMatch = (a: Layout[], b: Layout[]) => {
   if (a.length !== b.length) return false
@@ -124,6 +125,8 @@ export default function BoardEditor({
     appendBlock,
     appendTextCells,
     deleteCell,
+    restoreDeletedCell,
+    forgetDeletedCells,
     clearGrid,
     updateCellAction,
     actionBar,
@@ -190,6 +193,40 @@ export default function BoardEditor({
 
     onLayoutChange(nextLayout)
   }
+
+  // A deleted card can be put back while this toast is up (8 s): the delete button is 28px, right
+  // next to the edit button, and a slip must not cost a card. Several deletes in a row come back
+  // one by one, newest first; once the toast goes, they are gone.
+  const showDeletedCellToast = (cell: { title?: string | null }) => {
+    const title = cell.title?.trim()
+    toast(title ? `Kaart „${title}“ kustutati.` : 'Kaart kustutati.', {
+      id: DELETED_CELL_TOAST,
+      duration: 8000,
+      action: {
+        label: 'Võta tagasi',
+        onClick: (event) => {
+          const previous = restoreDeletedCell()
+          if (!previous) return
+          // Keeps the toast open (Sonner closes it after its button otherwise), now for the card
+          // deleted before this one.
+          event.preventDefault()
+          showDeletedCellToast(previous)
+        },
+      },
+      onAutoClose: forgetDeletedCells,
+      onDismiss: forgetDeletedCells,
+    })
+  }
+  const handleDeleteCell = (cell: { id: string; title?: string | null }) => {
+    deleteCell(cell.id)
+    showDeletedCellToast(cell)
+  }
+  const handleClearGrid = () => {
+    toast.dismiss(DELETED_CELL_TOAST)
+    clearGrid()
+  }
+  // The toast doesn't outlive the editor: its button would put a card back on a page that is gone.
+  useEffect(() => () => void toast.dismiss(DELETED_CELL_TOAST), [])
 
   const currentEditingCell =
     editingCellId != null ? (cells.find((c) => c.id === editingCellId) ?? null) : null
@@ -355,8 +392,8 @@ export default function BoardEditor({
               onAddCellAction={addCell}
               onAddBlockAction={appendBlock}
               onAddTextCellsAction={appendTextCells}
-              onClearAction={clearGrid}
-              disableClear={cells.length === 0}
+              onClearAction={handleClearGrid}
+              cellCount={cells.length}
             />
             <div className="flex items-center gap-3">
               <form
@@ -601,7 +638,7 @@ export default function BoardEditor({
                       onClick={(e) => {
                         e.stopPropagation()
                         e.preventDefault()
-                        deleteCell(cell.id)
+                        handleDeleteCell(cell)
                       }}
                     >
                       <Trash className="h-4 w-4" />

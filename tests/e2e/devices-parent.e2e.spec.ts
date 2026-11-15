@@ -396,6 +396,65 @@ test.describe('board editor', () => {
     await expect(page.getByRole('heading', { level: 1, name: member.boardName })).toBeVisible()
   })
 
+  test('a deleted card comes back with "Võta tagasi", and emptying the board asks first', async ({
+    page,
+    member,
+    baseURL,
+  }) => {
+    const words = ['mina', 'tahan', 'kass', 'koer']
+    const boardId = await createOwnBoard(page.request, `Kustutamine ${member.boardName}`, words.map((title) => ({ title })))
+    await enterParentView(page, baseURL)
+    await page.goto(`/boards/${boardId}/edit`)
+
+    const cards = page.locator('.board-editor-grid > .react-grid-item')
+    const card = (word: string) => cards.filter({ hasText: word })
+    // Where each card stands in the grid, by its word: a card that comes back stands where it stood.
+    // (On the page the grid itself moves down once the editor has unsaved changes.)
+    const places = () =>
+      cards.evaluateAll((items) =>
+        Object.fromEntries(
+          items.map((item) => {
+            const grid = item.parentElement!.getBoundingClientRect()
+            const { x, y } = item.getBoundingClientRect()
+            return [item.textContent?.trim().toLowerCase(), `${Math.round(x - grid.x)},${Math.round(y - grid.y)}`]
+          }),
+        ),
+      )
+    await expect(cards).toHaveCount(4)
+    const before = await places()
+
+    // The delete button is small and next to the edit button: a slip is put right from the toast.
+    await card('tahan').getByRole('button', { name: 'Kustuta kaart' }).tap()
+    await card('kass').getByRole('button', { name: 'Kustuta kaart' }).tap()
+    await expect(cards).toHaveCount(2)
+    const undo = page.getByRole('button', { name: 'Võta tagasi' })
+    await expect(page.getByText('Kaart „kass“ kustutati.')).toBeVisible()
+    await expectTouchFriendly(page, 'board editor with the deleted card toast')
+
+    // The cards come back one by one, the last deleted first, each to its own place.
+    await undo.tap()
+    await expect(card('kass')).toBeVisible()
+    await expect(page.getByText('Kaart „tahan“ kustutati.')).toBeVisible()
+    await undo.tap()
+    await expect(cards).toHaveCount(4)
+    await expect(undo).toBeHidden()
+    await expect.poll(places).toEqual(before)
+
+    // "Kustuta kõik kastid" sits among the buttons that add cards, so it asks first.
+    await page.getByRole('button', { name: 'Kustuta kõik kastid' }).tap()
+    const confirm = page.getByRole('alertdialog', { name: 'Kustuta kõik kastid?' })
+    await expect(confirm).toContainText('kõik kaardid (4)')
+    await expectOnScreen(page, confirm, 'delete all dialog')
+    await expectTouchFriendly(page, 'delete all dialog')
+    await confirm.getByRole('button', { name: 'Loobu' }).tap()
+    await expect(cards).toHaveCount(4)
+
+    await page.getByRole('button', { name: 'Kustuta kõik kastid' }).tap()
+    await confirm.getByRole('button', { name: 'Kustuta kõik' }).tap()
+    await expect(cards).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Kustuta kõik kastid' })).toBeDisabled()
+  })
+
   test('the card dialog suggests a word class, and the card keeps the one the parent picks', async ({
     page,
     member,
