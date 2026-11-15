@@ -586,6 +586,11 @@ test.describe('parent view', () => {
     await page.keyboard.type(DEFAULT_PIN === '1111' ? '2222' : '1111')
     await expect(dialog.getByText('Vale PIN.')).toBeVisible()
     await expect(pin).toBeFocused()
+    // A parent who never chose a PIN is told the one a new account starts with, and one who forgot
+    // theirs is shown the way to the profile's PIN card, which takes the account password.
+    await expect(dialog.getByText(`Uue konto PIN on ${DEFAULT_PIN}.`)).toBeVisible()
+    await expect(dialog.getByRole('link', { name: 'Unustasid PIN-i?' })).toHaveAttribute('href', '/profile#vanema-pin')
+    await expectTouchFriendly(page, 'PIN dialog after a wrong PIN')
 
     // The on-screen keyboard covers the bottom of the screen without making the page shorter (iPad
     // Safari), almost half of it on a tablet turned sideways. The dialog sits near the top, so the

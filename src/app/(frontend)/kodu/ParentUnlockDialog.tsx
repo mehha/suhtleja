@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { UnlockState } from '@/utilities/parentUnlock'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/input-otp'
 import { Label } from '@/components/ui/label'
 import { UserLock } from 'lucide-react'
-import { cn } from '@/utilities/ui'
+import { PIN_SETTINGS_HREF } from '@/utilities/parentPin'
 
 const initialState: UnlockState = {
   success: false,
@@ -100,8 +101,9 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
     if (open && next.length === 4) void submitPin(next)
   }
 
+  // Without a PIN the dialog still opens, to say why the parent view stays shut and where to set
+  // one: a greyed-out button said nothing, and nothing else in the child view leads to the profile.
   const handleOpen = () => {
-    if (!hasPin) return
     setState(initialState)
     submittedPinRef.current = null
     setOpen(true)
@@ -121,8 +123,7 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
           variant="ghost"
           size="icon"
           onClick={handleOpen}
-          disabled={!hasPin}
-          className={cn(className, !hasPin && 'cursor-not-allowed opacity-60')}
+          className={className}
         >
           {children}
         </Button>
@@ -133,7 +134,7 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
           roundness="full"
           size="icon"
           onClick={handleOpen}
-          disabled={!hasPin}
+          aria-label="Vanema vaade"
         >
           <UserLock className="h-6 w-6" />
         </Button>
@@ -146,42 +147,68 @@ export function ParentUnlockDialog({ hasPin, className, children }: ParentUnlock
             <DialogTitle>Avan vanema vaate</DialogTitle>
           </DialogHeader>
 
-          <form
-            onSubmit={handleSubmit}
-            data-navigation-form
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="parent-unlock-pin">PIN (4 numbrit)</Label>
-              <InputOTP
-                id="parent-unlock-pin"
-                maxLength={4}
-                value={pin}
-                onChange={handlePinChange}
-                containerClassName="justify-start"
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} ref={firstSlotRef} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-
-            {state.error && (
-              <p className="text-sm text-red-500">{state.error}</p>
-            )}
-
-            {/* jätame nupu alles fallbackiks / klaviatuurikasutajatele */}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={pin.length !== 4 || isSubmitting}
+          {hasPin ? (
+            <form
+              onSubmit={handleSubmit}
+              data-navigation-form
+              className="space-y-4"
             >
-              {isSubmitting ? 'Avan...' : 'Ava vanema vaade'}
-            </Button>
-          </form>
+              <div className="space-y-2">
+                <Label htmlFor="parent-unlock-pin">PIN (4 numbrit)</Label>
+                {/* The link sits beside the boxes, not under the button: the dialog must stay short
+                    enough to clear the on-screen keyboard (parent-child-mode.md). The profile's PIN
+                    card takes the account password instead of the old PIN. */}
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                  <InputOTP
+                    id="parent-unlock-pin"
+                    maxLength={4}
+                    value={pin}
+                    onChange={handlePinChange}
+                    containerClassName="justify-start"
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} ref={firstSlotRef} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                  <Link
+                    href={PIN_SETTINGS_HREF}
+                    onClick={() => setOpen(false)}
+                    className="inline-flex min-h-9 items-center text-sm text-muted-foreground underline underline-offset-4"
+                  >
+                    Unustasid PIN-i?
+                  </Link>
+                </div>
+              </div>
+
+              {state.error && (
+                <p className="text-sm text-red-500">{state.error}</p>
+              )}
+
+              {/* jätame nupu alles fallbackiks / klaviatuurikasutajatele */}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={pin.length !== 4 || isSubmitting}
+              >
+                {isSubmitting ? 'Avan...' : 'Ava vanema vaade'}
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Sellel kontol pole vanema PIN-i, seega vanema vaadet ei saa avada. Sea profiilis PIN ja ava
+                vanema vaade sellega.
+              </p>
+              <Button asChild className="w-full">
+                <Link href={PIN_SETTINGS_HREF} onClick={() => setOpen(false)}>
+                  Sea PIN profiilis
+                </Link>
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

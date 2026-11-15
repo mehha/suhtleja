@@ -7,8 +7,7 @@ import bcrypt from 'bcryptjs'
 import { validateUserName } from './validateName'
 import { SPEECH_RATES, TTS_VOICES } from '@/utilities/speechSettings'
 import { LABEL_CASES } from '@/utilities/labelCase'
-
-const DEFAULT_PARENT_PIN = process.env.DEFAULT_PARENT_PIN || '0000'
+import { DEFAULT_PARENT_PIN } from '@/utilities/parentPin'
 
 // Only admins may set these through the API. Server code uses the Local API, which skips
 // access checks, so the Stripe webhook and profile actions can still write them.

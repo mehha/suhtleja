@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/utilities/ui'
+import { PIN_SETTINGS_ID } from '@/utilities/parentPin'
 import { withToast } from '@/utilities/flashToast'
 import { MEMBERSHIP_TRIAL_DAYS } from '@/utilities/membershipCheckout'
 import { startMembershipTrial } from '@/utilities/startMembershipTrial'
@@ -291,7 +292,8 @@ export function ProfilePageClient({
         </CardContent>
       </Card>
 
-      <Card>
+      {/* The PIN dialog's "Unustasid PIN-i?" leads here; the margin clears the sticky header. */}
+      <Card id={PIN_SETTINGS_ID} className="scroll-mt-36">
         <CardHeader>
           <div>
             <CardTitle className="text-lg font-medium">Vanema PIN</CardTitle>
