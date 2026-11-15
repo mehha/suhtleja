@@ -241,7 +241,19 @@ test.describe('board', () => {
     const phraseBox = (await bar.getByText('süüa', { exact: true }).locator('xpath=..').boundingBox())!
     const playBox = (await playAll.boundingBox())!
     expect(Math.abs(phraseBox.y + phraseBox.height / 2 - (playBox.y + playBox.height / 2)), 'phrase beside the buttons').toBeLessThanOrEqual(8)
-    expect((await bar.locator('> div').boundingBox())!.height, 'action bar height').toBeLessThanOrEqual(90)
+    expect((await bar.locator('> div').boundingBox())!.height, 'action bar height').toBeLessThanOrEqual(120)
+    // Each word shows under its picture, large enough to read: the adult listening reads the
+    // sentence, and a child learning to read sees it. No word is cut off by its box.
+    for (const word of ['mina', 'tahan', 'süüa']) {
+      const label = bar.getByText(word, { exact: true })
+      const { fontSize, cut } = await label.evaluate((element) => ({
+        fontSize: parseFloat(getComputedStyle(element).fontSize),
+        cut: element.scrollWidth > element.clientWidth + 1 || element.getBoundingClientRect().height < 12,
+      }))
+      expect(fontSize, `"${word}" in the phrase: text size`).toBeGreaterThanOrEqual(12)
+      expect(cut, `"${word}" in the phrase: cut off`).toBe(false)
+      expect(await label.evaluate((element) => element.closest('.sr-only') !== null), `"${word}" for screen readers only`).toBe(false)
+    }
 
     await playAll.tap()
     await expect.poll(played, { message: 'the phrase should play' }).toBe(4)

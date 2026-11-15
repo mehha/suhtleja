@@ -884,7 +884,7 @@ export default function Runner({
             {!isParentMode && <h1 className="sr-only">{board.name}</h1>}
 
             {actionBarEnabled && (
-              <div className="flex min-h-14 min-w-0 max-w-full flex-1 items-center gap-2 overflow-hidden rounded-xl bg-slate-50 px-2 py-1.5 ring-1 ring-slate-200/70 md:min-h-16 md:px-3">
+              <div className="flex min-h-[4.5rem] min-w-0 max-w-full flex-1 items-center gap-2 overflow-hidden rounded-xl bg-slate-50 px-2 py-1.5 ring-1 ring-slate-200/70 md:min-h-24 md:px-3">
                 <div
                   ref={scrollContainerRef}
                   className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5 md:gap-2"
@@ -901,38 +901,41 @@ export default function Runner({
                       return (
                         <div
                           key={`${cellId}-${index}`}
-                          // The box centres a word without a picture: the word is a block, so its
-                          // first letter can be a capital (Suur algustäht).
-                          // 44px on a phone, where the phrase shares the row with the buttons.
-                          className={`relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm md:h-14 md:w-14 ${
+                          // A word of the phrase: its picture with the word under it, in the form
+                          // the sentence gives it ("tahan", "õuna") and in the member's letters, so
+                          // the adult listening reads the sentence and a child learning to read sees
+                          // it. The box is as wide as its word, which is never cut or broken. The
+                          // word is a block, so its first letter can be a capital (Suur algustäht).
+                          // Lower on a phone, where the phrase shares the row with the buttons.
+                          className={`flex h-14 min-w-11 shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg bg-white px-1 shadow-sm md:h-20 md:min-w-16 ${
                             phraseColor ? 'border-[3px]' : 'ring-1 ring-slate-200'
                           }`}
                           style={phraseColor ? { borderColor: phraseColor } : undefined}
                         >
                           {src ? (
-                            <>
+                            <div className="relative min-h-0 w-full flex-1">
+                              {/* The word under it names the picture. */}
                               <Image
                                 src={src}
-                                alt={cell?.title ?? text}
+                                alt=""
                                 fill
-                                sizes="56px"
+                                sizes="64px"
                                 className="object-contain"
                                 priority={false}
                                 unoptimized={isSvgImageURL(src)}
                               />
-                              {/* a11y: tekst ekraanilugejale */}
-                              <span className="sr-only">{text}</span>
-                            </>
-                          ) : (
-                            <div
-                              className={cn(
-                                'w-full px-1 text-center text-[10px] font-semibold leading-tight',
-                                LABEL_CASE_CLASS[letterCase],
-                              )}
-                            >
-                              {text}
                             </div>
-                          )}
+                          ) : null}
+                          <div
+                            className={cn(
+                              'shrink-0 whitespace-nowrap text-center font-semibold text-slate-950',
+                              // A word without a picture has the box to itself.
+                              src ? 'text-xs leading-4 md:text-base md:leading-5' : 'text-sm md:text-lg',
+                              LABEL_CASE_CLASS[letterCase],
+                            )}
+                          >
+                            {text}
+                          </div>
                         </div>
                       )
                     })
