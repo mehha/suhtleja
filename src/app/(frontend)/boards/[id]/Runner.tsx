@@ -1088,6 +1088,7 @@ export default function Runner({
                       title={titleToShow}
                       className="pointer-events-none transition-colors duration-200"
                       letterCase={letterCase}
+                      alone={!cellImageSrc(cell)}
                     />
                   )}
 

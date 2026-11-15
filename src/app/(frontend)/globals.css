@@ -173,6 +173,21 @@
   hyphens: auto;
 }
 
+/* A card without a picture (CellLabel `alone`): the label fills the card's free space and the word
+   grows to 2rem, held back by the card's width as above and by its height: at worst every word
+   takes a line of its own, so the text is at most the height divided by the number of words. */
+.board-cell-label-alone {
+  container-type: size;
+}
+
+.board-cell-label-alone .board-cell-label-text {
+  font-size: clamp(
+    0.625rem,
+    min(100cqi / (var(--label-chars, 6) * 0.75), 100cqb / var(--label-lines, 1)),
+    2rem
+  );
+}
+
 /* Board editor: where a dragged or resized cell will land. react-grid-layout draws a square box of
    20% red (pink); here it has the cards' corners (rounded-xl) and the logo's blue tile colours, as a
    dashed drop area. The card being dragged or resized lifts off the board with a deeper shadow and

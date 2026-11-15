@@ -76,7 +76,7 @@ export function PrintBoard({ board, letterCase }: Props) {
                   <img src={src} alt={cell.title ?? ''} className="h-full w-full object-contain" />
                 </div>
               ) : null}
-              {cell.title ? <CellLabel title={cell.title} letterCase={letterCase} /> : null}
+              {cell.title ? <CellLabel title={cell.title} letterCase={letterCase} alone={!src} /> : null}
             </div>
           )
         })}

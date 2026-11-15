@@ -121,6 +121,22 @@ async function expectBoardLaidOut(page: Page, { cols, words }: BoardShape = BOAR
       .map((label) => label.textContent),
   )
   expect(broken, 'labels that do not fit their tile').toEqual([])
+
+  // A card without a picture shows its word in the middle of the card, not at the top of an empty
+  // one, and inside the card.
+  const offCentre = await page.locator('.layout > .react-grid-item').evaluateAll((tiles) =>
+    tiles
+      .filter((tile) => !tile.querySelector('img'))
+      .map((tile) => {
+        const box = tile.getBoundingClientRect()
+        const text = tile.querySelector('.board-cell-label-text')!.getBoundingClientRect()
+        const off = Math.abs(text.top + text.height / 2 - (box.top + box.height / 2))
+        const inside = text.top >= box.top && text.bottom <= box.bottom
+        return off > 4 || !inside ? `${tile.textContent}: ${Math.round(off)}px off the middle` : null
+      })
+      .filter(Boolean),
+  )
+  expect(offCentre, 'words of cards without a picture').toEqual([])
   await expectNoSidewaysScroll(page)
 }
 

@@ -659,11 +659,13 @@ export default function BoardEditor({
                   {renderCellImage(cell)}
 
                   {cell.title && (
-                    // Without a picture the label comes first; keep it below the controls.
+                    // Without a picture the word fills the card, as on the board; here it keeps
+                    // below the controls.
                     <CellLabel
                       title={cell.title}
                       className={cellImageSrc(cell) ? undefined : 'pt-8'}
                       letterCase={letterCase}
+                      alone={!cellImageSrc(cell)}
                     />
                   )}
                 </div>
