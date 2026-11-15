@@ -35,6 +35,8 @@ const GRID_MARGIN: [number, number] = [16, 16]
 // The board keeps its own columns while a tile is at least this wide (the editor's minimum too), so
 // a tablet shows the board as the parent made it, upright and sideways alike.
 const MIN_TILE_WIDTH = 96
+// A phone on its side: so low that a few big tiles fill the screen (see `activeGridCols`).
+const SHORT_SCREEN_HEIGHT = 500
 
 type RunnerProps = {
   board: Board
@@ -225,13 +227,16 @@ export default function Runner({
   const mdCols = Math.max(1, Math.min(cols, 4))
   const mobileCols = Math.max(1, Math.min(cols, 3))
   const [gridWidth, setGridWidth] = useState(0)
+  const [shortScreen, setShortScreen] = useState(false)
 
   useEffect(() => {
     const element = gridContainerRef.current
     if (!element || typeof ResizeObserver === 'undefined') return
 
+    // Turning the device changes the grid's width, so the screen's height is read then too.
     const observer = new ResizeObserver(([entry]) => {
       setGridWidth(entry.contentRect.width)
+      setShortScreen(window.innerHeight < SHORT_SCREEN_HEIGHT)
     })
     observer.observe(element)
 
@@ -240,19 +245,26 @@ export default function Runner({
 
   const activeGridCols = useMemo(() => {
     if (!gridWidth || gridWidth >= 1024) return cols
-    const fullTileWidth = (gridWidth - GRID_MARGIN[0] * Math.max(0, cols - 1)) / cols
-    if (fullTileWidth >= MIN_TILE_WIDTH) return cols
+    const tileWidth = (count: number) => (gridWidth - GRID_MARGIN[0] * Math.max(0, count - 1)) / count
+    if (tileWidth(cols) >= MIN_TILE_WIDTH) return cols
+    // A phone on its side is wide and low: three columns there made tiles 200px tall, one row to a
+    // screen. It shows as many columns as fit instead, so two rows are in view.
+    if (shortScreen) {
+      let count = cols
+      while (count > 1 && tileWidth(count) < MIN_TILE_WIDTH) count -= 1
+      return count
+    }
     if (gridWidth >= 768) return mdCols
     return mobileCols
-  }, [cols, gridWidth, mdCols, mobileCols])
+  }, [cols, gridWidth, mdCols, mobileCols, shortScreen])
   const activeLayout = useMemo(
     () => (activeGridCols === cols ? baseLayout : buildColumnLayout(baseLayout, activeGridCols)),
     [activeGridCols, baseLayout, cols],
   )
 
-  // The action bar is fixed to the bottom edge and taller on phones (the phrase above the buttons)
-  // and above an iPhone's home indicator, so the page leaves room for its measured height: the last
-  // row can always be scrolled clear of it.
+  // The action bar is fixed to the bottom edge, lower on phones (smaller phrase pictures) and above
+  // an iPhone's home indicator, so the page leaves room for its measured height: the last row can
+  // always be scrolled clear of it.
   const actionBarRef = useRef<HTMLDivElement | null>(null)
   const [actionBarHeight, setActionBarHeight] = useState(0)
   useEffect(() => {
@@ -801,7 +813,7 @@ export default function Runner({
 
   return (
     <div
-      className="pb-28 md:pb-24"
+      className="pb-24"
       style={actionBarHeight ? { paddingBottom: actionBarHeight + 16 } : undefined}
     >
       {!isParentMode && (
@@ -866,14 +878,16 @@ export default function Runner({
         className="actionbar-container fixed inset-x-0 bottom-0 z-40 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-4"
       >
         <TooltipProvider>
-          <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] ring-1 ring-white/70 backdrop-blur md:flex-row md:items-stretch md:justify-between">
+          {/* One row on every screen, the phrase beside the buttons: stacked, the bar took a quarter
+              of a phone's screen upright and more than a third on its side. */}
+          <div className="flex items-stretch justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] ring-1 ring-white/70 backdrop-blur">
             {!isParentMode && <h1 className="sr-only">{board.name}</h1>}
 
             {actionBarEnabled && (
-              <div className="flex min-h-16 min-w-0 max-w-full flex-1 items-center gap-2 overflow-hidden rounded-xl bg-slate-50 px-3 py-1.5 ring-1 ring-slate-200/70">
+              <div className="flex min-h-14 min-w-0 max-w-full flex-1 items-center gap-2 overflow-hidden rounded-xl bg-slate-50 px-2 py-1.5 ring-1 ring-slate-200/70 md:min-h-16 md:px-3">
                 <div
                   ref={scrollContainerRef}
-                  className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-0.5"
+                  className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5 md:gap-2"
                 >
                   {sequenceCells.length === 0 ? (
                     <span className="text-sm text-slate-400">Vali pilte, et fraasi koostada</span>
@@ -889,7 +903,8 @@ export default function Runner({
                           key={`${cellId}-${index}`}
                           // The box centres a word without a picture: the word is a block, so its
                           // first letter can be a capital (Suur algustäht).
-                          className={`relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm ${
+                          // 44px on a phone, where the phrase shares the row with the buttons.
+                          className={`relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm md:h-14 md:w-14 ${
                             phraseColor ? 'border-[3px]' : 'ring-1 ring-slate-200'
                           }`}
                           style={phraseColor ? { borderColor: phraseColor } : undefined}
@@ -926,8 +941,8 @@ export default function Runner({
               </div>
             )}
 
-            <div className="flex shrink-0 items-center justify-between gap-2 md:justify-end">
-              <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center justify-end gap-2">
+              <div className="flex items-center gap-1.5 md:gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -936,14 +951,14 @@ export default function Runner({
                       roundness="full"
                       size="icon"
                       disabled={!sequence.length || phrasePlaying}
-                      className="h-14 w-14 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 md:h-12 md:w-12"
+                      className="h-12 w-12 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400"
                     >
                       {phrasePlaying ? (
                         <span className="inline-flex items-center gap-2">
-                          <AnimatedVolumeIcon busy className="h-7 w-7 md:h-6 md:w-6" />
+                          <AnimatedVolumeIcon busy className="h-6 w-6" />
                         </span>
                       ) : (
-                        <Volume2Icon className="h-7 w-7 md:h-6 md:w-6" />
+                        <Volume2Icon className="h-6 w-6" />
                       )}
                     </Button>
                   </TooltipTrigger>

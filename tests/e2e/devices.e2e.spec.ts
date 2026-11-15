@@ -62,9 +62,16 @@ function overlapping(tiles: Tile[]) {
 }
 
 // The columns a board shows at a grid width (Runner.tsx): its own while a tile is at least 96px
-// wide (always from 1024px), otherwise at most 4 from 768px and 3 below.
-function expectedColumns(gridWidth: number, cols: number) {
-  if (gridWidth >= 1024 || (gridWidth - 16 * (cols - 1)) / cols >= 96) return cols
+// wide (always from 1024px), otherwise at most 4 from 768px and 3 below. A phone on its side (a
+// screen under 500px high) shows as many as fit at 96px instead, so more than one row is in view.
+function expectedColumns(gridWidth: number, cols: number, screenHeight: number) {
+  const tileWidth = (count: number) => (gridWidth - 16 * (count - 1)) / count
+  if (gridWidth >= 1024 || tileWidth(cols) >= 96) return cols
+  if (screenHeight < 500) {
+    let count = cols
+    while (count > 1 && tileWidth(count) < 96) count -= 1
+    return count
+  }
   return Math.min(cols, gridWidth >= 768 ? 4 : 3)
 }
 
@@ -86,7 +93,7 @@ async function expectBoardLaidOut(page: Page, { cols, words }: BoardShape = BOAR
     expect(overlapping(tiles), 'tiles on top of each other').toEqual([])
 
     const columns = new Set(tiles.map((tile) => Math.round(tile.left))).size
-    expect(columns, `columns at a ${gridWidth}px grid`).toBe(expectedColumns(gridWidth, cols))
+    expect(columns, `columns at a ${gridWidth}px grid`).toBe(expectedColumns(gridWidth, cols, viewport.height))
 
     // Read row by row, left to right, the words come in the board's order: a child finds a word
     // where it was the last time.
@@ -229,6 +236,12 @@ test.describe('board', () => {
       await expect.poll(played, { message: `"${word}" should play` }).toBe(index + 1)
     }
     await expect(bar).toContainText(/mina.*tahan.*süüa/)
+    // The phrase and the buttons share one row on every screen: stacked, the bar took a quarter of
+    // a phone's screen.
+    const phraseBox = (await bar.getByText('süüa', { exact: true }).locator('xpath=..').boundingBox())!
+    const playBox = (await playAll.boundingBox())!
+    expect(Math.abs(phraseBox.y + phraseBox.height / 2 - (playBox.y + playBox.height / 2)), 'phrase beside the buttons').toBeLessThanOrEqual(8)
+    expect((await bar.locator('> div').boundingBox())!.height, 'action bar height').toBeLessThanOrEqual(90)
 
     await playAll.tap()
     await expect.poll(played, { message: 'the phrase should play' }).toBe(4)
