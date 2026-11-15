@@ -539,6 +539,12 @@ test.describe('board editor', () => {
     // The switch in Lisaseaded; turned off and on, the board has changes to save.
     await page.getByRole('button', { name: 'Lisaseaded' }).tap()
     const settings = page.getByRole('dialog', { name: 'Lisaseaded' })
+    // Each setting says what it does, under its name.
+    await expect(settings.getByText('Sõna võtab lauses õige vormi')).toBeVisible()
+    for (const toggle of await settings.getByRole('switch').all()) {
+      const help = await toggle.getAttribute('aria-describedby')
+      await expect(settings.locator(`[id="${help}"]`), `${await toggle.getAttribute('id')}: what it does`).toBeVisible()
+    }
     await settings.getByRole('switch', { name: 'Sõnavormid lauses sees' }).tap()
     await settings.getByRole('switch', { name: 'Sõnavormid lauses väljas' }).tap()
     await expect(settings.getByRole('switch', { name: 'Sõnavormid lauses sees' })).toBeChecked()

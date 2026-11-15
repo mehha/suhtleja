@@ -37,7 +37,10 @@ import type { LabelCase } from '@/utilities/labelCase'
 
 const COMPACT_SWITCH_CLASS =
   'h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4'
-const TOGGLE_CARD_CLASS = 'flex items-center gap-2 rounded-xl border bg-card px-2.5 py-1.5'
+const TOGGLE_CARD_CLASS = 'flex items-center gap-3 rounded-xl border bg-card px-2.5 py-2'
+// What a setting in Lisaseaded does, under its name: "Tegevusriba" or "AI väljas" alone told a
+// parent nothing.
+const TOGGLE_HELP_CLASS = 'mt-0.5 text-xs leading-snug text-muted-foreground'
 const GRID_MARGIN: [number, number] = [16, 16]
 // The narrowest cell that still fits its grip and buttons.
 const MIN_CELL_WIDTH = 96
@@ -490,54 +493,78 @@ export default function BoardEditor({
                     <div className={TOGGLE_CARD_CLASS}>
                       <Switch
                         id="action-bar-toggle"
+                        aria-describedby="action-bar-toggle-help"
                         className={COMPACT_SWITCH_CLASS}
                         checked={actionBar.enabled}
                         onCheckedChange={(checked) => {
                           void updateActionBar(checked)
                         }}
                       />
-                      <Label htmlFor="action-bar-toggle">
-                        {actionBar.enabled ? 'Tegevusriba sees' : 'Tegevusriba väljas'}
-                      </Label>
+                      <div className="min-w-0">
+                        <Label htmlFor="action-bar-toggle">
+                          {actionBar.enabled ? 'Tegevusriba sees' : 'Tegevusriba väljas'}
+                        </Label>
+                        <p id="action-bar-toggle-help" className={TOGGLE_HELP_CLASS}>
+                          Näitab tahvli all lauset, mille laps kaartidest kokku paneb.
+                        </p>
+                      </div>
                     </div>
                     <div className={TOGGLE_CARD_CLASS}>
                       <Switch
                         id="action-ai-toggle"
+                        aria-describedby="action-ai-toggle-help"
                         className={COMPACT_SWITCH_CLASS}
                         checked={aiEnabled}
                         onCheckedChange={(checked) => {
                           void updateAi(checked)
                         }}
                       />
-                      <Label htmlFor="action-ai-toggle">
-                        {aiEnabled ? 'AI sees' : 'AI väljas'}
-                      </Label>
+                      <div className="min-w-0">
+                        <Label htmlFor="action-ai-toggle">
+                          {aiEnabled ? 'AI sees' : 'AI väljas'}
+                        </Label>
+                        <p id="action-ai-toggle-help" className={TOGGLE_HELP_CLASS}>
+                          Tehisaru kohendab lapse kokku pandud lause sõnavorme, et lause kõlaks loomulikult.
+                        </p>
+                      </div>
                     </div>
                     <div className={TOGGLE_CARD_CLASS}>
                       <Switch
                         id="word-class-colors-toggle"
+                        aria-describedby="word-class-colors-toggle-help"
                         className={COMPACT_SWITCH_CLASS}
                         checked={wordClassColors}
                         onCheckedChange={(checked) => {
                           void updateWordClassColors(checked)
                         }}
                       />
-                      <Label htmlFor="word-class-colors-toggle">
-                        {wordClassColors ? 'Sõnaliigi värvid sees' : 'Sõnaliigi värvid väljas'}
-                      </Label>
+                      <div className="min-w-0">
+                        <Label htmlFor="word-class-colors-toggle">
+                          {wordClassColors ? 'Sõnaliigi värvid sees' : 'Sõnaliigi värvid väljas'}
+                        </Label>
+                        <p id="word-class-colors-toggle-help" className={TOGGLE_HELP_CLASS}>
+                          Kaardi äär on sõnaliigi värvi, näiteks tegusõnad rohelised. Värv aitab lapsel sõna leida.
+                        </p>
+                      </div>
                     </div>
                     <div className={TOGGLE_CARD_CLASS}>
                       <Switch
                         id="grammar-toggle"
+                        aria-describedby="grammar-toggle-help"
                         className={COMPACT_SWITCH_CLASS}
                         checked={grammar}
                         onCheckedChange={(checked) => {
                           void updateGrammar(checked)
                         }}
                       />
-                      <Label htmlFor="grammar-toggle">
-                        {grammar ? 'Sõnavormid lauses sees' : 'Sõnavormid lauses väljas'}
-                      </Label>
+                      <div className="min-w-0">
+                        <Label htmlFor="grammar-toggle">
+                          {grammar ? 'Sõnavormid lauses sees' : 'Sõnavormid lauses väljas'}
+                        </Label>
+                        <p id="grammar-toggle-help" className={TOGGLE_HELP_CLASS}>
+                          Sõna võtab lauses õige vormi: „mina“ ja „tahtma“ ütleb „mina tahan“.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </DialogContent>
