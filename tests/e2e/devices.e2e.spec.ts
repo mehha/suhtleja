@@ -707,6 +707,15 @@ test.describe('game', () => {
       await test.step(name, async () => {
         await page.setViewportSize(size)
         await expectTouchFriendly(page, `game, ${name}`)
+        // The picture is the first thing on the page and fits under the child's bar, so the child
+        // plays without scrolling (a finger on the picture doesn't scroll the page).
+        await page.evaluate(() => window.scrollTo(0, 0))
+        await expect(async () => {
+          const board = (await page.locator('[data-connect-dots-board]').boundingBox())!
+          const barBottom = await page.getByRole('link', { name: 'Kodu', exact: true }).evaluate((link) => link.parentElement!.getBoundingClientRect().bottom)
+          expect(board.y, `picture below the child bar, ${name}`).toBeGreaterThanOrEqual(barBottom)
+          expect(board.y + board.height, `picture's bottom edge, ${name}`).toBeLessThanOrEqual(size.height)
+        }).toPass({ timeout: 5_000 })
         for (const index of DOTS.keys()) await expectOnScreen(page, dotTargets(page).nth(index), `dot ${index + 1}`)
       })
     }

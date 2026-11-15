@@ -74,30 +74,34 @@ export default async function ConnectDotsPage({
     <>
       {/* In the child view the site header is hidden (FrontendShell): the child's bar instead. */}
       {!isParentMode && <ChildModeBar hasPin={Boolean((user as User).parentPinHash)} />}
-      <main className={`xl:container space-y-6 py-6 ${isParentMode ? '' : 'pt-0'}`}>
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-sky-700">
-              <PencilRuler className="h-5 w-5" />
+      <main className={`xl:container ${isParentMode ? 'space-y-6 py-6' : 'pb-6'}`}>
+        {/* The child gets the picture at once: the name and the instructions are for the parent,
+            and above the picture they pushed it off a phone's first screen. */}
+        {isParentMode ? (
+          <header className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                <PencilRuler className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold leading-tight">Ühenda punktid</h1>
+                <p className="text-sm text-muted-foreground">
+                  Vali pilt, ühenda punktid õiges järjekorras ja lase peidetud kujundil samm-sammult välja ilmuda.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Saad mängida klõpsates või pliiatsi moodi joont vedades. Loendus töötab nii 1 kaupa, 4 kaupa kui
+                  ka ABC järjestuses.
+                </p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold leading-tight">Ühenda punktid</h1>
-              <p className="text-sm text-muted-foreground">
-                Vali pilt, ühenda punktid õiges järjekorras ja lase peidetud kujundil samm-sammult välja ilmuda.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Saad mängida klõpsates või pliiatsi moodi joont vedades. Loendus töötab nii 1 kaupa, 4 kaupa kui
-                ka ABC järjestuses.
-              </p>
-            </div>
-          </div>
 
-          {isParentMode ? (
             <Button asChild type="button" variant="outline">
               <Link href="/koduhaldus">Halda mänge</Link>
             </Button>
-          ) : null}
-        </header>
+          </header>
+        ) : (
+          <h1 className="sr-only">Ühenda punktid</h1>
+        )}
 
         {puzzles.length > 0 ? (
           <ConnectDotsGame initialPuzzleId={initialPuzzleId} puzzles={puzzles} revealMode="complete" />

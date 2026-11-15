@@ -189,6 +189,11 @@ export function ConnectDotsGame({
   )
   const svgWidth = Math.max(renderRect.width, 1)
   const svgHeight = Math.max(renderRect.height, 1)
+  // The drawn dot and its number, for a child's eyes: 24px across with an 18px number on a tablet,
+  // down to three quarters of that on a phone's small picture, where full-size dots would crowd.
+  // (The tap target stays 44px whatever the dot's size.)
+  const dotScale = Math.min(1, Math.max(0.75, Math.min(svgWidth, svgHeight) / 480))
+  const dotRadius = 12 * dotScale
 
   // The success burst shows when the puzzle is finished (and hides after a while, below).
   const [prevFinished, setPrevFinished] = useState(finished)
@@ -586,95 +591,19 @@ export function ConnectDotsGame({
 
   return (
     <div className={cn('space-y-5', embedded && 'space-y-4')}>
-      {showPicker && puzzles.length > 1 && (
-        <div className="overflow-x-auto rounded-[2rem] border border-sky-100 bg-[linear-gradient(135deg,rgba(240,249,255,0.95),rgba(255,255,255,0.98))] p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <div className="block text-sm font-semibold text-slate-800">Vali pilt</div>
-              <p className="mt-1 text-xs uppercase tracking-[0.24em] text-slate-400">
-                {puzzles.length} valikut
-              </p>
-            </div>
-            <div className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
-              {puzzle.dots.length} punkti
-            </div>
-          </div>
-
-          <ScrollArea className="w-full whitespace-nowrap">
-            <div className="flex gap-3 pb-3">
-              {puzzles.map((entry) => {
-                const active = entry.id === puzzle.id
-
-                return (
-                  <Card
-                    key={entry.id}
-                    className={cn(
-                      'w-[120px] min-w-[120px] cursor-pointer overflow-hidden rounded-[1.4rem] border bg-white/92 p-0 shadow-sm transition-all duration-200',
-                      active
-                        ? 'border-sky-400 shadow-[0_16px_36px_-24px_rgba(14,165,233,0.85)] ring-2 ring-sky-200'
-                        : 'border-slate-200 hover:border-sky-200 hover:shadow-[0_12px_30px_-24px_rgba(14,165,233,0.65)]',
-                    )}
-                    onClick={() =>
-                      startTransition(() => {
-                        setSelectedPuzzleId(entry.id)
-                      })
-                    }
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        startTransition(() => {
-                          setSelectedPuzzleId(entry.id)
-                        })
-                      }
-                    }}
-                  >
-                    <div className="relative h-[100px] w-full overflow-hidden bg-[radial-gradient(circle_at_top,#f8fafc,#e2e8f0)]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        alt={entry.imageAlt || entry.title}
-                        className="h-full w-full object-contain"
-                        draggable={false}
-                        src={entry.imageUrl}
-                      />
-                      <div className="absolute right-2 top-2 rounded-full bg-white/92 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-700 shadow-sm">
-                        {entry.dots.length}
-                      </div>
-                    </div>
-                    <div className="space-y-1 px-3 py-2">
-                      <div className="line-clamp-2 text-sm font-semibold leading-5 text-slate-800">
-                        {entry.title}
-                      </div>
-                      <div
-                        className={cn(
-                          'text-[11px] font-medium',
-                          active ? 'text-sky-600' : 'text-slate-400',
-                        )}
-                      >
-                        {active ? 'Praegu valitud' : 'Vali pilt'}
-                      </div>
-                    </div>
-                  </Card>
-                )
-              })}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-
-          {puzzle.description ? (
-            <p className="mt-3 text-sm text-slate-600">{puzzle.description}</p>
-          ) : null}
-        </div>
-      )}
-
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 rounded-[2rem] border border-sky-100 bg-white p-3 shadow-[0_24px_80px_-40px_rgba(14,116,144,0.45)]">
+        <div className="min-w-0 rounded-[2rem] border border-sky-100 bg-white p-3 shadow-[0_24px_80px_-40px_rgba(14,116,144,0.45)] lg:col-start-1 lg:row-start-1">
+          {/* The picture is the first thing on the page and never taller than the screen under the
+              child's bar (7rem: the bar and this card's padding), so every dot can be reached
+              without scrolling; the board doesn't scroll under a finger (touch-none). The picture
+              sits whole inside the box whatever the box's shape (getContainedImageRect). */}
           <div
             ref={boardRef}
-            className="group relative min-h-[360px] w-full max-w-full select-none overflow-hidden rounded-[1.6rem] border border-sky-100 bg-[radial-gradient(circle_at_top,#f0f9ff,white_60%)] touch-none"
+            data-connect-dots-board="true"
+            className="group relative min-h-[220px] w-full max-w-full select-none overflow-hidden rounded-[1.6rem] border border-sky-100 bg-[radial-gradient(circle_at_top,#f0f9ff,white_60%)] touch-none"
             style={{
               aspectRatio: imageAspectRatio,
+              maxHeight: 'calc(100svh - 7rem)',
               cursor: !finished ? PENCIL_CURSOR : 'default',
             }}
             onClick={handleBoardClick}
@@ -778,7 +707,7 @@ export function ConnectDotsGame({
                           cx={dotX}
                           cy={dotY}
                           fill="none"
-                          r="11"
+                          r={dotRadius + 4}
                           stroke="rgba(17, 24, 39, 0.38)"
                           strokeWidth="1.5"
                         />
@@ -787,18 +716,23 @@ export function ConnectDotsGame({
                         cx={dotX}
                         cy={dotY}
                         fill={visited ? 'rgba(0, 0, 0, 0.18)' : '#ffffff'}
-                        r="8"
+                        r={dotRadius}
                         stroke="#111827"
-                        strokeWidth={next ? '3' : '2'}
+                        strokeWidth={next ? '3.5' : '2'}
                       />
-                      {next ? <circle cx={dotX} cy={dotY} fill="#111827" r="2.2" /> : null}
+                      {next ? <circle cx={dotX} cy={dotY} fill="#111827" r={dotRadius / 3} /> : null}
+                      {/* The white edge keeps the number readable over the lines and the picture. */}
                       <text
                         fill="#0f172a"
                         fontFamily="ui-sans-serif, system-ui, sans-serif"
-                        fontSize="11"
+                        fontSize={18 * dotScale}
                         fontWeight="700"
-                        x={dotX + 12}
-                        y={dotY - 10}
+                        paintOrder="stroke"
+                        stroke="#ffffff"
+                        strokeLinejoin="round"
+                        strokeWidth="3"
+                        x={dotX + dotRadius + 3}
+                        y={dotY - dotRadius}
                       >
                         {label}
                       </text>
@@ -839,7 +773,69 @@ export function ConnectDotsGame({
           </div>
         </div>
 
-        <aside className="space-y-4">
+        {/* The other pictures come after the picture being played, not before it: the child opened
+            this game from the home and should see it at once. */}
+        {showPicker && puzzles.length > 1 && (
+          <div className="min-w-0 rounded-[2rem] border border-sky-100 bg-[linear-gradient(135deg,rgba(240,249,255,0.95),rgba(255,255,255,0.98))] p-4 shadow-sm lg:col-start-1 lg:row-start-2">
+            <h2 className="mb-3 text-sm font-semibold text-slate-800">Vali pilt</h2>
+
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-3 pb-3">
+                {puzzles.map((entry) => {
+                  const active = entry.id === puzzle.id
+
+                  return (
+                    <Card
+                      key={entry.id}
+                      aria-pressed={active}
+                      className={cn(
+                        'w-[120px] min-w-[120px] cursor-pointer overflow-hidden rounded-[1.4rem] border bg-white/92 p-0 shadow-sm transition-all duration-200',
+                        active
+                          ? 'border-sky-400 shadow-[0_16px_36px_-24px_rgba(14,165,233,0.85)] ring-2 ring-sky-200'
+                          : 'border-slate-200 hover:border-sky-200 hover:shadow-[0_12px_30px_-24px_rgba(14,165,233,0.65)]',
+                      )}
+                      onClick={() =>
+                        startTransition(() => {
+                          setSelectedPuzzleId(entry.id)
+                        })
+                      }
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          startTransition(() => {
+                            setSelectedPuzzleId(entry.id)
+                          })
+                        }
+                      }}
+                    >
+                      <div className="h-[100px] w-full overflow-hidden bg-[radial-gradient(circle_at_top,#f8fafc,#e2e8f0)]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          alt={entry.imageAlt || entry.title}
+                          className="h-full w-full object-contain"
+                          draggable={false}
+                          src={entry.imageUrl}
+                        />
+                      </div>
+                      <div className="line-clamp-2 whitespace-normal px-3 py-2 text-sm font-semibold leading-5 text-slate-800">
+                        {entry.title}
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+
+            {puzzle.description ? (
+              <p className="mt-3 text-sm text-slate-600">{puzzle.description}</p>
+            ) : null}
+          </div>
+        )}
+
+        <aside className="space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <div className="rounded-3xl border border-sky-100 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-2 text-slate-800">
               <Eye className="h-4 w-4 text-sky-500" />

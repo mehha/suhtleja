@@ -41,8 +41,13 @@ tags: [suhtleja, frontend, game, connect-dots, payload]
 - A puzzle is playable only when it has:
   - an uploaded image
   - at least 2 valid dots
+- The page is play first (`connect-dots/page.tsx`, `ConnectDotsGame.tsx`):
+  - In the child view the picture is the first thing under `ChildModeBar`. The page's name is an `sr-only` heading there, and the instructions show only in the parent view: above the picture they, with the picture picker, took 45% of an upright tablet and the whole first screen of a phone, and the child had to scroll to play, on a page where a finger on the picture doesn't scroll (`touch-none`).
+  - The picture box is never taller than the screen under the bar (`max-height: calc(100svh - 7rem)`, at least 220px), so every dot is in reach without scrolling, also on a phone on its side. The picture sits whole inside the box whatever the box's shape (`getContainedImageRect`).
+  - `Vali pilt` (the other pictures) comes after the picture, then the settings (progress, `Loendus`, `Mänguviis`, restart); from the `lg` breakpoint the settings are a column beside the picture.
 - Wrong dot selections must be ignored.
 - Each dot takes taps on a 44px round target (an invisible circle around the drawn dot), big enough for a child's finger; a tap beside it counts as a wrong one.
+- The drawn dot is 24px across with an 18px number (white-edged, so it reads over the lines and the picture) when the picture is at least 480px on its shorter side, and shrinks with a smaller picture down to three quarters of that (`dotScale`), where full-size dots would crowd. The next dot has a thicker ring and a filled centre.
 - Supported play styles:
   - click the next dot
   - trace/drag from the current dot to the next dot
