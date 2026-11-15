@@ -347,6 +347,28 @@ test.describe('home in the parent view', () => {
     await expect(page).toHaveURL(new RegExp(`/boards/${member.boardId}/edit$`))
   })
 
+  test('a board taken off the home comes back from the toast', async ({ page, member, baseURL }) => {
+    // A board of the test's own, on the home.
+    const name = `Koduvaates ${member.boardName}`
+    const boardId = await createOwnBoard(page.request, name, [{ title: 'mina' }])
+    const pinned = await page.request.patch(`/api/boards/${boardId}?depth=0`, { data: { pinned: true } })
+    expect(pinned.status(), await pinned.text()).toBe(200)
+    await enterParentView(page, baseURL)
+    await page.goto('/kodu')
+    const card = page.getByRole('button').filter({ hasText: name })
+    await expect(card).toBeVisible()
+
+    // The button takes the card off at once; "Võta tagasi" in the toast puts it back.
+    await card.getByRole('button', { name: 'Eemalda koduvaatest' }).tap()
+    await expect(card).toHaveCount(0)
+    await expect(page.getByText('Tahvel eemaldati koduvaatest.')).toBeVisible()
+    await expectTouchFriendly(page, 'home with the removed board toast')
+    await page.getByRole('button', { name: 'Võta tagasi' }).tap()
+    await expect(card).toBeVisible()
+    const board = await (await page.request.get(`/api/boards/${boardId}?depth=0`)).json()
+    expect(board.pinned).toBe(true)
+  })
+
   test('the menu fits the screen', async ({ page, baseURL, viewport }) => {
     await enterParentView(page, baseURL)
     await page.goto('/kodu')

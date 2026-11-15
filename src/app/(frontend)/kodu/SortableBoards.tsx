@@ -19,7 +19,7 @@ import {
   Edit,
   Globe2,
   GripVertical,
-  EyeOff,
+  CircleMinus,
   ImageIcon,
   UserCog,
 } from 'lucide-react'
@@ -189,7 +189,9 @@ function SortableBoardCard({
                     }}
                     type="button"
                   >
-                    <EyeOff className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                    {/* A minus in a circle: "take this off". The crossed-out eye it replaced read as
+                        the card's state ("this is hidden"), on a card that is showing. */}
+                    <CircleMinus className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -261,28 +263,43 @@ export function SortableBoards({
   )
   const [, startUnpin] = useTransition()
 
+  // Shows or hides a card on the home through the server action; errors come back as a result
+  // (one thrown in a transition would otherwise reach the error page).
+  const setOnHome = async (board: HomeBoard, visible: boolean): Promise<ActionResult> => {
+    const formData = new FormData()
+    formData.set('boardId', String(board.id))
+    formData.set('visible', String(visible))
+    try {
+      return await unpinAction(formData)
+    } catch (error) {
+      console.error('Home visibility change failed', error)
+      return { ok: false, error: ACTION_ERROR }
+    }
+  }
+
+  // The card goes at once, and the toast takes it back: the button is a small icon among others,
+  // and a slip should cost one tap, not a trip to Koduhaldus.
   const unpin = (board: HomeBoard) => {
     startUnpin(async () => {
       hideItem(board.id)
 
-      const formData = new FormData()
-      formData.set('boardId', String(board.id))
-      formData.set('visible', 'false')
-
-      // Caught here: an error thrown in a transition would otherwise reach the error page.
-      let result: ActionResult
-      try {
-        result = await unpinAction(formData)
-      } catch (error) {
-        console.error('Unpin failed', error)
-        result = { ok: false, error: ACTION_ERROR }
-      }
-
-      if (result.ok) {
-        toast.success(FLASH_TOASTS['board-unpinned'].message, { id: 'home-unpin' })
-      } else {
+      const result = await setOnHome(board, false)
+      if (!result.ok) {
         toast.error(result.error, { id: 'home-unpin' })
+        return
       }
+      toast.success(FLASH_TOASTS['board-unpinned'].message, {
+        id: 'home-unpin',
+        duration: 8000,
+        action: {
+          label: 'Võta tagasi',
+          onClick: () =>
+            startUnpin(async () => {
+              const restored = await setOnHome(board, true)
+              if (!restored.ok) toast.error(restored.error, { id: 'home-unpin' })
+            }),
+        },
+      })
     })
   }
 

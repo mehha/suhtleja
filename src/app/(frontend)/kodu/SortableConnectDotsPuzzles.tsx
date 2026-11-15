@@ -13,7 +13,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { toast } from 'sonner'
 import { ACTION_ERROR, FLASH_TOASTS, type ActionResult } from '@/utilities/flashToast'
-import { CircleArrowRight, Edit, EyeOff, Globe2, GripVertical, PencilRuler, UserCog } from 'lucide-react'
+import { CircleArrowRight, CircleMinus, Edit, Globe2, GripVertical, PencilRuler, UserCog } from 'lucide-react'
 
 import {
   Tooltip,
@@ -181,7 +181,8 @@ function SortablePuzzleCard({
                       }}
                       type="button"
                     >
-                      <EyeOff className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                      {/* As on a board's card: "take this off", not the card's state. */}
+                      <CircleMinus className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -236,28 +237,43 @@ export function SortableConnectDotsPuzzles({
   )
   const [, startUnpin] = useTransition()
 
+  // Shows or hides a card on the home through the server action; errors come back as a result
+  // (one thrown in a transition would otherwise reach the error page).
+  const setOnHome = async (puzzle: HomeConnectDotsPuzzle, visible: boolean): Promise<ActionResult> => {
+    const formData = new FormData()
+    formData.set('puzzleId', String(puzzle.id))
+    formData.set('visible', String(visible))
+    try {
+      return await unpinAction(formData)
+    } catch (error) {
+      console.error('Home visibility change failed', error)
+      return { ok: false, error: ACTION_ERROR }
+    }
+  }
+
+  // The card goes at once, and the toast takes it back: the button is a small icon among others,
+  // and a slip should cost one tap, not a trip to Koduhaldus.
   const unpin = (puzzle: HomeConnectDotsPuzzle) => {
     startUnpin(async () => {
       hideItem(puzzle.id)
 
-      const formData = new FormData()
-      formData.set('puzzleId', String(puzzle.id))
-      formData.set('visible', 'false')
-
-      // Caught here: an error thrown in a transition would otherwise reach the error page.
-      let result: ActionResult
-      try {
-        result = await unpinAction(formData)
-      } catch (error) {
-        console.error('Unpin failed', error)
-        result = { ok: false, error: ACTION_ERROR }
-      }
-
-      if (result.ok) {
-        toast.success(FLASH_TOASTS['game-unpinned'].message, { id: 'home-unpin' })
-      } else {
+      const result = await setOnHome(puzzle, false)
+      if (!result.ok) {
         toast.error(result.error, { id: 'home-unpin' })
+        return
       }
+      toast.success(FLASH_TOASTS['game-unpinned'].message, {
+        id: 'home-unpin',
+        duration: 8000,
+        action: {
+          label: 'Võta tagasi',
+          onClick: () =>
+            startUnpin(async () => {
+              const restored = await setOnHome(puzzle, true)
+              if (!restored.ok) toast.error(restored.error, { id: 'home-unpin' })
+            }),
+        },
+      })
     })
   }
 
