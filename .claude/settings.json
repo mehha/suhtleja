@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(pnpm migrate:remote *)",
+      "Bash(pnpm run migrate:remote *)",
+      "Bash(npm run migrate:remote *)",
+      "Bash(pnpm * migrate:remote *)",
+      "Bash(pnpm * migrate:remote)",
+      "Bash(pnpm deploy *)",
+      "Bash(pnpm run deploy *)",
+      "Bash(npm run deploy *)",
+      "Bash(pnpm deploy:database *)",
+      "Bash(pnpm run deploy:database *)",
+      "Bash(npm run deploy:database *)",
+      "Bash(pnpm * deploy:database *)",
+      "Bash(pnpm * deploy:database)",
+      "Bash(NODE_ENV=production *)",
+      "Bash(env NODE_ENV=production *)",
+      "Bash(cross-env NODE_ENV=production *)",
+      "Bash(* cross-env NODE_ENV=production *)"
+    ]
+  }
+}
