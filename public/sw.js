@@ -40,6 +40,21 @@ function isChildPage(url) {
 
 const offline = () => self.navigator.onLine === false
 
+// The source a picture URL of next/image asks for, else null: `/cdn-cgi/image/<options>/<source>`, or
+// `/_next/image?url=<source>` from a page kept before 2026-11-26. The same as imageSource in
+// src/utilities/offlineCache.ts.
+function imageSource(url) {
+  if (url.pathname.startsWith('/cdn-cgi/image/')) {
+    const rest = url.pathname.slice('/cdn-cgi/image/'.length)
+    const slash = rest.indexOf('/')
+    if (slash === -1) return null
+    const source = rest.slice(slash + 1) + url.search
+    return /^https?:\/\//i.test(source) ? source : `/${source}`
+  }
+  if (url.pathname === '/_next/image') return url.searchParams.get('url')
+  return null
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
@@ -57,7 +72,7 @@ self.addEventListener('fetch', (event) => {
   }
   // Speech, sounds and pictures come from the network, and from the device without it.
   if (
-    (ours && (url.pathname.startsWith('/next/tts-cache/') || url.pathname === '/_next/image')) ||
+    (ours && (url.pathname.startsWith('/next/tts-cache/') || imageSource(url))) ||
     request.destination === 'image' ||
     request.destination === 'audio'
   ) {
@@ -135,7 +150,7 @@ async function keptMedia(request, url) {
   const exact = await cache.match(request, { ignoreVary: true })
   if (exact) return exact
   // A picture is kept in one size; any size of it is shown with that one.
-  const src = url.origin === self.location.origin && url.pathname === '/_next/image' && url.searchParams.get('url')
+  const src = url.origin === self.location.origin && imageSource(url)
   return src ? cache.match(`${url.origin}/_next/image?url=${encodeURIComponent(src)}`, { ignoreVary: true }) : undefined
 }
 

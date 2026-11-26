@@ -69,7 +69,7 @@ tags: [suhtleja, frontend, symbols, groq, api]
 
 ## `GET /next/symbol-image`
 - Proxies a symbol image so the client does not hit third-party hosts directly.
-- `src` must pass `isProxyableSymbolURL`: https only, `static.arasaac.org/pictograms/*`, `globalsymbols.com/uploads/production/image/*` (Mulberry) or `unpkg.com/**/openmoji@*`. Anything else returns `400 invalid_symbol_url`. Do not widen this allowlist without an SSRF review. The same hosts are in `next.config.js` `images.remotePatterns`, because board cards render saved symbol URLs with `next/image`. Next's optimizer refuses SVG, and OpenMoji and Mulberry symbols are SVG, so card images pass `unoptimized={isSvgImageURL(src)}` (editor, Runner, compound picker).
+- `src` must pass `isProxyableSymbolURL`: https only, `static.arasaac.org/pictograms/*`, `globalsymbols.com/uploads/production/image/*` (Mulberry) or `unpkg.com/**/openmoji@*`. Anything else returns `400 invalid_symbol_url`. Do not widen this allowlist without an SSRF review. Board cards render saved symbol URLs with `next/image`, which asks Cloudflare Images for them (see `media.md`), so the banks with pictures other than SVG (ARASAAC, Global Symbols) are also in `wrangler.jsonc` `images.url_transformations.allowed_origins`. OpenMoji and Mulberry symbols are SVG, which isn't resized, so card images pass `unoptimized={isSvgImageURL(src)}` (editor, Runner, compound picker).
 - Response is `private, max-age=86400, stale-while-revalidate=604800`.
 - Saved symbol URLs should be stored as original URLs and wrapped with `getSymbolProxyURL()` at render time.
 

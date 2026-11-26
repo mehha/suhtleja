@@ -28,8 +28,8 @@ export function isProxyableSymbolURL(value: string): boolean {
 }
 
 /**
- * Next's image optimizer refuses SVG ("image type is not allowed"), and OpenMoji and Mulberry symbols
- * are SVG. Render those with `unoptimized`.
+ * Cloudflare Images doesn't resize SVG (src/utilities/imageLoader.ts), and OpenMoji and Mulberry
+ * symbols are SVG. Render those with `unoptimized`.
  */
 export function isSvgImageURL(src?: string | null): boolean {
   if (!src) return false

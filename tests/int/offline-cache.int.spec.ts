@@ -1,8 +1,18 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { getImageProps } from 'next/image'
 import { describe, expect, it } from 'vitest'
 
-import { OFFLINE_CACHES, cardPicture, findPictures, findStaticURLs, pictureKey } from '@/utilities/offlineCache'
+import { CARD_IMAGE_SIZES } from '@/utilities/cardImage'
+import imageLoader from '@/utilities/imageLoader'
+import {
+  OFFLINE_CACHES,
+  cardPicture,
+  findPictures,
+  findStaticURLs,
+  imageSource,
+  pictureKey,
+} from '@/utilities/offlineCache'
 
 // What the device keeps from a page (src/utilities/offlineCache.ts), and that the service worker
 // (public/sw.js) looks it up the same way.
@@ -53,6 +63,24 @@ describe('the pictures a page shows', () => {
     })
   })
 
+  // In production next/image asks Cloudflare Images for each size (imageLoader.ts). Vitest has no
+  // next.config.js, so the board's <Image> is given the loader here.
+  it('keeps a picture resized by Cloudflare once, at about 640px, under the key of its source', () => {
+    for (const src of [
+      'https://media.suhtleja.ee/kass.webp?2026-11-03T08%3A48%3A36.776Z',
+      'https://static.arasaac.org/pictograms/2349/2349_500.png?download=false&color=true',
+      '/next/dev-media/pildipank-kass.png',
+    ]) {
+      const { props } = getImageProps({ src, alt: '', fill: true, sizes: CARD_IMAGE_SIZES, loader: imageLoader })
+      const [picture] = findPictures(`<img srcset="${props.srcSet}" src="${props.src}">`, ORIGIN)
+      expect(picture).toEqual({
+        url: `${ORIGIN}/cdn-cgi/image/width=640,quality=75,fit=scale-down,format=auto/${src.replace(/^\//, '')}`,
+        key: pictureKey(ORIGIN, src),
+        sameOrigin: true,
+      })
+    }
+  })
+
   it('keeps other pictures as they are, a picture from another site too', () => {
     const pictures = findPictures('<img src="/og-image.jpg"><img src="https://static.arasaac.org/kass.svg"><img src="data:image/png;base64,AA">', ORIGIN)
     expect(pictures).toEqual([
@@ -76,6 +104,38 @@ describe("a board card's picture", () => {
   it('keeps an SVG symbol as it is, since the board shows those unoptimized', () => {
     const src = '/next/symbol-image/openmoji-1F436.svg'
     expect(cardPicture(src, ORIGIN)).toEqual({ url: `${ORIGIN}${src}`, key: `${ORIGIN}${src}`, sameOrigin: true })
+  })
+})
+
+describe('the source of a picture URL', () => {
+  const cases: [string, string | null][] = [
+    ['/cdn-cgi/image/width=640,format=auto/https://media.suhtleja.ee/a%20b.webp?2026', 'https://media.suhtleja.ee/a%20b.webp?2026'],
+    ['/cdn-cgi/image/width=96,quality=75/next/dev-media/kass.png', '/next/dev-media/kass.png'],
+    ['/_next/image?url=%2Fnext%2Fdev-media%2Fkass.png&w=640&q=75', '/next/dev-media/kass.png'],
+    ['/cdn-cgi/image/width=96', null],
+    ['/og-image.jpg', null],
+  ]
+
+  it('is found in a Cloudflare Images URL and in an older next/image URL', () => {
+    for (const [url, source] of cases) expect(imageSource(new URL(url, ORIGIN))).toBe(source)
+  })
+
+  it('is found the same way by the service worker', () => {
+    const code = worker.match(/^function imageSource\(url\) \{[\s\S]*?^\}/m)?.[0]
+    expect(code).toBeTruthy()
+    const workerImageSource = new Function(`${code}; return imageSource`)() as (url: URL) => string | null
+    for (const [url, source] of cases) expect(workerImageSource(new URL(url, ORIGIN))).toBe(source)
+  })
+})
+
+describe('the image loader', () => {
+  it('asks Cloudflare Images for the size, with the source encoded once', () => {
+    expect(imageLoader({ src: '/next/dev-media/kass.png', width: 640 })).toBe(
+      '/cdn-cgi/image/width=640,quality=75,fit=scale-down,format=auto/next/dev-media/kass.png',
+    )
+    expect(imageLoader({ src: 'https://media.suhtleja.ee/minu kass.webp?2026-11-03T08%3A48%3A36.776Z', width: 96, quality: 60 })).toBe(
+      '/cdn-cgi/image/width=96,quality=60,fit=scale-down,format=auto/https://media.suhtleja.ee/minu%20kass.webp?2026-11-03T08%3A48%3A36.776Z',
+    )
   })
 })
 

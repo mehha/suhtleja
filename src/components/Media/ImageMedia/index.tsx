@@ -10,7 +10,7 @@ import type { Props as MediaProps } from '../types'
 
 import { cssVariables } from '@/cssVariables'
 import { getMediaUrl } from '@/utilities/getMediaUrl'
-import { isMediaFileURL } from '@/utilities/mediaURL'
+import { isSvgImageURL } from '@/utilities/symbolProxy'
 
 const { breakpoints } = cssVariables
 
@@ -21,30 +21,9 @@ const placeholderBlur =
 /**
  * ImageMedia
  *
- * This component passes a **relative** `src` (e.g. `/media/...`) to Next.js Image.
- * The `getMediaUrl` utility constructs the full URL by prepending the base URL from env vars
- * (NEXT_PUBLIC_SERVER_URL). Next.js then optimizes this using `remotePatterns` configured
- * in next.config.js — no custom `loader` needed.
- *
- * Flow:
- *   1. Resource URL from Payload: `/media/image-123.jpg`
- *   2. getMediaUrl() keeps a root-relative URL as it is (the same on the server and in the
- *      browser), and adds the cache tag: `/media/image-123.jpg?2026-…`
- *   3. Next.js Image optimizes via remotePatterns: `/_next/image?url=...&w=1200&q=75`
- *
- * If your storage/plugin returns **external CDN URLs** (e.g. `https://cdn.example.com/...`),
- * choose ONE of the following:
- *   A) Allow the remote host in next.config.js:
- *      images: { remotePatterns: [{ protocol: 'https', hostname: 'cdn.example.com' }] }
- *   B) Provide a **custom loader** for CDN-specific transforms:
- *      const imageLoader: ImageLoader = ({ src, width, quality }) =>
- *        `https://cdn.example.com${src}?w=${width}&q=${quality ?? 75}`
- *      <Image loader={imageLoader} src="/media/hero.jpg" width={1200} height={600} alt="" />
- *   C) Skip optimization:
- *      <Image unoptimized src="https://cdn.example.com/hero.jpg" width={1200} height={600} alt="" />
- *
- * TL;DR: Template uses relative URLs + getMediaUrl() to construct full URLs, then relies on
- * remotePatterns for optimization. Only add `loader` if using external CDNs with custom transforms.
+ * Payload media URLs point at the public media domain in production and at `/next/dev-media` elsewhere
+ * (src/utilities/mediaURL.ts). next/image asks Cloudflare Images for each size of them
+ * (src/utilities/imageLoader.ts); SVGs, and every picture in next dev, are shown as they are.
  */
 
 export const ImageMedia: React.FC<MediaProps> = (props) => {
@@ -78,7 +57,8 @@ export const ImageMedia: React.FC<MediaProps> = (props) => {
   }
 
   const loading = loadingFromProps || (!priority ? 'lazy' : undefined)
-  const unoptimized = typeof src === 'string' && isMediaFileURL(src)
+  // Cloudflare Images doesn't resize SVGs.
+  const unoptimized = typeof src === 'string' && isSvgImageURL(src)
 
   // NOTE: this is used by the browser to determine which image to download at different screen sizes
   const sizes = sizeFromProps

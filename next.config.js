@@ -2,52 +2,14 @@ import { withPayload } from '@payloadcms/next/withPayload'
 
 import redirects from './redirects.js'
 
-const NEXT_PUBLIC_SERVER_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
-  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-  : undefined || process.env.__NEXT_PRIVATE_ORIGIN || 'http://localhost:3000'
-const NEXT_PUBLIC_MEDIA_BASE_URL =
-  process.env.NEXT_PUBLIC_MEDIA_BASE_URL || 'https://media.suhtleja.ee'
-const mediaURL = new URL(NEXT_PUBLIC_MEDIA_BASE_URL)
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Cloudflare Images resizes pictures (src/utilities/imageLoader.ts); the hosts pictures may come
+  // from are in wrangler.jsonc. next dev has no /cdn-cgi/image, so it shows pictures as they are.
   images: {
-    remotePatterns: [
-      ...[NEXT_PUBLIC_SERVER_URL /* 'https://example.com' */].map((item) => {
-        const url = new URL(item)
-
-        return {
-          hostname: url.hostname,
-          protocol: url.protocol.replace(':', ''),
-        }
-      }),
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.pexels.com',
-      },
-      { protocol: 'https', hostname: 'static.arasaac.org' },
-      { protocol: 'https', hostname: 'unpkg.com' },
-      { protocol: 'https', hostname: 'globalsymbols.com', pathname: '/uploads/production/image/**' },
-      {
-        protocol: 'https',
-        hostname: 'suhtleja.ee',
-        pathname: '/api/media/**',
-      },
-      {
-        protocol: 'http',
-        hostname: 'suhtleja.test',
-        pathname: '/api/media/**',
-      },
-      {
-        protocol: mediaURL.protocol.replace(':', ''),
-        hostname: mediaURL.hostname,
-        pathname: '/**',
-      },
-    ],
+    loader: 'custom',
+    loaderFile: './src/utilities/imageLoader.ts',
+    unoptimized: process.env.NODE_ENV === 'development',
   },
   webpack: (webpackConfig) => {
     webpackConfig.resolve.extensionAlias = {

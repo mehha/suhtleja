@@ -13,7 +13,7 @@ type RouteContext = {
 // Outside production, media URLs point here (src/utilities/mediaURL.ts). Uploads made locally are
 // in the local R2 bucket; media copied from production is only on the public media domain, so that
 // is fetched and passed through. Proxied rather than redirected, because Next's image optimizer
-// doesn't follow a redirect for a local image.
+// (used in next dev until 2026-11-26) didn't follow a redirect for a local image.
 export async function GET(req: Request, { params }: RouteContext) {
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'not_found' }, { status: 404 })

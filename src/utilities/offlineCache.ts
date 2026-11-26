@@ -6,6 +6,7 @@ import { getImageProps } from 'next/image'
 
 import { CARD_IMAGE_SIZES } from '@/utilities/cardImage'
 import { loadGrammar } from '@/utilities/grammar/useGrammar'
+import { IMAGE_TRANSFORM_PREFIX } from '@/utilities/imageLoader'
 import type { OfflineList } from '@/utilities/offlineList'
 import { isSvgImageURL } from '@/utilities/symbolProxy'
 
@@ -93,9 +94,29 @@ export async function clearOfflineData() {
   await Promise.all([caches.delete(OFFLINE_CACHES.pages), caches.delete(OFFLINE_CACHES.media)]).catch(() => undefined)
 }
 
-/** The key a picture is kept under: one per picture, whatever size the page asks for. */
+/**
+ * The key a picture is kept under: one per picture, whatever size the page asks for. Only a name
+ * in the cache (the URL older builds asked next/image's pictures with), never fetched.
+ */
 export function pictureKey(origin: string, src: string): string {
   return `${origin}/_next/image?url=${encodeURIComponent(src)}`
+}
+
+/**
+ * The source a picture URL of next/image asks for, else null: `/cdn-cgi/image/<options>/<source>`
+ * (imageLoader.ts), or `/_next/image?url=<source>` from a page kept before 2026-11-26. public/sw.js
+ * has the same function.
+ */
+export function imageSource(url: URL): string | null {
+  if (url.pathname.startsWith(IMAGE_TRANSFORM_PREFIX)) {
+    const rest = url.pathname.slice(IMAGE_TRANSFORM_PREFIX.length)
+    const slash = rest.indexOf('/')
+    if (slash === -1) return null
+    const source = rest.slice(slash + 1) + url.search
+    return /^https?:\/\//i.test(source) ? source : `/${source}`
+  }
+  if (url.pathname === '/_next/image') return url.searchParams.get('url')
+  return null
 }
 
 /** The build's files (/_next/static/…) a page or a stylesheet names. */
@@ -134,10 +155,10 @@ function pictureOf(srcset: string, src: string | null | undefined, origin: strin
   const chosen = pickCandidate(srcset) ?? src
   if (!chosen || chosen.startsWith('data:')) return null
   const url = new URL(chosen, origin)
-  const optimized = url.origin === origin && url.pathname === '/_next/image' && url.searchParams.get('url')
+  const source = url.origin === origin ? imageSource(url) : null
   return {
     url: url.href,
-    key: optimized ? pictureKey(origin, optimized) : url.href,
+    key: source ? pictureKey(origin, source) : url.href,
     sameOrigin: url.origin === origin,
   }
 }
