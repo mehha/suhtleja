@@ -16,6 +16,16 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // next/image asks Cloudflare Images for each picture size through /cdn-cgi/image
+  // (src/utilities/imageLoader.ts). Pictures may come only from these hosts: the site, the media
+  // domain and the symbol banks whose pictures aren't SVG (ARASAAC; Global Symbols, in case it serves
+  // a PNG). Add a host here before cards show pictures from it. `wrangler deploy` (4.168+) applies this.
+  "images": {
+    "url_transformations": {
+      "enabled": true,
+      "allowed_origins": ["suhtleja.ee", "media.suhtleja.ee", "static.arasaac.org", "globalsymbols.com"]
+    }
+  },
   "d1_databases": [
     {
       "binding": "D1",
